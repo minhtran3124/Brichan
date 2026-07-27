@@ -33,6 +33,19 @@ use Sonnet 5. To use Fable 5 for coordination:
 BRIDA_CLAUDE_COORDINATOR_MODEL=fable ./bin/brida --runtime claude
 ```
 
+### Model routing
+
+- Codex coordinator: uses the Codex CLI default model unless you choose one
+  explicitly.
+- Claude coordinator: Opus 5 (`opus`) by default, or Fable 5 (`fable`).
+- Herdr implementation workers: Sonnet 5 (`sonnet`).
+
+Choose a Codex model explicitly with `-m`:
+
+```bash
+./bin/brida -m gpt-5.6-terra
+```
+
 ## How it works
 
 1. You give Brida a goal.
