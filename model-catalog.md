@@ -35,15 +35,16 @@ the installed catalog describes it as enabling automatic task delegation.
 ## Claude Code
 
 - CLI: installed, version `2.1.220`.
-- Herdr integration: installed/current.
-- Authentication: not verified; treat provider as unavailable until
-  `claude auth status` succeeds.
-- CLI accepts model aliases such as `fable`, `opus`, and `sonnet`, but their
-  account availability and exact capabilities have not been verified.
+- Herdr integration: installed/current (v7).
+- Authentication: verified on 2026-07-27. `claude auth status` reports
+  `loggedIn: true`, method `claude.ai`, subscription `max`.
+- Verified models: `opus` resolved to `claude-opus-5` in an observed headless
+  run; `sonnet` resolved to Sonnet 5 in observed Herdr worker sessions. `fable`
+  is accepted by the CLI but has not been exercised.
 
-Do not route work to Claude until authentication and the intended model are
-confirmed. Once available, prefer it as an independent reviewer when the
-implementer used Codex.
+Claude is routable. Prefer it as an independent reviewer when the implementer
+used Codex. Re-check `claude auth status` before a session that depends on it,
+because authentication can lapse.
 
 ## Unavailable providers
 
