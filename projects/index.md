@@ -10,6 +10,11 @@
 - Summary: Independent evaluation of reviewer, token/context, metrics, and long-horizontal-task claims.
 - Memory: projects/brida-workflow-evaluation/
 
+## Brida Claude Code support
+- Status: active
+- Summary: Add Claude Code as an explicit runtime while keeping Herdr as Brida's only worker-control plane.
+- Memory: projects/brida-claude-code-support/
+
 ## Entry template
 
 ```text

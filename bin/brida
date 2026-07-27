@@ -4,9 +4,32 @@ set -eu
 
 BRIDA_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
-exec codex \
-  -C "$BRIDA_ROOT" \
-  -c agents.enabled=false \
-  --disable multi_agent \
-  --disable multi_agent_v2 \
-  "$@"
+runtime=${BRIDA_RUNTIME:-codex}
+
+case "${1:-}" in
+  --runtime)
+    if [ "$#" -lt 2 ]; then
+      echo "usage: bin/brida [--runtime codex|claude] [arguments...]" >&2
+      exit 2
+    fi
+    runtime=$2
+    shift 2
+    ;;
+  --runtime=*)
+    runtime=${1#*=}
+    shift
+    ;;
+esac
+
+case "$runtime" in
+  codex)
+    exec "$BRIDA_ROOT/bin/brida-codex" "$@"
+    ;;
+  claude)
+    exec "$BRIDA_ROOT/bin/brida-claude" "$@"
+    ;;
+  *)
+    echo "unsupported runtime: $runtime (expected codex or claude)" >&2
+    exit 2
+    ;;
+esac

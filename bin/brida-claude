@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -eu
+
+BRIDA_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$BRIDA_ROOT"
+
+# Opus 5 is the default coordinator model. Set BRIDA_CLAUDE_COORDINATOR_MODEL=fable
+# when Fable 5 is preferred.
+coordinator_model=${BRIDA_CLAUDE_COORDINATOR_MODEL:-opus}
+
+# Herdr is Brida's only worker-control plane. Claude's native Task tool is
+# disabled so workers cannot bypass the recorded Herdr lifecycle.
+exec claude \
+  --model "$coordinator_model" \
+  --disallowed-tools Task \
+  "$@"

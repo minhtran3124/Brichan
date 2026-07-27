@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -eu
+
+BRIDA_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
+exec codex \
+  -C "$BRIDA_ROOT" \
+  -c agents.enabled=false \
+  --disable multi_agent \
+  --disable multi_agent_v2 \
+  "$@"
