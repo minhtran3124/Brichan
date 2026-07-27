@@ -4,18 +4,19 @@
 - Slug: brida-system-validation
 - Repository/path: repository root (`.`)
 - Owner: Brida
-- Lifecycle status: active
+- Lifecycle status: complete
 - Last verified: 2026-07-27
 
 ## Purpose
 
-Verify that Brida can create, instruct, monitor, and safely close independent
-worker sessions through Herdr.
+Verify that Brida can create, arrange, instruct, monitor, and safely close
+independent worker sessions through Herdr.
 
 ## In scope
 
 - Read-only orchestration smoke tests.
 - Herdr and Codex integration health checks.
+- Balanced pane-layout planning and live launcher smoke tests.
 
 ## Out of scope
 
@@ -32,4 +33,5 @@ worker sessions through Herdr.
 
 - Herdr reports a compatible running server and current Codex integration.
 - A `brida-` worker returns the expected smoke-test response.
+- Coordinator plus one to three workers receive equal-area layouts.
 - The worker pane is closed after evidence is collected.
