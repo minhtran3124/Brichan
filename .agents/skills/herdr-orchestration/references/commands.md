@@ -55,6 +55,21 @@ herdr pane run <pane-id> <task-packet>
 `herdr agent send` writes literal text without submitting it. Prefer
 `herdr pane run` for a prompt that must be followed by Enter.
 
+A multi-line or long task packet can arrive in an agent TUI as a single paste
+block that swallows the trailing Enter. Verified on Claude Code `2.1.220`: the
+packet appeared as `[Pasted text #1]` and the worker stayed `idle` until an
+explicit key was sent. After `herdr pane run`, confirm the worker actually
+started:
+
+```text
+herdr agent get <brida-name>
+herdr pane send-keys <pane-id> Enter
+```
+
+Send the Enter only when the agent is still `idle` and `herdr agent read` shows
+an unsubmitted prompt. An `idle` worker after a dispatched packet means the
+packet was never submitted, not that the task finished.
+
 ## Monitor
 
 ```text
