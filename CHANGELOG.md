@@ -7,10 +7,14 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-27
+
 ### Added
 
 - Balanced Herdr worker launcher that keeps coordinator and worker panes at
   equal area for groups of up to four total panes.
+- Regression coverage for the supported one-, two-, three-, and four-pane
+  layouts.
 
 ## [0.1.0] - 2026-07-27
 
