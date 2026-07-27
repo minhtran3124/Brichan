@@ -1,0 +1,4 @@
+interface:
+  display_name: "Herdr Orchestration"
+  short_description: "Safely orchestrate independent main agents through Herdr"
+  default_prompt: "Use $herdr-orchestration to delegate this task through Herdr with clear acceptance criteria."

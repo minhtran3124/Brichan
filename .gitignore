@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.pyright/
+.pyre/
+.ruff_cache/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+
+# Editors and operating systems
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+.fleet/
+*.swp
+*.swo
+*~
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+.direnv/
+*.pem
+*.key
+
+# Local tool runtime state
+.cache/
+.herdr/
+.codex/sessions/
+.codex/logs/
+.codex/tmp/
+
+# Local reports, process state, and scratch files
+tmp/
+temp/
+internal-docs/
+*.tmp
+*.temp
+*.log
+*.pid
+*.pid.lock
+*.bak
+*.orig
+*.rej
