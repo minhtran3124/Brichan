@@ -14,7 +14,8 @@ or automatic delegation as a substitute for Herdr.
 2. Write a complete task packet before creating a worker.
 3. Read `references/commands.md` and select a verified provider/model from
    `../../../model-catalog.md`.
-4. Start a uniquely named `brida-` worker in the intended project directory.
+4. Start a uniquely named `brida-` worker with the balanced-layout wrapper in
+   the intended project directory.
 5. Record its agent name, pane ID, model, task, and status in project `tasks.md`.
 6. Send the task packet and monitor status without busy-polling.
 7. When blocked, read the recent output and either provide bounded guidance or

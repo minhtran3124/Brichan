@@ -55,6 +55,8 @@ Choose a Codex model explicitly with `-m`:
 
 Herdr is the only approved worker-control plane. Native runtime delegation is
 disabled so worker ownership and cleanup stay visible and auditable.
+Worker panes are arranged through Brida's balanced-layout launcher: two panes
+use equal columns, three use equal area, and four use a 2x2 grid.
 
 ## Project memory
 

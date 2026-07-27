@@ -17,10 +17,19 @@ as `workspace_id`, `tab_id`, `pane_id`, and `terminal_id`. Copy IDs exactly.
 
 ## Start a Codex main agent
 
+Resolve the coordinator pane once before starting a related worker group:
+
 ```text
-herdr agent start <brida-name> \
+herdr pane current --current
+```
+
+Copy its `pane_id` as `<coordinator-pane-id>`. Start workers through Brida's
+wrapper so the coordinator tab stays balanced:
+
+```text
+bin/brida-herdr-agent-start <brida-name> \
+  --anchor-pane <coordinator-pane-id> \
   --cwd <absolute-project-path> \
-  --no-focus \
   -- codex --disable multi_agent -m <model>
 ```
 
@@ -30,13 +39,32 @@ Use a unique name beginning with `brida-`. Do not pass
 For an authenticated Claude provider:
 
 ```text
-herdr agent start <brida-name> \
+bin/brida-herdr-agent-start <brida-name> \
+  --anchor-pane <coordinator-pane-id> \
   --cwd <absolute-project-path> \
-  --no-focus \
   -- claude --model <verified-model> --permission-mode manual
 ```
 
 Do not use Claude until `claude auth status` succeeds.
+
+The wrapper infers the coordinator workspace/tab, keeps focus on the
+coordinator, and targets these layouts:
+
+| Total panes | Layout |
+|---:|---|
+| 2 | Equal 50/50 columns |
+| 3 | Equal-area T layout |
+| 4 | Equal 2x2 grid |
+
+For more than four panes or an already non-canonical split tree, it splits the
+largest pane as a best effort and prints a warning. It does not move panes
+between tabs or workspaces.
+
+The launcher returns nonzero when no worker was started. Once Herdr confirms a
+worker start, the launcher preserves Herdr's start JSON and returns success even
+if a later best-effort resize or focus restoration fails; it prints that
+degradation to stderr. This avoids interpreting a live worker as a failed start
+and accidentally spawning a duplicate.
 
 ## Resolve and instruct
 

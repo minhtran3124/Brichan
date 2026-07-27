@@ -21,6 +21,7 @@ class RepositoryContractTest(unittest.TestCase):
             "bin/brida",
             "bin/brida-codex",
             "bin/brida-claude",
+            "bin/brida-herdr-agent-start",
             "CLAUDE.md",
             ".codex/config.toml",
             "projects/_template/overview.md",
@@ -41,6 +42,15 @@ class RepositoryContractTest(unittest.TestCase):
             )
             self.assertEqual("", result.stderr)
             self.assertEqual(0, result.returncode)
+
+    def test_balanced_herdr_launcher_is_executable_python(self):
+        launcher = ROOT / "bin/brida-herdr-agent-start"
+        self.assertTrue(os.access(launcher, os.X_OK))
+        compile(
+            launcher.read_text(encoding="utf-8"),
+            str(launcher),
+            "exec",
+        )
 
     def test_launcher_disables_native_agents(self):
         launcher = (ROOT / "bin/brida-codex").read_text(encoding="utf-8")
