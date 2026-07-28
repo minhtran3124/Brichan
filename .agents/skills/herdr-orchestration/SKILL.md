@@ -38,8 +38,13 @@ Do not create a worker until the task has:
 
 Use `references/task-packet.md` as the prompt template. When an accepted
 upstream plan exists, fill its optional upstream plan and receipt block; when
-one does not exist, omit the block or use `null` values. A handoff receipt
-remains optional.
+one does not exist, omit the block or use `null` values.
+
+A handoff receipt is mandatory for an accepted-plan handoff and for any
+multi-writer task. One child receipt per writer and one parent receipt per task.
+Use a standalone receipt for a single-writer task. Store operational receipts
+at `projects/<slug>/handoffs/<task-id>/receipt.md` and add their paths to the
+project's `references.md`.
 
 ## Safety
 
@@ -60,3 +65,7 @@ remains optional.
   follow-up instruction.
 - Read `references/handoff-receipt.md` for planner-to-implementer or reviewer
   handoffs.
+- Read `references/concurrent-writers.md` when coordinating a multi-writer
+  task.
+- Read `references/worker-recovery.md` before declaring a worker stale,
+  replacing it, or abandoning its task.

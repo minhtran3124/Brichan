@@ -1,8 +1,12 @@
 # Task packet
 
 Use this template for each worker. Remove unused placeholders; do not omit
-acceptance criteria. The upstream plan and receipt block is optional: when no
-accepted plan or receipt exists, omit the block or use `null` for every value.
+acceptance criteria. The upstream plan and receipt block is optional only when
+there is no accepted plan and no multi-writer task. In that case, you may
+omit the block or use `null` for every value.
+
+When a receipt is mandatory, use its canonical repo-relative path:
+`projects/<slug>/handoffs/<task-id>/receipt.md`.
 
 ```text
 You are a worker agent coordinated by Brida, an AI Chief of Staff acting on the
@@ -22,6 +26,7 @@ Upstream plan and receipt (optional):
 - Plan version: <version or null>
 - Plan status: <draft or accepted or implemented or reviewed or null>
 - Handoff receipt path: <repo-relative path or null>
+- Receipt requirement: <mandatory or not-required>
 
 In scope:
 - <item>

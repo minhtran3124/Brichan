@@ -38,8 +38,9 @@ Use a sequential, coordinator-mediated handoff:
 5. Brida updates durable memory before closing only its recorded worker panes.
 
 Parallel research and review are appropriate when scopes do not overlap.
-Parallel implementation requires explicit write isolation and file ownership,
-which are not currently defined.
+Parallel implementation requires explicit, non-overlapping path ownership,
+dedicated branches and worktrees, parent/child receipts, and review of the
+integrated state.
 
 ## Constraints
 
@@ -48,4 +49,7 @@ which are not currently defined.
 - Native runtime delegation must not bypass Herdr.
 - No secrets or credentials may be stored in the repository.
 - Chat history is not a durable handoff artifact.
-- Current task packets are human-readable but not machine-enforced schemas.
+- Required operational receipts use the canonical
+  `projects/<slug>/handoffs/<task-id>/receipt.md` location and are checked by a
+  dependency-free completeness validator in `make check`.
+- Task packets remain human-readable rather than a machine-enforced schema.
