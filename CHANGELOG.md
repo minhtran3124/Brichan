@@ -20,6 +20,14 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
   replacement rules.
 - Structural coverage for recovery guarantees, a controlled one-replacement
   pilot, and a fixed-rubric Codex–Claude policy-audit benchmark.
+- Receipt schema v2 with machine-validated attempt origin, lifecycle, prior
+  state, replacement evidence, schema-v1 compatibility, and canonical receipt
+  migration.
+
+### Fixed
+
+- Blank or whitespace-only receipt schema versions can no longer bypass
+  version-gated lifecycle validation.
 
 ## [0.2.0] - 2026-07-27
 

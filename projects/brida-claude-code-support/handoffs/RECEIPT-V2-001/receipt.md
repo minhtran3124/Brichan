@@ -57,7 +57,7 @@ This standalone receipt records the `RECEIPT-V2-001` implementation and review.
 | `V2-5` | `pass` | Four canonical receipts validate; historical eval receipts remain undiscovered. |
 | `V2-6` | `pass` | Validator uses the standard library, preserves fixtures, and emits field-qualified diagnostics. |
 | `V2-7` | `pass` | Coordinator reran 53 focused tests and full checks successfully. |
-| `V2-8` | `fail` | Initial review found blank schema version bypassed version-gated validation; remediation is in progress. |
+| `V2-8` | `pass` | Claude Opus mutation review found the blank-schema bypass; `d788a8b` remediated it and focused re-review returned PASS. |
 
 ## Verification
 
@@ -75,16 +75,17 @@ This standalone receipt records the `RECEIPT-V2-001` implementation and review.
   existing canonical receipts authorized by `plan.md`
 - Diff evidence: commits `843d3bf` and `7339415`; `git diff
   --name-status aa17ae5..7339415` lists only the nine authorized paths
-- Test evidence: coordinator observed 53 focused tests, 10 metrics tests, 62
-  repository tests, and four canonical receipt validations pass
+- Test evidence: coordinator and reviewer observed 53 focused tests, 10 metrics
+  tests, 62 repository tests, and four canonical receipt validations pass;
+  reviewer restored every controlled mutation byte-exact
 
 ## Review verdict
 
-- Verdict: `CHANGES REQUIRED`
-- Findings: High: blank or whitespace-only schema version bypasses
-  version-gated validation because the unsupported-version diagnostic is
-  conditional on a truthy parsed value; add an unconditional fallback and
-  regression coverage.
+- Verdict: `PASS`
+- Findings: Initial HIGH blank-schema bypass remediated at `d788a8b`; focused
+  re-review found no new defects. Residual risks are repo-root inference,
+  evidence-file existence coupling, cosmetic duplicate diagnostics for a
+  missing schema line, and intentionally policy-owned retry limits.
 
 ## Risks and open decisions
 
@@ -95,5 +96,5 @@ This standalone receipt records the `RECEIPT-V2-001` implementation and review.
 
 ## Cleanup status
 
-- Brida-owned panes closed: `no`
+- Brida-owned panes closed: `yes`
 - Project memory updated: `yes`

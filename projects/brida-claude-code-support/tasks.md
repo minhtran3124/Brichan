@@ -35,4 +35,4 @@
 | BENCHMARK-001-H | Audit `RECOVERY-002` with common benchmark packet | `brida-benchmark-claude` / `w1X:p1W` / Claude Sonnet | complete | 10/12; first-pass `PASS`; missed explicit `replaced` lifecycle-state requirement |
 | RECEIPT-V2-001-P | Plan machine-validated receipt attempt lifecycle state | `brida-receipt-v2-plan` / `w1X:p1X` / Claude Opus | complete | `RECEIPT-V2-001-P1` accepted; origin/lifecycle separated; v1 compatibility retained |
 | RECEIPT-V2-001-I | Implement schema-v2 lifecycle validation | `brida-receipt-v2-implement` / `w1X:p1Y` / Codex Sol | complete | `843d3bf` and `7339415`; nine authorized paths; 53 focused tests and full checks pass |
-| RECEIPT-V2-001-R | Independently review schema-v2 implementation | `brida-receipt-v2-review` / `w1X:p1Z` / Claude Opus | in_progress | Mutation review at detached commit `bd44651`; compatibility, migration, and final verdict pending |
+| RECEIPT-V2-001-R | Independently review schema-v2 implementation | `brida-receipt-v2-review` / `w1X:p1Z` / Claude Opus | complete | Initial HIGH blank-schema bypass fixed at `d788a8b`; focused mutation re-review `PASS`; clean byte-exact restoration |
