@@ -18,6 +18,9 @@
   final reviews returned `PASS`.
 - Latest validation: 14 repository contract tests and 33 total checks pass;
   `git diff --check` is clean.
+- `CONCURRENT-001-P1` is accepted for a two-writer pilot with separate
+  worktrees, non-overlapping path ownership, one parent receipt, and one child
+  receipt per writer. Implementation is in progress.
 
 ## Main gaps and risks
 

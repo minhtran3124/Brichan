@@ -29,3 +29,11 @@ Store filled pilot receipts under `evals/mixed-provider-coding/<pilot-id>/` and
 link them from project `references.md`. Task packets may carry an accepted plan
 ID/version/status and repo-relative receipt path, but the block remains
 optional when no upstream plan exists.
+
+## 2026-07-28 — Mandatory receipts and concurrent writer isolation
+
+Require a handoff receipt for every accepted-plan handoff and every multi-writer
+task. Use one parent receipt per task and one child receipt per writer. Each
+writer receives an exclusive, non-overlapping authorized path set plus a
+dedicated branch and worktree. Shared files remain integrator-owned, and the
+independent reviewer evaluates the integrated state.
