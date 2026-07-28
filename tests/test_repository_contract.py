@@ -24,11 +24,108 @@ class RepositoryContractTest(unittest.TestCase):
             "bin/brida-herdr-agent-start",
             "CLAUDE.md",
             ".codex/config.toml",
+            ".agents/skills/herdr-orchestration/references/handoff-receipt.md",
+            ".agents/skills/herdr-orchestration/references/task-packet.md",
             "projects/_template/overview.md",
             "metrics/runs.jsonl",
         )
         missing = [path for path in required if not (ROOT / path).is_file()]
         self.assertEqual([], missing)
+
+    def test_handoff_receipt_template_contract(self):
+        template = (
+            ROOT
+            / ".agents/skills/herdr-orchestration/references/handoff-receipt.md"
+        ).read_text(encoding="utf-8")
+        headings = (
+            "Identity",
+            "Plan version",
+            "Sessions",
+            "Scope",
+            "Non-goals",
+            "Acceptance criteria",
+            "Verification",
+            "Implementation evidence",
+            "Review verdict",
+            "Risks and open decisions",
+            "Cleanup status",
+        )
+        positions = []
+        for heading in headings:
+            matches = list(
+                re.finditer(rf"^## {re.escape(heading)}$", template, re.MULTILINE)
+            )
+            self.assertEqual(1, len(matches), heading)
+            positions.append(matches[0].start())
+        self.assertEqual(positions, sorted(positions))
+
+        required_labels = (
+            "Receipt schema version:",
+            "Task ID:",
+            "Project:",
+            "Handoff timestamp (UTC):",
+            "Artifact or plan ID:",
+            "Version:",
+            "Status:",
+            "In scope:",
+            "Authorized paths:",
+            "Excluded work:",
+            "Criterion ID",
+            "Evidence",
+            "Result",
+            "Changed artifacts:",
+            "Diff evidence:",
+            "Test evidence:",
+            "Verdict:",
+            "Findings:",
+            "Risks:",
+            "Open decisions:",
+            "Brida-owned panes closed:",
+            "Project memory updated:",
+        )
+        for label in required_labels:
+            self.assertIn(label, template)
+
+        for role in ("Planner", "Implementer", "Reviewer"):
+            self.assertIn(f"| {role} |", template)
+
+        code_spans = re.findall(r"`([^`\n]*)`", template)
+        self.assertFalse(any("|" in span for span in code_spans))
+        self.assertNotIn("/Users/", template)
+        self.assertNotIn("/home/", template)
+
+        skill = (ROOT / ".agents/skills/herdr-orchestration/SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("references/handoff-receipt.md", skill)
+
+    def test_task_packet_optional_plan_receipt_linkage(self):
+        template = (
+            ROOT
+            / ".agents/skills/herdr-orchestration/references/task-packet.md"
+        ).read_text(encoding="utf-8")
+        required_labels = (
+            "Upstream plan and receipt (optional):",
+            "Accepted plan ID:",
+            "Plan version:",
+            "Plan status:",
+            "Handoff receipt path:",
+        )
+        for label in required_labels:
+            self.assertIn(label, template)
+        self.assertIn("omit the block or use `null` for every value", template)
+        self.assertIn("repo-relative", template)
+        self.assertNotIn("/Users/", template)
+        self.assertNotIn("/home/", template)
+
+        code_spans = re.findall(r"`([^`\n]*)`", template)
+        self.assertFalse(any("|" in span for span in code_spans))
+
+        skill = (ROOT / ".agents/skills/herdr-orchestration/SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("references/task-packet.md", skill)
+        self.assertIn("omit the block or use `null` values", skill)
 
     def test_launcher_is_executable_and_valid_shell(self):
         for name in ("bin/brida", "bin/brida-codex", "bin/brida-claude"):

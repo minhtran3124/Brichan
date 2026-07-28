@@ -1,6 +1,6 @@
 # Model catalog
 
-Last verified: 2026-07-27.
+Last verified: 2026-07-28.
 
 Evidence commands:
 
@@ -36,7 +36,8 @@ the installed catalog describes it as enabling automatic task delegation.
 
 - CLI: installed, version `2.1.220`.
 - Herdr integration: installed/current (v7).
-- Authentication: verified on 2026-07-27. `claude auth status` reports
+- Authentication: verified outside the restricted sandbox on 2026-07-28.
+  `claude auth status` reports
   `loggedIn: true`, method `claude.ai`, subscription `max`.
 - Verified models: `opus` resolved to `claude-opus-5` in an observed headless
   run; `sonnet` resolved to Sonnet 5 in observed Herdr worker sessions. `fable`

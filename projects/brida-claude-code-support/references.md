@@ -6,3 +6,18 @@
 | `herdr integration status` | 2026-07-27 | Claude integration current, v7 |
 | `claude --help` | 2026-07-27 | Supports `--disallowed-tools`, project instructions, and runtime flags |
 | Herdr Claude smoke test | 2026-07-27 | Worker `brida-claude-support-smoke`, pane `w1X:p9`; correct cwd, no writes, no spawned agents; `BRIDA_CLAUDE_HERDR_OK` |
+| Five-worker Herdr read-only evaluation | 2026-07-28 | `MULTI-001`–`MULTI-005`; panes `w1X:p14`–`w1X:p18`; all reports collected and no worker-caused repo changes |
+| `claude auth status` | 2026-07-28 | `loggedIn: false`; prior 2026-07-27 authentication evidence is stale |
+| `claude auth status` outside restricted sandbox | 2026-07-28 | Re-authentication verified: `loggedIn: true`, method `claude.ai`, subscription `max`; no account identifiers stored |
+| `PYTHONDONTWRITEBYTECODE=1 make check` | 2026-07-28 | 10 metrics tests + 21 repository tests passed; 16 metrics rows valid |
+| OpenAI Agents SDK docs | 2026-07-28 | Manager/handoff patterns, structured outputs, sessions, hooks, and tracing: https://openai.github.io/openai-agents-python/agents/ |
+| Claude Code agent teams and worktrees | 2026-07-28 | Native teams are not Brida's control plane; worktree isolation is a transferable pattern: https://code.claude.com/docs/en/agent-teams and https://code.claude.com/docs/en/worktrees |
+| Microsoft AutoGen Core runtime | 2026-07-28 | Runtime-managed agent lifecycle and messaging comparison: https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/framework/agent-and-agent-runtime.html |
+| LangGraph persistence and handoffs | 2026-07-28 | Checkpoints/resume and stateful handoff comparison: https://docs.langchain.com/oss/python/langgraph/persistence and https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs |
+| Mixed-provider pilot `PILOT-001` | 2026-07-28 | Claude Opus plan `PILOT-001-P1` (`w1X:p19`) → Codex Terra implementation (`w1X:p1A`) → fresh Claude Opus review (`w1X:p1B`); reviewer `PASS`, 13 contract tests and 32 total checks pass |
+| Mixed-provider dogfood receipt `PILOT-002` | 2026-07-28 | `evals/mixed-provider-coding/PILOT-002/handoff-receipt.md`; fresh reviewer found it through progressive memory without chat history and returned final `PASS` |
+| Concurrent writer pilot `CONCURRENT-001` | 2026-07-28 | `evals/mixed-provider-coding/CONCURRENT-001/handoff-receipt.md`; two concurrent Codex Terra writers from `83c713e`, disjoint committed path sets, conflict-free integration, targeted mutation caught one policy change, initial `CHANGES REQUIRED` remediated, final Claude Opus review `PASS` |
+| Receipt hardening `CONCURRENT-002` | 2026-07-28 | `projects/brida-claude-code-support/handoffs/CONCURRENT-002/receipt.md`; single-writer commit `71e3d9d`; independent Claude Opus review `PASS` after two controlled mutations, 40 read-only probes, and clean full checks |
+| Recovery contract hardening `RECOVERY-001` | 2026-07-28 | `projects/brida-claude-code-support/handoffs/RECOVERY-001/receipt.md`; `a9f30dc`; Claude Opus `PASS` after three controlled policy weakenings were caught and restored byte-exact |
+| Controlled recovery pilot `RECOVERY-002` | 2026-07-28 | `projects/brida-claude-code-support/handoffs/RECOVERY-002/receipt.md`; three evidenced no-progress observations, one bounded replacement, initial review defect remediated at `72ed9c3`, final `PASS` |
+| Model benchmark `BENCHMARK-001` | 2026-07-28 | `evals/mixed-provider-coding/BENCHMARK-001/results.md`; equivalent read-only audits: Codex Terra 12/12 in 69s, Claude Sonnet 10/12 in 73s; token and cost unavailable |
