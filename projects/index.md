@@ -12,7 +12,7 @@
 
 ## Brida Claude Code support
 - Status: active
-- Summary: Dual-runtime handoffs and three mixed-provider pilots are validated, including isolated concurrent writers with mandatory receipts.
+- Summary: Dual-runtime handoffs, isolated concurrent writers, canonical validated receipts, and bounded worker recovery are established.
 - Memory: projects/brida-claude-code-support/
 
 ## Entry template

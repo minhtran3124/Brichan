@@ -17,7 +17,7 @@ This standalone receipt records the `CONCURRENT-002` hardening lifecycle.
 
 - Artifact or plan ID: `CONCURRENT-002-P1`
 - Version: `1`
-- Status: `implemented`
+- Status: `reviewed`
 
 ## Sessions
 
@@ -25,7 +25,7 @@ This standalone receipt records the `CONCURRENT-002` hardening lifecycle.
 | --- | --- | --- | --- | --- |
 | Planner | `Brida` | `Codex coordinator` | `w1X:pA` | `019fa6ba-dd94-7681-be71-1950f999a02f` |
 | Implementer | `Codex` | `gpt-5.6-sol` | `w1X:p1N` | `019fa72e-b7a9-7673-9768-aec9a0d6721c` |
-| Reviewer | `Claude` | `Opus 5` | `null` | `null` |
+| Reviewer | `Claude` | `Opus 5` | `w1X:p1P` | `9299f57f-f3a5-495e-bb1d-edb8fd87f7ce` |
 
 ## Scope
 
@@ -67,20 +67,26 @@ This standalone receipt records the `CONCURRENT-002` hardening lifecycle.
 - Test evidence: 15 validator tests, 10 structural concurrency tests, 48
   tests-directory checks, canonical receipt validation, and whitespace checks
   pass.
+- Review evidence: Claude Opus returned `PASS` after two controlled mutations,
+  40 read-only parser probes, a clean full check, and byte-exact restoration.
 
 ## Review verdict
 
-- Verdict: `null`
-- Findings: `null`
+- Verdict: `PASS`
+- Findings: no blocking defects; six non-blocking risks cover incomplete
+  structural anchors for recovery guarantees, inline-only reflow coverage,
+  absolute diagnostic paths, cwd-dependent direct test imports, pre-cleanup
+  lifecycle state, and shallow semantic checks for evidence values.
 
 ## Risks and open decisions
 
-- Risks: Markdown parsing must remain strict enough to gate lifecycle
-  completeness without depending on cosmetic line wrapping.
-- Open decisions: fault-recovery behavior remains policy-only until a later
-  controlled pilot.
+- Risks: escalation, no-authority-expansion, and original-evidence preservation
+  are policy-only guarantees not yet protected by structural anchors.
+- Open decisions: strengthen those anchors before the first controlled
+  stale-worker/replacement pilot; decide whether diagnostics should be
+  repo-relative and whether evidence quality remains reviewer-owned.
 
 ## Cleanup status
 
-- Brida-owned panes closed: `no`
+- Brida-owned panes closed: `yes`
 - Project memory updated: `yes`

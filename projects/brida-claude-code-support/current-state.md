@@ -22,21 +22,30 @@
   intersection and integrated without Git conflicts.
 - Integration exposed two exact-anchor line-wrap failures. Both were returned
   to Writer A for owner-scoped remediation before the full suite passed.
-- Latest validation: 10 metrics tests and 30 tests-directory tests pass;
-  11 committed metrics rows are valid and `git diff --check` is clean.
-- `CONCURRENT-002-P1` is accepted as one single-writer hardening task covering
+- Latest independent review at `5dfcfb8` passed 10 metrics tests and 48
+  tests-directory checks, validated one canonical receipt, and left
+  `git diff --check` clean.
+- `CONCURRENT-002-P1` completed as one single-writer hardening task covering
   canonical receipt storage, completeness validation, structural policy tests,
-  and stale-worker/retry rules. Implementation commit `71e3d9d` is complete;
-  independent mutation review is pending.
+  and stale-worker/retry rules. Implementation commit `71e3d9d` received an
+  independent Claude Opus `PASS` after two controlled mutations and 40
+  read-only parser probes.
+- All Brida-owned `CONCURRENT-002` worker panes are closed, the disposable
+  review worktree is removed, and 12 workflow metrics rows are committed.
 
 ## Main gaps and risks
 
-- Receipt storage under `evals/mixed-provider-coding/<pilot-id>/` is validated
-  for pilots but not yet adopted as a general project contract.
-- Receipts remain Markdown-only; no machine-enforced lifecycle state, retry
-  limit, stale-worker rule, or receipt completeness validator exists.
-- Optional test hardening remains for exact heading cardinality, table shape,
-  tilde-style home paths, and label-to-section anchoring.
+- Historical pilot receipts remain under `evals/mixed-provider-coding/`; new
+  operational receipts use the canonical project handoff path.
+- Receipts remain Markdown, but canonical receipts now have a machine-enforced
+  completeness and lifecycle gate. The validator deliberately cannot judge
+  the semantic quality of short evidence values.
+- Recovery-policy tests do not yet structurally anchor escalation after retry
+  exhaustion, no-authority-expansion, or original-evidence preservation.
+- The structural reflow helper is tested with inline literals rather than a
+  shipped policy anchor.
+- Validator failure diagnostics can expose an absolute checkout path on the
+  console, and direct test-module imports assume the repository-root cwd.
 - Exact string anchors can create integration failures from harmless Markdown
   wrapping; integrated tests remain necessary even when each shard meets its
   local gate.
@@ -49,14 +58,17 @@
 
 ## Open questions
 
-1. Should required receipts move from evaluation storage to a canonical
-   `projects/<slug>/handoffs/` location after pilot review?
-2. Should receipt completeness become a machine-enforced completion gate?
-3. Should exact policy anchors be normalized structurally rather than bound to
-   Markdown line wrapping?
+1. Should the three unprotected worker-recovery guarantees become mandatory
+   structural anchors before the first fault-recovery pilot?
+2. Should validator diagnostics be repo-relative to avoid printing local
+   checkout paths?
+3. Should receipt evidence quality gain stronger semantic validation, or remain
+   a reviewer responsibility?
 
 ## Next actions
 
-1. Decide the canonical non-evaluation storage contract for required receipts.
-2. Design a receipt completeness validator and stale-worker/retry policy.
-3. Replace line-wrap-sensitive exact policy anchors with structural checks.
+1. Add structural anchors for recovery escalation, authority boundaries, and
+   evidence preservation.
+2. Run a controlled stale-worker/replacement pilot using the canonical receipt.
+3. Compare mixed-provider quality, latency, token use, and cost on equivalent
+   tasks once those observations are available.

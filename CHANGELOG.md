@@ -15,6 +15,9 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 - Mandatory receipts for accepted-plan and multi-writer handoffs, exclusive
   writer path ownership, isolated worktrees, and concurrent-writer contract
   coverage.
+- Canonical project handoff receipts, a dependency-free receipt completeness
+  gate, line-wrap-tolerant structural policy checks, and bounded stale-worker
+  replacement rules.
 
 ## [0.2.0] - 2026-07-27
 
