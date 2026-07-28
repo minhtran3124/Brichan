@@ -10,6 +10,13 @@ with `--runtime claude`; do not auto-detect installed providers.
 Claude Code native delegation is disabled by the launcher so worker creation,
 ownership, evidence, and cleanup remain auditable through Herdr.
 
+## 2026-07-28 — Claude workers default to auto permission mode
+
+The balanced Herdr launcher adds `--permission-mode auto` to Claude workers
+unless a worker command explicitly selects another mode. This removes routine
+approval prompts while retaining Claude's auto-mode safety classifier; the
+more permissive `bypassPermissions` mode remains excluded from the default.
+
 ## 2026-07-27 — Claude model routing
 
 Use Opus 5 through the `opus` alias for the Claude coordinator by default;

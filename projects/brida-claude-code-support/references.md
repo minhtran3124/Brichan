@@ -5,6 +5,7 @@
 | `claude --version` | 2026-07-27 | Claude Code 2.1.220 installed |
 | `herdr integration status` | 2026-07-27 | Claude integration current, v7 |
 | `claude --help` | 2026-07-27 | Supports `--disallowed-tools`, project instructions, and runtime flags |
+| `claude --help` | 2026-07-28 | Supports `--permission-mode auto`; worker default is covered by `tests/test_herdr_layout.py` |
 | Herdr Claude smoke test | 2026-07-27 | Worker `brida-claude-support-smoke`, pane `w1X:p9`; correct cwd, no writes, no spawned agents; `BRIDA_CLAUDE_HERDR_OK` |
 | Five-worker Herdr read-only evaluation | 2026-07-28 | `MULTI-001`–`MULTI-005`; panes `w1X:p14`–`w1X:p18`; all reports collected and no worker-caused repo changes |
 | `claude auth status` | 2026-07-28 | `loggedIn: false`; prior 2026-07-27 authentication evidence is stale |

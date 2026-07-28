@@ -21,6 +21,8 @@
   not a general model ranking.
 - All Brida-owned worker panes and disposable worktrees for completed tasks are
   closed or removed.
+- New Claude workers launched through `bin/brida-herdr-agent-start` default to
+  `--permission-mode auto`; explicit per-worker permission modes are preserved.
 
 ## Main gaps and risks
 
