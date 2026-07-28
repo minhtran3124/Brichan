@@ -6,5 +6,18 @@
 | CLAUDE-002 | Add Claude Code policy adapter | Brida | complete | `CLAUDE.md` contract test passes |
 | CLAUDE-003 | Validate local Claude Code startup | Brida | complete | Claude Code 2.1.220 version smoke passes |
 | CLAUDE-004 | Validate Herdr Claude worker lifecycle | Brida | complete | `brida-claude-support-smoke`, pane `w1X:p9`, model alias `sonnet`; marker `BRIDA_CLAUDE_HERDR_OK` |
-| CLAUDE-005 | Update durable evidence and commit | Brida | pending | Diff, tests, commit SHA |
+| CLAUDE-005 | Update durable evidence and commit | Brida | complete | Feature branch commit; 33 checks pass; SHA recorded in branch history |
 | CLAUDE-006 | Validate parallel Herdr Claude workers | Brida | complete | `brida-demo-catalog` (pane `w1X:pB`) and `brida-demo-contract` (pane `w1X:pC`), Sonnet 5, both observed `working` concurrently 16:27:12-16:27:20; 6/6 reported facts independently re-verified |
+| MULTI-001 | Read-only architecture/runtime inventory | `brida-multi-architecture` / `w1X:p16` / Codex Luna | complete | File/line evidence checked; no worker-caused changes |
+| MULTI-002 | Read-only build/test/dependency inventory | `brida-multi-build` / `w1X:p18` / Codex Luna | complete | `make check`: 31 tests; no worker-caused changes |
+| MULTI-003 | Read-only multi-agent handoff analysis | `brida-multi-orchestration` / `w1X:p17` / Codex Terra | complete | Current capability separated from proposed Claude→Codex protocol |
+| MULTI-004 | Read-only external framework research | `brida-multi-research` / `w1X:p15` / Codex Luna | complete | Four official-source comparisons independently opened |
+| MULTI-005 | Read-only model/task routing analysis | `brida-multi-routing` / `w1X:p14` / Codex Terra | complete | Routing matrix bounded by current CLI/auth evidence |
+| PILOT-001-P | Plan minimal handoff/receipt template and contract test | `brida-pilot-claude-plan` / `w1X:p19` / Claude Opus | complete | `PILOT-001-P1` accepted; zero planner changes |
+| PILOT-001-I | Implement accepted pilot plan | `brida-pilot-codex-implement` / `w1X:p1A` / Codex Terra | complete | Four-path diff; 13 contract tests and 32 total checks pass |
+| PILOT-001-R | Independent review of pilot implementation | `brida-pilot-claude-review` / `w1X:p1B` / Claude Opus | complete | `PASS`; no defects; one low GFM placeholder-rendering risk |
+| HARDEN-001-I | Harden receipt rendering, schema marker, and contract tests | `brida-harden-codex` / `w1X:p1C` / Codex Terra | complete | Two-path hardening; 13 contract tests and 32 total checks pass |
+| HARDEN-001-R | Independent review of receipt hardening | `brida-harden-claude-review` / `w1X:p1D` / Claude Opus | complete | Initial `CHANGES REQUIRED`; three-label remediation re-reviewed `PASS` |
+| PILOT-002-P | Plan task-packet receipt-link integration | `brida-pilot2-claude-plan` / `w1X:p1E` / Claude Opus | complete | `PILOT-002-P1` accepted; zero planner changes |
+| PILOT-002-I | Implement accepted task-packet integration | `brida-pilot2-codex-implement` / `w1X:p1F` / Codex Terra | complete | Four-path diff; 14 contract tests and 33 total checks pass |
+| PILOT-002-R | Review integration and filled receipt retrieval | `brida-pilot2-claude-review` / `w1X:p1G` / Claude Opus | complete | Initial `CHANGES REQUIRED`; remediation mutation-tested; final `PASS`; retrieval succeeded |

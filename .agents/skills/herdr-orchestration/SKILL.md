@@ -36,7 +36,10 @@ Do not create a worker until the task has:
 - Escalation conditions.
 - A selected verified provider/model.
 
-Use `references/task-packet.md` as the prompt template.
+Use `references/task-packet.md` as the prompt template. When an accepted
+upstream plan exists, fill its optional upstream plan and receipt block; when
+one does not exist, omit the block or use `null` values. A handoff receipt
+remains optional.
 
 ## Safety
 
@@ -55,3 +58,5 @@ Use `references/task-packet.md` as the prompt template.
 - Read `references/commands.md` immediately before using Herdr commands.
 - Read `references/task-packet.md` when constructing a new assignment or
   follow-up instruction.
+- Read `references/handoff-receipt.md` for planner-to-implementer or reviewer
+  handoffs.

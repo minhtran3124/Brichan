@@ -13,6 +13,33 @@ contracts.
 - Claude Code policy adapter in `CLAUDE.md`.
 - Herdr-only worker lifecycle.
 - Runtime-specific tests and documentation.
+- Coordinator-mediated handoffs between heterogeneous coding-agent runtimes.
+
+## Architecture
+
+- `bin/brida` selects the coordinator runtime explicitly and dispatches to the
+  dedicated Codex or Claude launcher.
+- Both launchers disable their runtime's native delegation path.
+- `bin/brida-herdr-agent-start` is provider-neutral: Brida supplies the worker
+  command, model, bounded task packet, and recorded `brida-` ownership.
+- Herdr owns worker session creation, status observation, and pane cleanup;
+  project Markdown owns durable human-readable state.
+
+## Evaluated workflow direction
+
+Use a sequential, coordinator-mediated handoff:
+
+1. A read-only planner returns a bounded, versioned plan with scope,
+   acceptance criteria, tests, risks, and open decisions.
+2. Brida verifies and records the accepted handoff.
+3. A separate provider/runtime implements from that accepted artifact.
+4. Brida checks criterion-level evidence and routes material changes to a fresh
+   independent reviewer, preferably from a different provider.
+5. Brida updates durable memory before closing only its recorded worker panes.
+
+Parallel research and review are appropriate when scopes do not overlap.
+Parallel implementation requires explicit write isolation and file ownership,
+which are not currently defined.
 
 ## Constraints
 
@@ -20,3 +47,5 @@ contracts.
 - Runtime selection is explicit; automatic provider detection is out of scope.
 - Native runtime delegation must not bypass Herdr.
 - No secrets or credentials may be stored in the repository.
+- Chat history is not a durable handoff artifact.
+- Current task packets are human-readable but not machine-enforced schemas.

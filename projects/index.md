@@ -12,7 +12,7 @@
 
 ## Brida Claude Code support
 - Status: active
-- Summary: Add Claude Code as an explicit runtime while keeping Herdr as Brida's only worker-control plane.
+- Summary: Dual-runtime support and two Claude-plan/Codex-implementation pilots are validated with optional receipt handoffs.
 - Memory: projects/brida-claude-code-support/
 
 ## Entry template
