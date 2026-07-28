@@ -26,7 +26,7 @@
 | Role | Provider | Model | Brida-owned pane | Session |
 | --- | --- | --- | --- | --- |
 | Planner | `OpenAI` | `Codex coordinator` | `w1X:pA` | `019fa7eb-ba3f-7ee3-bf45-b6834847f03c` |
-| Implementer | `Anthropic` | `Claude Sonnet 5 via cld-edgeful` | `w1X:p2G` | `c0e7da11-a10b-45df-bffe-6921e2f02229` |
+| Implementer | `Anthropic` | `Claude Sonnet 5` | `w1X:p2G` | `c0e7da11-a10b-45df-bffe-6921e2f02229` |
 | Reviewer | `OpenAI` | `Codex coordinator` | `w1X:pA` | `019fa7eb-ba3f-7ee3-bf45-b6834847f03c` |
 
 ## Scope
