@@ -24,6 +24,9 @@
   to Writer A for owner-scoped remediation before the full suite passed.
 - Latest validation: 10 metrics tests and 30 tests-directory tests pass;
   11 committed metrics rows are valid and `git diff --check` is clean.
+- `CONCURRENT-002-P1` is accepted as one single-writer hardening task covering
+  canonical receipt storage, completeness validation, structural policy tests,
+  and stale-worker/retry rules. Implementation is pending.
 
 ## Main gaps and risks
 

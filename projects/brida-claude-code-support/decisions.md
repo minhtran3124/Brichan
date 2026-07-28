@@ -37,3 +37,12 @@ task. Use one parent receipt per task and one child receipt per writer. Each
 writer receives an exclusive, non-overlapping authorized path set plus a
 dedicated branch and worktree. Shared files remain integrator-owned, and the
 independent reviewer evaluates the integrated state.
+
+## 2026-07-28 — Canonical receipts and recovery hardening
+
+Store required operational receipts under
+`projects/<slug>/handoffs/<task-id>/receipt.md` and expose them through project
+`references.md`; evaluation copies remain historical evidence. Add a
+dependency-free completeness validator to `make check`, replace line-wrap
+sensitive policy assertions with structural checks, and define bounded
+stale-worker detection and replacement rules before another fault pilot.
