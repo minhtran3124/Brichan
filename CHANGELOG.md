@@ -7,6 +7,8 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-28
+
 ### Added
 
 - Machine-readable repository path inventory, local Markdown-link validation,
