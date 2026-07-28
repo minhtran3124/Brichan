@@ -2,7 +2,11 @@
 
 Use this template for each worker. Remove unused placeholders; do not omit
 acceptance criteria. The upstream plan and receipt block is optional only when
-there is no accepted plan and no multi-writer task. In that case, omit the block or use `null` for every value.
+there is no accepted plan and no multi-writer task. In that case, you may
+omit the block or use `null` for every value.
+
+When a receipt is mandatory, use its canonical repo-relative path:
+`projects/<slug>/handoffs/<task-id>/receipt.md`.
 
 ```text
 You are a worker agent coordinated by Brida, an AI Chief of Staff acting on the

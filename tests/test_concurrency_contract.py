@@ -14,9 +14,23 @@ RECEIPT_PATH = (
 CONCURRENT_WRITERS_PATH = (
     ROOT / ".agents/skills/herdr-orchestration/references/concurrent-writers.md"
 )
+WORKER_RECOVERY_PATH = (
+    ROOT / ".agents/skills/herdr-orchestration/references/worker-recovery.md"
+)
+
+
+def normalize_markdown_prose(text):
+    return re.sub(r"\s+", " ", text).strip()
 
 
 class ConcurrencyContractTest(unittest.TestCase):
+    def assert_policy(self, policy, text, message):
+        self.assertIn(
+            normalize_markdown_prose(policy),
+            normalize_markdown_prose(text),
+            message,
+        )
+
     def test_mandatory_receipt_policy_is_explicit(self):
         skill = SKILL_PATH.read_text(encoding="utf-8")
         policies = (
@@ -25,7 +39,7 @@ class ConcurrencyContractTest(unittest.TestCase):
             "One child receipt per writer and one parent receipt per task.",
         )
         for policy in policies:
-            self.assertIn(
+            self.assert_policy(
                 policy,
                 skill,
                 f"Herdr orchestration policy must include policy anchor: {policy}",
@@ -100,18 +114,82 @@ class ConcurrencyContractTest(unittest.TestCase):
             template,
             "Task packet template must retain its optional upstream-plan block.",
         )
-        self.assertIn(
+        self.assert_policy(
             "omit the block or use `null` for every value",
             template,
             "Task packet template must preserve all-null guidance for optional "
             "upstream-plan data.",
         )
-        self.assertIn(
+        self.assert_policy(
             "omit the block or use `null` values",
             skill,
             "Herdr orchestration skill must preserve optional upstream-plan "
             "guidance.",
         )
+
+    def test_normalized_policy_checks_tolerate_only_cosmetic_reflow(self):
+        policy = "A handoff receipt is mandatory for an accepted-plan handoff."
+        harmless_reflow = (
+            "A handoff receipt is mandatory\n"
+            "for an accepted-plan handoff."
+        )
+        semantic_mutation = (
+            "A handoff receipt is optional\n"
+            "for an accepted-plan handoff."
+        )
+        self.assert_policy(policy, harmless_reflow, "Wrapping must be harmless.")
+        self.assertNotIn(
+            normalize_markdown_prose(policy),
+            normalize_markdown_prose(semantic_mutation),
+            "Changing a mandatory policy to optional must fail its contract.",
+        )
+
+    def test_canonical_receipt_storage_policy_is_structural(self):
+        skill = SKILL_PATH.read_text(encoding="utf-8")
+        receipt = RECEIPT_PATH.read_text(encoding="utf-8")
+        task_packet = TASK_PACKET_PATH.read_text(encoding="utf-8")
+        policy = (
+            "Store operational receipts at "
+            "`projects/<slug>/handoffs/<task-id>/receipt.md`"
+        )
+        self.assert_policy(policy, skill, "Skill must define canonical storage.")
+        self.assert_policy(
+            "Historical receipts under `evals/` remain evidence; "
+            "do not migrate them",
+            receipt,
+            "Historical evaluation evidence must remain outside migration.",
+        )
+        self.assert_policy(
+            "When a receipt is mandatory, use its canonical repo-relative path",
+            task_packet,
+            "Task packets must point mandatory receipts to canonical storage.",
+        )
+
+    def test_worker_recovery_policy_is_linked_and_bounded(self):
+        self.assertTrue(
+            WORKER_RECOVERY_PATH.is_file(),
+            "Worker-recovery policy reference must exist.",
+        )
+        skill = SKILL_PATH.read_text(encoding="utf-8")
+        recovery = WORKER_RECOVERY_PATH.read_text(encoding="utf-8")
+        self.assertIn("references/worker-recovery.md", skill)
+        policies = (
+            "Elapsed time alone never makes a worker stale.",
+            "Record three consecutive no-progress observations before "
+            "assigning stale status.",
+            "The default retry limit is one replacement attempt.",
+            "The replacement must reuse the accepted plan, canonical receipt, "
+            "authorized scope, and write ownership.",
+            "Close only panes that Brida created and recorded.",
+        )
+        for policy in policies:
+            self.assert_policy(
+                policy,
+                recovery,
+                f"Worker recovery must preserve policy anchor: {policy}",
+            )
+        for state in ("`stale`", "`abandoned`", "`replaced`"):
+            self.assertIn(state, recovery)
 
     def test_concurrent_writer_reference_has_no_path_or_code_span_hygiene_issues(self):
         self.assertTrue(

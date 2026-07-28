@@ -15,7 +15,9 @@ until integration.
 ## Receipt requirements
 
 A handoff receipt is mandatory for every multi-writer task. Create one child
-receipt per writer and one parent receipt per task.
+receipt per writer and one parent receipt per task. Store each receipt at its
+canonical `projects/<slug>/handoffs/<task-id>/receipt.md` path and link it from
+the project's `references.md`.
 
 ## Integration
 
