@@ -23,7 +23,7 @@ This child receipt records Writer A in `CONCURRENT-001`.
 | --- | --- | --- | --- | --- |
 | Planner | `Claude` | `Opus 5` | `w1X:p1H` | `8c34e821-bebb-4231-81cb-ba26efe2a189` |
 | Implementer | `Codex` | `gpt-5.6-terra` | `w1X:p1J` | `019fa711-14c1-7063-92a6-f3d0197f1476` |
-| Reviewer | `Claude` | `Opus 5` | `null` | `null` |
+| Reviewer | `Claude` | `Opus 5` | `w1X:p1M` | `a3c48c57-41c3-4889-9d04-724d4e8f7737` |
 
 ## Scope
 
@@ -61,8 +61,10 @@ This child receipt records Writer A in `CONCURRENT-001`.
 - Changed artifacts: `.agents/skills/herdr-orchestration/SKILL.md`,
   `references/task-packet.md`, `references/handoff-receipt.md`, and
   `references/concurrent-writers.md`.
-- Diff evidence: `e65269f`; exact-anchor remediation commits `b8382db` and
-  `795a3a5`; no path outside Writer A ownership.
+- Diff evidence: writer commit `e65269f` maps to integrated commit `1c25409`;
+  remediation commits `b8382db` and `795a3a5` map to integrated commits
+  `8645fc7` and `f5e6bd5`; each pair is patch-identical and no path falls
+  outside Writer A ownership.
 - Test evidence: baseline `make check` passed after each implementation phase;
   integrated tests exposed and then cleared two line-wrap failures.
 

@@ -23,7 +23,7 @@ This child receipt records Writer B in `CONCURRENT-001`.
 | --- | --- | --- | --- | --- |
 | Planner | `Claude` | `Opus 5` | `w1X:p1H` | `8c34e821-bebb-4231-81cb-ba26efe2a189` |
 | Implementer | `Codex` | `gpt-5.6-terra` | `w1X:p1K` | `019fa711-1563-7341-8ab2-f073871ff54c` |
-| Reviewer | `Claude` | `Opus 5` | `null` | `null` |
+| Reviewer | `Claude` | `Opus 5` | `w1X:p1M` | `a3c48c57-41c3-4889-9d04-724d4e8f7737` |
 
 ## Scope
 
@@ -58,7 +58,8 @@ This child receipt records Writer B in `CONCURRENT-001`.
 ## Implementation evidence
 
 - Changed artifacts: `tests/test_concurrency_contract.py`.
-- Diff evidence: `b816ede`; one authorized path only.
+- Diff evidence: writer commit `b816ede` maps to patch-identical integrated
+  commit `422936a`; one authorized path only.
 - Test evidence: module compiled; existing 14 repository contract tests passed;
   new module initially failed through six expected policy assertions and passed
   after Writer A integration and remediation.

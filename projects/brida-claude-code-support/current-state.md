@@ -23,7 +23,7 @@
 - Integration exposed two exact-anchor line-wrap failures. Both were returned
   to Writer A for owner-scoped remediation before the full suite passed.
 - Latest validation: 10 metrics tests and 30 tests-directory tests pass;
-  18 metrics rows are valid and `git diff --check` is clean.
+  10 committed metrics rows are valid and `git diff --check` is clean.
 
 ## Main gaps and risks
 
@@ -36,6 +36,10 @@
 - Exact string anchors can create integration failures from harmless Markdown
   wrapping; integrated tests remain necessary even when each shard meets its
   local gate.
+- Initial independent review returned `CHANGES REQUIRED` because durable memory
+  counted out-of-scope root ledger changes and receipts omitted integrated
+  cherry-pick SHAs. Both evidence defects are under remediation; long policy
+  lines remain a non-blocking design risk.
 - Model quality, latency, token, and cost comparisons remain unbenchmarked where
   observations were unavailable.
 
