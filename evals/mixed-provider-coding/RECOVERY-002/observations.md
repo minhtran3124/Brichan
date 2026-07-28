@@ -23,6 +23,7 @@
   above preserve status and output.
 - Original final state: `stale` after observation 3, then `abandoned` because
   the controlled attempt will not resume.
+- Replacement lifecycle state: `replaced`
 - Replacement session and pane: session
   `019fa76e-6079-7bf2-a170-b520fe2a4439`, pane `w1X:p1T`
 - Reused plan, receipt, scope, and ownership: `yes`; attempt 2 used

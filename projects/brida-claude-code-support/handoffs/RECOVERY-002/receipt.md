@@ -47,7 +47,7 @@ This standalone receipt records the `RECOVERY-002` controlled recovery pilot.
 | --- | --- | --- |
 | `R2-1` | `pass` | `three timestamped idle snapshots with unchanged checkpoint output` |
 | `R2-2` | `pass` | `original session and pane evidence preserved before abandoned state` |
-| `R2-3` | `pass` | `attempt 2 reused plan, receipt, read-only scope, and ownership` |
+| `R2-3` | `pass` | `attempt 2 is recorded as replaced and reused plan, receipt, scope, and ownership` |
 | `R2-4` | `pass` | `replacement answered all evidence questions; 10 focused tests pass` |
 | `R2-5` | `pass` | `one replacement only; both Brida-owned panes closed` |
 
@@ -64,7 +64,8 @@ This standalone receipt records the `RECOVERY-002` controlled recovery pilot.
 
 - Changed artifacts: `none by either worker`
 - Diff evidence: original session and three no-progress snapshots preserved in
-  `evals/mixed-provider-coding/RECOVERY-002/observations.md`
+  `evals/mixed-provider-coding/RECOVERY-002/observations.md`; attempt 2
+  lifecycle state recorded as `replaced`
 - Test evidence: original produced only `CONTROLLED_STALL_READY`; replacement
   returned policy/test citations and passed 10 focused contract tests
 

@@ -31,5 +31,5 @@
 | RECOVERY-001-R | Independently review recovery anchors | `brida-recovery-anchors-review` / `w1X:p1R` / Claude Opus | complete | `PASS`; three policy weakenings caught; byte-exact restoration; two LOW residual risks |
 | RECOVERY-002-A1 | Controlled original-worker stall | `brida-recovery-stall` / `w1X:p1S` / Codex Luna | abandoned | Three idle snapshots with unchanged checkpoint; `stale` then `abandoned`; original session preserved |
 | RECOVERY-002-A2 | One bounded replacement attempt | `brida-recovery-replacement` / `w1X:p1T` / Codex Luna | complete | Same plan/receipt/read-only scope; three evidence answers and 10 focused tests; no second replacement |
-| BENCHMARK-001-C | Audit `RECOVERY-002` with common benchmark packet | `brida-benchmark-codex` / pane pending / Codex Terra | pending | Read-only report, timing, verification, and 12-point quality score |
-| BENCHMARK-001-H | Audit `RECOVERY-002` with common benchmark packet | `brida-benchmark-claude` / pane pending / Claude Sonnet | pending | Read-only report, timing, verification, and 12-point quality score |
+| BENCHMARK-001-C | Audit `RECOVERY-002` with common benchmark packet | `brida-benchmark-codex` / `w1X:p1V` / Codex Terra | in_progress | Read-only report, timing, verification, and 12-point quality score |
+| BENCHMARK-001-H | Audit `RECOVERY-002` with common benchmark packet | `brida-benchmark-claude` / `w1X:p1W` / Claude Sonnet | in_progress | Read-only report, timing, verification, and 12-point quality score |
