@@ -31,9 +31,10 @@
   full-CI, and changelog evidence. Independent Codex review verdict is `PASS`.
 - Post-release Codex and Claude startup smokes, external-link checks, and the
   stale root-reference search pass with durable evidence.
-- The merged-main CI run completed before the release timestamp, so strict
-  eligibility correctly remains blocked only on a fresh post-release full-CI
-  run.
+- Post-release GitHub Actions run `30362433787` passed Python 3.10, Python
+  3.13, and package build/install checks at `2026-07-28T13:13:11Z`.
+- All six retirement gates now pass; the active-state strict preflight must be
+  recorded in an immutable commit before pointer deletion.
 - A worker found `brida.__version__` lagging at `0.2.0`; the follow-up branch
   aligns it with `0.3.0` and adds contract coverage.
 
@@ -48,7 +49,7 @@
 
 ## Next actions
 
-1. Run post-release full CI and record its timestamped evidence.
-2. Require strict preflight success before removing any temporary pointer.
-3. Retire the six pointers, update the manifest/contracts/changelog, rerun both
-   startup smokes on the retired tree, and obtain independent review.
+1. Run and record strict preflight while `retired` is false and all pointers
+   exist.
+2. Retire the six pointers in the next commit.
+3. Rerun both startup smokes on the retired tree and obtain final review.

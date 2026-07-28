@@ -20,16 +20,16 @@ class CompatibilityRetirementContractTest(unittest.TestCase):
     def setUp(self):
         self.config = json.loads(CONFIG.read_text(encoding="utf-8"))
 
-    def test_current_gate_is_valid_but_waits_for_post_release_ci(self):
+    def test_current_gate_is_eligible_but_not_yet_retired(self):
         self.assertEqual([], validate_config(self.config))
         self.assertFalse(self.config["retired"])
-        self.assertFalse(is_eligible(self.config))
+        self.assertTrue(is_eligible(self.config))
         self.assertEqual(
             "pass",
             self.config["gates"]["release_window"]["status"],
         )
         self.assertEqual(
-            "pending",
+            "pass",
             self.config["gates"]["full_ci"]["status"],
         )
         self.assertEqual(
@@ -42,7 +42,7 @@ class CompatibilityRetirementContractTest(unittest.TestCase):
             self.config["gates"]["claude_startup"]["evidence"],
         )
 
-    def test_require_eligible_rejects_current_pending_state(self):
+    def test_require_eligible_accepts_current_gate(self):
         result = subprocess.run(
             [
                 sys.executable,
@@ -54,8 +54,8 @@ class CompatibilityRetirementContractTest(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-        self.assertEqual(2, result.returncode, result.stderr)
-        self.assertIn("eligible: no", result.stdout)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("eligible: yes", result.stdout)
 
     def test_all_gates_need_dated_repository_evidence(self):
         eligible = copy.deepcopy(self.config)
@@ -151,10 +151,6 @@ class CompatibilityRetirementContractTest(unittest.TestCase):
         self.assertIn(
             "retirement_evidence.changelog.evidence must be a repository "
             "file plus #fragment",
-            errors,
-        )
-        self.assertIn(
-            "retired migration requires every compatibility gate to pass",
             errors,
         )
 

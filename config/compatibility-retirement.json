@@ -32,9 +32,9 @@
       "evidence": "projects/brida-repository-structure-refactor/handoffs/RSR-011-L/receipt.md#RSR-011-L-1"
     },
     "full_ci": {
-      "status": "pending",
-      "checked_at": null,
-      "evidence": "projects/brida-repository-structure-refactor/references.md#PR #10 implementation-head CI"
+      "status": "pass",
+      "checked_at": "2026-07-28T13:13:11Z",
+      "evidence": "projects/brida-repository-structure-refactor/references.md#Phase 5 post-release full CI"
     },
     "repository_search": {
       "status": "pass",

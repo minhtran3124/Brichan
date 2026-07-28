@@ -16,8 +16,9 @@
 | RSR-006 | Extract orchestration and runtime CLI adapters | Brida | complete | Importable Herdr layout/launcher and Codex/Claude dispatch modules; stable `bin/` wrappers |
 | RSR-007 | Layer tests and harden CI/package checks | Brida | complete | Independent unit/contract/integration targets, wrapper smoke tests, CI wheel build/install lane |
 | RSR-009 | Final independent review of Phases 2–4 | `brida-structure-final-review` / `w1X:p2E` / Codex Sol | complete | Final verdict `PASS`; 90 tests, installed-wheel smoke, path/receipt validation, and cleanup complete |
-| RSR-008 | Audit and retire temporary documentation pointers | Brida | gated | Start only after one release/compatibility window, external-link check, both live startup smokes, and full CI |
+| RSR-008 | Audit and retire temporary documentation pointers | Brida | in progress | All six gates pass; strict active-state preflight is being recorded before pointer removal |
 | RSR-008-P | Independently review the Phase 5 retirement preflight | `brida-phase5-preflight-review` / `w1X:p2F` / Codex Sol | complete | Five bypass classes and two edge cases remediated; 36 contract tests, final verdict `PASS`, pane cleanup complete |
 | RSR-010 | Run a real Claude startup smoke via `cld-edgeful` | `brida-claude-edgeful-smoke` / `w1X:p2G` / Claude Sonnet 5 | complete | Canonical startup-policy `PASS`, branch/HEAD and package boundaries verified, no worker writes, pane cleanup and aggregate checks complete |
 | RSR-011-C | Refresh post-release Codex startup evidence | `brida-phase5-codex-postrelease` / `w1X:p2H` / Codex Luna | complete | Fresh canonical-policy, orchestration, release, wrappers/imports, and no-write checks returned `PASS` |
 | RSR-011-L | Refresh post-release Claude startup evidence | `brida-phase5-claude-postrelease` / `w1X:p2J` / Claude Sonnet 5 | complete | Fresh canonical-policy, orchestration, release, wrappers/imports, and no-write checks returned `PASS` |
+| RSR-008-G | Record immutable active-state strict eligibility | Brida | complete | Commit retains six pointers and records strict `eligible: yes`, `retired: no`, 57 paths/51 references, and 26 focused tests |
