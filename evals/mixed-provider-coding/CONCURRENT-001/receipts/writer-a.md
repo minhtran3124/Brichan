@@ -70,8 +70,10 @@ This child receipt records Writer A in `CONCURRENT-001`.
 
 ## Review verdict
 
-- Verdict: `null`
-- Findings: `null`
+- Verdict: `PASS`
+- Findings: two exact anchors crossed Markdown line breaks after integration;
+  Writer A supplied owner-scoped remediation commits and mutation re-review
+  confirmed the policy assertion is targeted.
 
 ## Risks and open decisions
 
@@ -81,5 +83,5 @@ This child receipt records Writer A in `CONCURRENT-001`.
 
 ## Cleanup status
 
-- Brida-owned panes closed: `no`
+- Brida-owned panes closed: `yes`
 - Project memory updated: `yes`

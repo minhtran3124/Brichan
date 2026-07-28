@@ -12,7 +12,7 @@
 
 ## Brida Claude Code support
 - Status: active
-- Summary: Dual-runtime support and two Claude-plan/Codex-implementation pilots are validated with optional receipt handoffs.
+- Summary: Dual-runtime handoffs and three mixed-provider pilots are validated, including isolated concurrent writers with mandatory receipts.
 - Memory: projects/brida-claude-code-support/
 
 ## Entry template

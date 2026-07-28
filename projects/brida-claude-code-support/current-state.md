@@ -1,6 +1,6 @@
 # Current state
 
-- Status: concurrent two-writer pilot implemented; independent review pending.
+- Status: concurrent two-writer pilot complete and independently reviewed.
 - Claude Code 2.1.220 is authenticated and routable; Herdr reports Claude
   integration v7 as current.
 - Brida has validated two sequential workflows using Claude Opus planning,
@@ -23,7 +23,7 @@
 - Integration exposed two exact-anchor line-wrap failures. Both were returned
   to Writer A for owner-scoped remediation before the full suite passed.
 - Latest validation: 10 metrics tests and 30 tests-directory tests pass;
-  10 committed metrics rows are valid and `git diff --check` is clean.
+  11 committed metrics rows are valid and `git diff --check` is clean.
 
 ## Main gaps and risks
 
@@ -36,10 +36,10 @@
 - Exact string anchors can create integration failures from harmless Markdown
   wrapping; integrated tests remain necessary even when each shard meets its
   local gate.
-- Initial independent review returned `CHANGES REQUIRED` because durable memory
-  counted out-of-scope root ledger changes and receipts omitted integrated
-  cherry-pick SHAs. Both evidence defects are under remediation; long policy
-  lines remain a non-blocking design risk.
+- Initial independent review returned `CHANGES REQUIRED` for a committed-metrics
+  count mismatch and missing integrated cherry-pick SHAs in receipts. Both
+  evidence defects were remediated at `c2413fe`; mutation-tested re-review
+  returned `PASS`. Long policy lines remain a non-blocking design risk.
 - Model quality, latency, token, and cost comparisons remain unbenchmarked where
   observations were unavailable.
 
@@ -53,6 +53,6 @@
 
 ## Next actions
 
-1. Complete independent integrated review and mutation evidence.
-2. Decide the canonical non-evaluation storage contract for required receipts.
-3. Design a receipt completeness validator and stale-worker/retry policy.
+1. Decide the canonical non-evaluation storage contract for required receipts.
+2. Design a receipt completeness validator and stale-worker/retry policy.
+3. Replace line-wrap-sensitive exact policy anchors with structural checks.

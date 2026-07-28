@@ -66,8 +66,9 @@ This child receipt records Writer B in `CONCURRENT-001`.
 
 ## Review verdict
 
-- Verdict: `null`
-- Findings: `null`
+- Verdict: `PASS`
+- Findings: the test shard correctly exposed two line-wrap integration defects;
+  focused mutation caused only the targeted policy test to fail.
 
 ## Risks and open decisions
 
@@ -77,5 +78,5 @@ This child receipt records Writer B in `CONCURRENT-001`.
 
 ## Cleanup status
 
-- Brida-owned panes closed: `no`
+- Brida-owned panes closed: `yes`
 - Project memory updated: `yes`

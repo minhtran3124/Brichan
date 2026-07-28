@@ -15,7 +15,7 @@ This parent receipt records the `CONCURRENT-001` multi-writer lifecycle.
 
 - Artifact or plan ID: `CONCURRENT-001-P1`
 - Version: `1`
-- Status: `implemented`
+- Status: `reviewed`
 
 ## Sessions
 
@@ -48,7 +48,7 @@ This parent receipt records the `CONCURRENT-001` multi-writer lifecycle.
 | `CONCURRENT-AC-1` | `pass` | `empty intersection between A and B committed path sets` |
 | `CONCURRENT-AC-2` | `pass` | `both branches descend from dispatch SHA 83c713e` |
 | `CONCURRENT-AC-3` | `pass` | `40 integrated checks pass; git diff --check passes` |
-| `CONCURRENT-AC-4` | `pending` | `independent integrated review` |
+| `CONCURRENT-AC-4` | `pass` | `mutation-tested Claude Opus re-review PASS at c2413fe` |
 
 ## Verification
 
@@ -74,20 +74,22 @@ This parent receipt records the `CONCURRENT-001` multi-writer lifecycle.
 
 ## Review verdict
 
-- Verdict: `CHANGES REQUIRED`
+- Verdict: `PASS`
 - Findings: initial review found a blocking committed-metrics count mismatch
-  and a non-blocking integrated-SHA traceability gap; both were remediated.
-  Exact-anchor line length remains a non-blocking design risk pending re-review.
+  and a non-blocking integrated-SHA traceability gap; both were remediated at
+  `c2413fe` and re-review passed. Exact-anchor line length remains a disclosed
+  non-blocking design risk.
 
 ## Risks and open decisions
 
 - Risks: root worktree contains unrelated Agent Harness changes; final evidence
   must use explicit path checks and partial staging for shared ledgers. Exact
   text contracts are sensitive to Markdown line wrapping.
-- Open decisions: receipt completeness automation remains deferred until this
-  required-receipt pilot is reviewed.
+- Open decisions: canonical required-receipt storage, completeness automation,
+  stale-worker/retry policy, and structural replacement for brittle exact
+  Markdown anchors.
 
 ## Cleanup status
 
-- Brida-owned panes closed: `no`
+- Brida-owned panes closed: `yes`
 - Project memory updated: `yes`
