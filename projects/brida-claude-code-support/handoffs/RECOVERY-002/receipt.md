@@ -17,7 +17,7 @@ This standalone receipt records the `RECOVERY-002` controlled recovery pilot.
 
 - Artifact or plan ID: `RECOVERY-002-P1`
 - Version: `1`
-- Status: `implemented`
+- Status: `reviewed`
 
 ## Sessions
 
@@ -25,7 +25,7 @@ This standalone receipt records the `RECOVERY-002` controlled recovery pilot.
 | --- | --- | --- | --- | --- |
 | Planner | `Brida` | `Codex coordinator` | `w1X:pA` | `019fa6ba-dd94-7681-be71-1950f999a02f` |
 | Implementer | `Codex` | `gpt-5.6-luna` | `w1X:p1T` | `019fa76e-6079-7bf2-a170-b520fe2a4439` |
-| Reviewer | `null` | `null` | `null` | `null` |
+| Reviewer | `Codex` | `gpt-5.6-terra` | `w1X:p1V` | `019fa771-a7a8-7160-a728-abfc99962a8b` |
 
 ## Scope
 
@@ -71,8 +71,10 @@ This standalone receipt records the `RECOVERY-002` controlled recovery pilot.
 
 ## Review verdict
 
-- Verdict: `null`
-- Findings: `null`
+- Verdict: `PASS`
+- Findings: initial `CHANGES REQUIRED` for missing explicit `replaced`
+  lifecycle state; remediated at `72ed9c3` and focused re-review returned PASS
+  with no remaining blocker.
 
 ## Risks and open decisions
 

@@ -37,7 +37,13 @@ it noticed that attempt 2 was described as a replacement but was not explicitly
 recorded with lifecycle state `replaced`. Claude accepted the equivalent
 provenance as sufficient and missed that literal policy requirement.
 
+This is one task sample. It supports a directional conclusion for strict
+policy-compliance review, not a general provider ranking or routing change.
+
 ## Remediation
 
-The coordinator will add the missing explicit lifecycle state without changing
-the first-pass scores, then route the focused fix back to Codex for re-review.
+The coordinator added the missing explicit lifecycle state at `72ed9c3`
+without changing first-pass scores. Codex then verified the state against
+attempt 2 and the replaced session, reran 10 focused tests and the canonical
+validator, confirmed a clean worktree, and returned final `PASS` with no
+remaining blocker.

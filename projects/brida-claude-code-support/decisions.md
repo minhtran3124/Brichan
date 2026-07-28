@@ -46,3 +46,11 @@ Store required operational receipts under
 dependency-free completeness validator to `make check`, replace line-wrap
 sensitive policy assertions with structural checks, and define bounded
 stale-worker detection and replacement rules before another fault pilot.
+
+## 2026-07-28 — Treat the first model benchmark as directional
+
+Do not declare a general provider winner or change global routing from one
+policy-audit sample. Record the observed result—Codex Terra caught one blocking
+lifecycle defect that Claude Sonnet missed—but retain provider diversity and
+require repeated implementation, debugging, and review benchmarks before a
+routing change. Leave token and cost unavailable until directly observable.

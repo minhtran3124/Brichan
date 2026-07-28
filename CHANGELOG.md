@@ -18,6 +18,8 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 - Canonical project handoff receipts, a dependency-free receipt completeness
   gate, line-wrap-tolerant structural policy checks, and bounded stale-worker
   replacement rules.
+- Structural coverage for recovery guarantees, a controlled one-replacement
+  pilot, and a fixed-rubric Codex–Claude policy-audit benchmark.
 
 ## [0.2.0] - 2026-07-27
 
