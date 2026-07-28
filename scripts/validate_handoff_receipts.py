@@ -285,7 +285,7 @@ def parse_receipt(path: Path, diagnostics: list[Diagnostic]) -> ParsedReceipt:
                         "schema version 2 requires this field",
                     )
                 )
-    elif schema:
+    else:
         diagnostics.append(
             Diagnostic(
                 path,

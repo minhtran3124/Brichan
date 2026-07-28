@@ -21,7 +21,7 @@ This standalone receipt records the `RECEIPT-V2-001` implementation and review.
 
 - Artifact or plan ID: `RECEIPT-V2-001-P1`
 - Version: `1`
-- Status: `accepted`
+- Status: `reviewed`
 
 ## Sessions
 
@@ -29,7 +29,7 @@ This standalone receipt records the `RECEIPT-V2-001` implementation and review.
 | --- | --- | --- | --- | --- |
 | Planner | `Claude` | `Opus 5` | `w1X:p1X` | `d26beba3-5271-4a75-b14f-9a796868124d` |
 | Implementer | `Codex` | `gpt-5.6-sol` | `w1X:p1Y` | `019fa7ba-1330-7bc3-adef-7e0db74096ff` |
-| Reviewer | `Claude` | `Opus 5` | `null` | `null` |
+| Reviewer | `Claude` | `Opus 5` | `w1X:p1Z` | `b6ae42f6-2332-406f-9c2c-fc31968e3ff6` |
 
 ## Scope
 
@@ -38,7 +38,7 @@ This standalone receipt records the `RECEIPT-V2-001` implementation and review.
 - Authorized paths: exact paths in `plan.md`
 - Exclusive write ownership: `single writer`
 - Branch: `feat/receipt-lifecycle-v2`
-- Worktree: `repository root`
+- Worktree: `implementation in repository root; review in detached worktree at bd44651`
 
 ## Non-goals
 
@@ -57,7 +57,7 @@ This standalone receipt records the `RECEIPT-V2-001` implementation and review.
 | `V2-5` | `pass` | Four canonical receipts validate; historical eval receipts remain undiscovered. |
 | `V2-6` | `pass` | Validator uses the standard library, preserves fixtures, and emits field-qualified diagnostics. |
 | `V2-7` | `pass` | Coordinator reran 53 focused tests and full checks successfully. |
-| `V2-8` | `pending` | `pending` |
+| `V2-8` | `fail` | Initial review found blank schema version bypassed version-gated validation; remediation is in progress. |
 
 ## Verification
 
@@ -80,8 +80,11 @@ This standalone receipt records the `RECEIPT-V2-001` implementation and review.
 
 ## Review verdict
 
-- Verdict: `null`
-- Findings: `null`
+- Verdict: `CHANGES REQUIRED`
+- Findings: High: blank or whitespace-only schema version bypasses
+  version-gated validation because the unsupported-version diagnostic is
+  conditional on a truthy parsed value; add an unconditional fallback and
+  regression coverage.
 
 ## Risks and open decisions
 

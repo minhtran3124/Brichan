@@ -491,11 +491,15 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
 
         self.assert_invalid("schema version 1 forbids schema-v2 identity fields")
 
-    def test_unsupported_schema_version_is_rejected(self):
-        content = self.receipt(schema_version="3", include_v2=False)
-        self.write_receipt(content)
-
-        self.assert_invalid("supported schema versions are 1 and 2")
+    def test_unsupported_or_blank_schema_version_is_rejected(self):
+        for schema_version in ("3", "", "   "):
+            with self.subTest(schema_version=repr(schema_version)):
+                content = self.receipt(
+                    schema_version=schema_version,
+                    include_v2=False,
+                )
+                self.write_receipt(content)
+                self.assert_invalid("supported schema versions are 1 and 2")
 
     def test_v2_has_no_attempt_cap_or_provider_session_format_guessing(self):
         self.write_evidence()
