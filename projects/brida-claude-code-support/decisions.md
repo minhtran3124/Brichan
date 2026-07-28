@@ -69,3 +69,22 @@ Add immutable `Attempt origin` separately from current
 `replacement` plus `complete`, not permanently `replaced`. Keep v1 valid,
 migrate canonical receipts, and leave retry-limit escalation policy-owned
 instead of imposing an absolute attempt cap or provider-specific session regex.
+
+## 2026-07-28 — Second directional Codex–Claude benchmark
+
+Run equivalent implementation and seeded-debugging tasks in isolated worktrees.
+Codex Terra and Claude Sonnet both passed; do not change routing from this
+small sample. Tokens, cost, and independent elapsed time remain unavailable.
+
+## 2026-07-28 — Real tool-failure pilot design
+
+Use a one-shot exit-42 wrapper around a task-local tool in disposable worktrees,
+with control/treatment runs and a cleanup gate covering wrapper, worktree,
+process, pane, receipt, and scope invariants. Execution requires user approval.
+
+## 2026-07-28 — Accept real tool-failure recovery evidence after clean rerun
+
+The first treatment is retained as invalid evidence because the coordinator made
+a third invocation. Accept `PILOT-003-T-R1` instead: it preserves raw output,
+one exact wrapper-log fault, and pre-dispatch provenance; Claude Sonnet made
+the two actual calls and independent Codex Terra review returned `PASS`.

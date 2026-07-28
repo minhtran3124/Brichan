@@ -23,6 +23,20 @@
   closed or removed.
 - New Claude workers launched through `bin/brida-herdr-agent-start` default to
   `--permission-mode auto`; explicit per-worker permission modes are preserved.
+- `BENCHMARK-002` completed an equivalent implementation/debugging fixture:
+  Codex Terra and Claude Sonnet both passed; tokens, cost, and independent
+  elapsed time remain unavailable, so routing is unchanged.
+- `PILOT-003` is complete: the control succeeded once; fresh treatment rerun
+  `PILOT-003-T-R1` recorded one real task-local exit-42 fault followed by one
+  successful retry, and independent Codex Terra re-review returned `PASS`.
+- `PILOT-003-E` control passed: one task-local tool invocation returned exact
+  success output with exit 0. The treatment worker also observed one real
+  exit-42 fault and a successful retry, but the coordinator made a prohibited
+  third post-run invocation. The treatment is `CHANGES REQUIRED`; it is not
+  clean recovery evidence.
+- `PILOT-003-T-R1` preserves raw worker output, byte-for-byte wrapper log, and
+  pre-dispatch SHA-256/mode/target provenance. Its initial shell redirect was
+  rejected before the tool ran; this is a non-blocking process-discipline risk.
 
 ## Main gaps and risks
 
@@ -45,16 +59,11 @@
 
 1. Should historical replacement evidence be immutable or copied beside each
    canonical receipt to avoid path-existence coupling?
-2. What safe fault should a realistic recovery pilot inject without adding an
-   automatic killer or broadening worker authority?
-3. Which repeated task set and telemetry source can provide reliable token and
+2. Which larger repeated task set and telemetry source can provide reliable token and
    cost comparisons across providers?
 
 ## Next actions
 
-1. Repeat equivalent Codex–Claude benchmarks for implementation and debugging
-   tasks before changing model routing.
-2. Design a bounded real tool-failure pilot with explicit fault injection and
-   cleanup acceptance criteria.
-3. Decide whether replacement evidence should be co-located or immutable before
+1. Repeat `BENCHMARK-002` with more task instances before changing routing.
+2. Decide whether replacement evidence should be co-located or immutable before
    tightening evidence-path durability.
