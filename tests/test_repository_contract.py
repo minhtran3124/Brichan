@@ -61,6 +61,10 @@ class RepositoryContractTest(unittest.TestCase):
 
         required_labels = (
             "Receipt schema version:",
+            "Attempt origin:",
+            "Attempt lifecycle state:",
+            "Prior attempt state:",
+            "Replacement evidence path:",
             "Task ID:",
             "Project:",
             "Handoff timestamp (UTC):",

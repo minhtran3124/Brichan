@@ -51,5 +51,7 @@ integrated state.
 - Chat history is not a durable handoff artifact.
 - Required operational receipts use the canonical
   `projects/<slug>/handoffs/<task-id>/receipt.md` location and are checked by a
-  dependency-free completeness validator in `make check`.
+  dependency-free completeness validator in `make check`. Schema v1 remains
+  compatible; schema v2 machine-validates immutable attempt origin, current
+  lifecycle, prior-attempt state, and replacement evidence.
 - Task packets remain human-readable rather than a machine-enforced schema.

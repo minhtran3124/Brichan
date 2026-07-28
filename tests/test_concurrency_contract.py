@@ -58,6 +58,10 @@ class ConcurrencyContractTest(unittest.TestCase):
         required_labels = (
             "Receipt role:",
             "Parent receipt path:",
+            "Attempt origin:",
+            "Attempt lifecycle state:",
+            "Prior attempt state:",
+            "Replacement evidence path:",
             "Exclusive write ownership:",
             "Branch:",
             "Worktree:",
@@ -198,6 +202,13 @@ class ConcurrencyContractTest(unittest.TestCase):
             )
         for state in ("`stale`", "`abandoned`", "`replaced`"):
             self.assertIn(state, recovery)
+        self.assert_policy(
+            "`replacement` is the immutable attempt origin; the current attempt "
+            "lifecycle is recorded separately as `active`, `complete`, `stale`, "
+            "or `abandoned`.",
+            recovery,
+            "Worker recovery must separate replacement origin from lifecycle.",
+        )
 
     def test_concurrent_writer_reference_has_no_path_or_code_span_hygiene_issues(self):
         self.assertTrue(

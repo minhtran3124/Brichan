@@ -4,7 +4,7 @@ This standalone receipt records the `RECOVERY-002` controlled recovery pilot.
 
 ## Identity
 
-- Receipt schema version: `1`
+- Receipt schema version: `2`
 - Receipt role: `standalone`
 - Parent receipt path: `null`
 - Task ID: `RECOVERY-002`
@@ -12,6 +12,10 @@ This standalone receipt records the `RECOVERY-002` controlled recovery pilot.
 - Handoff timestamp (UTC): `2026-07-28T06:30:26Z`
 - Attempt: `2`
 - Replaces session: `019fa76c-0471-7a51-819d-ecb93aa9bb03`
+- Attempt origin: `replacement`
+- Attempt lifecycle state: `complete`
+- Prior attempt state: `abandoned`
+- Replacement evidence path: `evals/mixed-provider-coding/RECOVERY-002/observations.md`
 
 ## Plan version
 

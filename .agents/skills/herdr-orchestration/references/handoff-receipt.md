@@ -16,6 +16,16 @@ of a multi-writer task, and `child` for each writer receipt. A child names its
 canonical parent receipt using a repo-relative path. Parent and standalone
 receipts use `null`.
 
+Schema versions `1` and `2` are supported. Schema version `2` records immutable
+attempt origin separately from current lifecycle state: a successful
+replacement has origin `replacement` and lifecycle `complete`. Attempt `1`
+uses origin `initial` with null replacement provenance. A later attempt uses
+origin `replacement`, names the stale or abandoned prior session, and points to
+the existing repo-relative evidence that authorized replacement. Schema-v1
+receipts omit the four schema-v2 identity fields. A schema-v2 lifecycle of
+`stale` or `abandoned` is valid only at accepted plan status and requires
+concrete implementation evidence in the receipt.
+
 Attempt numbering starts at `1`, with `Replaces session` set to `null`. A later
 attempt names the prior session it replaces.
 
@@ -27,7 +37,7 @@ with actionable findings while remediation is active.
 
 ## Identity
 
-- Receipt schema version: `1`
+- Receipt schema version: `2`
 - Task ID: `<task-id>`
 - Project: `<project-slug>`
 - Handoff timestamp (UTC): `<ISO-8601 timestamp or null>`
@@ -35,6 +45,10 @@ with actionable findings while remediation is active.
 - Parent receipt path: `<repo-relative path or null>`
 - Attempt: `<positive integer>`
 - Replaces session: `<prior session identifier or null>`
+- Attempt origin: `<initial or replacement>`
+- Attempt lifecycle state: `<active, complete, stale, or abandoned>`
+- Prior attempt state: `<stale, abandoned, or null>`
+- Replacement evidence path: `<repo-relative evidence path or null>`
 
 ## Plan version
 

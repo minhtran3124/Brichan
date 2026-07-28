@@ -1,54 +1,48 @@
 # Current state
 
-- Status: recovery contract hardening, one bounded replacement pilot, and one
-  equivalent Codex–Claude benchmark are complete.
+- Status: receipt lifecycle schema v2 is implemented, migrated, mutation-tested,
+  and independently reviewed `PASS`.
 - Claude Code 2.1.220 is authenticated and routable; Codex and Claude Herdr
   integrations are current.
-- Required operational receipts use
-  `projects/<slug>/handoffs/<task-id>/receipt.md` and are validated by
-  `make check`.
-- Concurrent writers require disjoint path ownership, dedicated branches and
-  worktrees, parent/child receipts, and integrated review.
-- `RECOVERY-001` added normalized structural anchors for escalation after retry
-  exhaustion, no authority expansion, and preservation of original evidence.
-  Commit `a9f30dc` passed three controlled policy mutations and independent
-  Claude Opus review.
-- `RECOVERY-002` recorded three consecutive idle/no-progress observations,
-  preserved the original session before `stale` then `abandoned`, and used one
-  replacement with the same plan, receipt, read-only scope, and ownership.
-- First review found that attempt 2 lacked an explicit `replaced` lifecycle
-  state. The coordinator recorded it at `72ed9c3`; focused re-review returned
-  `PASS`.
-- `BENCHMARK-001` gave Codex Terra and Claude Sonnet the same read-only audit at
-  commit `323d546`. Codex scored 12/12 in 69 seconds and found the lifecycle
-  defect; Claude scored 10/12 in 73 seconds and missed it.
-- Per-task token and cost totals were not reliably observable and remain
-  unavailable. The benchmark is one policy-audit sample, not a general model
-  ranking.
-- All Brida-owned worker panes and disposable worktrees from these tasks are
+- Canonical receipts support schema v1 and v2. V2 separates immutable attempt
+  origin from current lifecycle and validates prior state plus replacement
+  evidence.
+- `RECEIPT-V2-001` used Claude Opus planning, Codex Sol implementation, and
+  Claude Opus review. Commits `843d3bf` and `7339415` implemented the validator
+  and migrated three receipts.
+- Initial review found a HIGH blank-schema bypass. Coordinator remediation
+  `d788a8b` made unsupported-version handling unconditional and added blank and
+  whitespace regression coverage; focused re-review returned `PASS`.
+- All required tests pass: 53 focused tests, 10 metrics tests, 62 repository
+  tests, and four canonical receipt validations.
+- Concurrent-writer isolation, recovery pilots, and the first equivalent
+  Codex–Claude policy benchmark remain complete.
+- Per-task token and cost totals remain unavailable. One benchmark sample is
+  not a general model ranking.
+- All Brida-owned worker panes and disposable worktrees for completed tasks are
   closed or removed.
 
 ## Main gaps and risks
 
-- Recovery anchors assert required sentence presence; additive contradictory
-  prose could remain undetected.
-- The real-policy reflow test can become vacuous after future literal drift and
-  duplicates one authority-policy literal.
-- The recovery pilot injected a deliberate 39-second stall, not a live provider
-  or tool failure. Realistic stale timing remains untested.
-- Receipt schema records attempt and prior session but has no dedicated
-  lifecycle-state field; `replaced` currently relies on human-readable evidence.
+- Replacement receipts depend on the referenced evidence file continuing to
+  exist; moving it can invalidate historical receipts.
+- Evidence-path repo-root inference uses `projects_root.parent`, which is
+  correct for repository checks but heuristic for custom roots.
+- A missing schema line emits both missing-field and unsupported-version
+  diagnostics; this is cosmetic.
+- Schema-v1 compatibility intentionally leaves new v2-only attempt invariants
+  unenforced.
+- Recovery anchors can miss additive contradictory prose, and the controlled
+  stall pilot was not a live provider or tool failure.
 - Receipt evidence quality remains reviewer-judged even though completeness and
   lifecycle transitions are machine-gated.
-- Validator failure diagnostics can expose an absolute checkout path, and
-  direct test imports assume repository-root cwd.
 - One benchmark sample is insufficient to change global routing or estimate
   provider cost.
 
 ## Open questions
 
-1. Should receipt schema version 2 add a machine-validated attempt lifecycle
-   state such as `active`, `stale`, `abandoned`, or `replaced`?
+1. Should historical replacement evidence be immutable or copied beside each
+   canonical receipt to avoid path-existence coupling?
 2. What safe fault should a realistic recovery pilot inject without adding an
    automatic killer or broadening worker authority?
 3. Which repeated task set and telemetry source can provide reliable token and
@@ -56,8 +50,9 @@
 
 ## Next actions
 
-1. Design receipt schema version 2 with validated attempt lifecycle state.
-2. Repeat the benchmark across implementation, debugging, and review tasks
-   before changing model routing.
-3. Run a bounded real tool-failure pilot after its fault and cleanup mechanism
-   receive explicit acceptance criteria.
+1. Repeat equivalent Codex–Claude benchmarks for implementation and debugging
+   tasks before changing model routing.
+2. Design a bounded real tool-failure pilot with explicit fault injection and
+   cleanup acceptance criteria.
+3. Decide whether replacement evidence should be co-located or immutable before
+   tightening evidence-path durability.

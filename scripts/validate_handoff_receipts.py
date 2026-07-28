@@ -69,8 +69,18 @@ REQUIRED_FIELDS = {
     ),
 }
 
+SCHEMA_V2_IDENTITY_FIELDS = (
+    "Attempt origin",
+    "Attempt lifecycle state",
+    "Prior attempt state",
+    "Replacement evidence path",
+)
+
 LIFECYCLE_STATES = {"accepted", "implemented", "reviewed"}
 RECEIPT_ROLES = {"standalone", "parent", "child"}
+ATTEMPT_ORIGINS = {"initial", "replacement"}
+ATTEMPT_LIFECYCLE_STATES = {"active", "complete", "stale", "abandoned"}
+PRIOR_ATTEMPT_STATES = {"stale", "abandoned", "null"}
 CRITERION_STATES = {"pass", "fail", "pending", "null"}
 VERIFICATION_STATES = {"pass", "fail", "pending", "unavailable", "null"}
 PLACEHOLDER_VALUES = {
@@ -226,9 +236,17 @@ def parse_receipt(path: Path, diagnostics: list[Diagnostic]) -> ParsedReceipt:
 
     sections = _parse_sections(path, text, diagnostics)
     fields: dict[str, dict[str, str]] = {}
-    for section, required in REQUIRED_FIELDS.items():
+    duplicates_by_section: dict[str, set[str]] = {}
+    for section in REQUIRED_FIELDS:
         parsed, duplicates = _parse_fields(sections.get(section, ""))
         fields[section] = parsed
+        duplicates_by_section[section] = duplicates
+
+    receipt = ParsedReceipt(path, text, sections, fields)
+    schema = _plain(receipt.get("Identity", "Receipt schema version"))
+
+    for section, required in REQUIRED_FIELDS.items():
+        duplicates = duplicates_by_section[section]
         for label in duplicates:
             diagnostics.append(
                 Diagnostic(
@@ -238,7 +256,7 @@ def parse_receipt(path: Path, diagnostics: list[Diagnostic]) -> ParsedReceipt:
                 )
             )
         for label in required:
-            if label not in parsed:
+            if label not in fields[section]:
                 diagnostics.append(
                     Diagnostic(
                         path,
@@ -247,7 +265,36 @@ def parse_receipt(path: Path, diagnostics: list[Diagnostic]) -> ParsedReceipt:
                     )
                 )
 
-    return ParsedReceipt(path, text, sections, fields)
+    if schema == "1":
+        for label in SCHEMA_V2_IDENTITY_FIELDS:
+            if label in fields["Identity"]:
+                diagnostics.append(
+                    Diagnostic(
+                        path,
+                        f"Identity.{label}",
+                        "schema version 1 forbids schema-v2 identity fields",
+                    )
+                )
+    elif schema == "2":
+        for label in SCHEMA_V2_IDENTITY_FIELDS:
+            if label not in fields["Identity"]:
+                diagnostics.append(
+                    Diagnostic(
+                        path,
+                        f"Identity.{label}",
+                        "schema version 2 requires this field",
+                    )
+                )
+    else:
+        diagnostics.append(
+            Diagnostic(
+                path,
+                "Identity.Receipt schema version",
+                f"supported schema versions are 1 and 2, found {schema!r}",
+            )
+        )
+
+    return receipt
 
 
 def _diagnose(
@@ -456,8 +503,11 @@ def _validate_role_topology(
 
 
 def _validate_attempt(
-    receipt: ParsedReceipt, diagnostics: list[Diagnostic]
+    receipt: ParsedReceipt,
+    projects_root: Path,
+    diagnostics: list[Diagnostic],
 ) -> None:
+    schema = _plain(receipt.get("Identity", "Receipt schema version"))
     attempt_value = _plain(receipt.get("Identity", "Attempt"))
     replacement = _plain(receipt.get("Identity", "Replaces session"))
     try:
@@ -487,19 +537,148 @@ def _validate_attempt(
             "later attempts require concrete replacement provenance",
         )
 
+    if schema != "2":
+        return
+
+    origin = _plain(receipt.get("Identity", "Attempt origin")).lower()
+    attempt_lifecycle = _plain(
+        receipt.get("Identity", "Attempt lifecycle state")
+    ).lower()
+    prior_state = _plain(receipt.get("Identity", "Prior attempt state")).lower()
+    evidence_path = _plain(
+        receipt.get("Identity", "Replacement evidence path")
+    )
+
+    if origin not in ATTEMPT_ORIGINS:
+        _diagnose(
+            diagnostics,
+            receipt,
+            "Identity.Attempt origin",
+            f"must be one of {sorted(ATTEMPT_ORIGINS)}, found {origin!r}",
+        )
+    if attempt_lifecycle not in ATTEMPT_LIFECYCLE_STATES:
+        _diagnose(
+            diagnostics,
+            receipt,
+            "Identity.Attempt lifecycle state",
+            "must be one of "
+            f"{sorted(ATTEMPT_LIFECYCLE_STATES)}, found {attempt_lifecycle!r}",
+        )
+    if prior_state not in PRIOR_ATTEMPT_STATES:
+        _diagnose(
+            diagnostics,
+            receipt,
+            "Identity.Prior attempt state",
+            f"must be one of {sorted(PRIOR_ATTEMPT_STATES)}, found {prior_state!r}",
+        )
+
+    if attempt == 1:
+        for field, value, expected in (
+            ("Attempt origin", origin, "initial"),
+            ("Prior attempt state", prior_state, "null"),
+            ("Replacement evidence path", evidence_path.lower(), "null"),
+        ):
+            if value != expected:
+                _diagnose(
+                    diagnostics,
+                    receipt,
+                    f"Identity.{field}",
+                    f"attempt 1 requires {expected!r}",
+                )
+    elif attempt > 1:
+        if origin != "replacement":
+            _diagnose(
+                diagnostics,
+                receipt,
+                "Identity.Attempt origin",
+                "attempts greater than 1 require 'replacement'",
+            )
+        if prior_state not in {"stale", "abandoned"}:
+            _diagnose(
+                diagnostics,
+                receipt,
+                "Identity.Prior attempt state",
+                "attempts greater than 1 require 'stale' or 'abandoned'",
+            )
+        if _is_placeholder(evidence_path):
+            _diagnose(
+                diagnostics,
+                receipt,
+                "Identity.Replacement evidence path",
+                "attempts greater than 1 require a concrete evidence path",
+            )
+        else:
+            _validate_evidence_path(
+                receipt,
+                projects_root,
+                evidence_path,
+                diagnostics,
+            )
+
+    if not _is_placeholder(replacement):
+        rows = _parse_table(receipt.sections.get("Sessions", ""))
+        current_sessions = {
+            _plain(row[4])
+            for row in rows[1:]
+            if len(row) == 5 and not _is_placeholder(row[4])
+        }
+        if replacement in current_sessions:
+            _diagnose(
+                diagnostics,
+                receipt,
+                "Identity.Replaces session",
+                "cannot equal a session listed in the current receipt",
+            )
+
+
+def _validate_evidence_path(
+    receipt: ParsedReceipt,
+    projects_root: Path,
+    value: str,
+    diagnostics: list[Diagnostic],
+) -> None:
+    field = "Identity.Replacement evidence path"
+    pure = PurePosixPath(value)
+    if (
+        pure.is_absolute()
+        or ".." in pure.parts
+        or "\\" in value
+        or (pure.parts and pure.parts[0].startswith("~"))
+    ):
+        _diagnose(
+            diagnostics,
+            receipt,
+            field,
+            "must be a safe repo-relative path without absolute, parent, "
+            "backslash, or home-path syntax",
+        )
+        return
+
+    repo_root = projects_root.parent.resolve()
+    candidate = repo_root.joinpath(*pure.parts)
+    try:
+        resolved = candidate.resolve()
+        resolved.relative_to(repo_root)
+    except (OSError, ValueError):
+        _diagnose(
+            diagnostics,
+            receipt,
+            field,
+            "must resolve inside the repository",
+        )
+        return
+    if not resolved.is_file():
+        _diagnose(
+            diagnostics,
+            receipt,
+            field,
+            f"evidence file does not exist: {value}",
+        )
+
 
 def _validate_plan_and_scope(
     receipt: ParsedReceipt, diagnostics: list[Diagnostic]
 ) -> str:
-    schema = _plain(receipt.get("Identity", "Receipt schema version"))
-    if schema != "1":
-        _diagnose(
-            diagnostics,
-            receipt,
-            "Identity.Receipt schema version",
-            f"only schema version 1 is supported, found {schema!r}",
-        )
-
     plan_id = receipt.get("Plan version", "Artifact or plan ID")
     if _is_placeholder(plan_id):
         _diagnose(
@@ -745,6 +924,62 @@ def _validate_implementation_evidence(
     return complete
 
 
+def _validate_attempt_lifecycle(
+    receipt: ParsedReceipt,
+    plan_lifecycle: str,
+    implementation_complete: bool,
+    diagnostics: list[Diagnostic],
+) -> None:
+    if _plain(receipt.get("Identity", "Receipt schema version")) != "2":
+        return
+
+    lifecycle = _plain(
+        receipt.get("Identity", "Attempt lifecycle state")
+    ).lower()
+    prior_state = _plain(receipt.get("Identity", "Prior attempt state")).lower()
+    attempt_value = _plain(receipt.get("Identity", "Attempt"))
+    try:
+        attempt = int(attempt_value)
+    except ValueError:
+        attempt = 0
+
+    if plan_lifecycle in {"implemented", "reviewed"} and lifecycle != "complete":
+        _diagnose(
+            diagnostics,
+            receipt,
+            "Identity.Attempt lifecycle state",
+            f"{plan_lifecycle} receipts require 'complete'",
+        )
+    if (
+        lifecycle in {"active", "stale", "abandoned"}
+        and plan_lifecycle != "accepted"
+    ):
+        _diagnose(
+            diagnostics,
+            receipt,
+            "Identity.Attempt lifecycle state",
+            f"{lifecycle!r} is valid only while plan status is 'accepted'",
+        )
+    if lifecycle in {"stale", "abandoned"} and not implementation_complete:
+        _diagnose(
+            diagnostics,
+            receipt,
+            "Implementation evidence",
+            f"{lifecycle!r} lifecycle requires concrete evidence",
+        )
+    if (
+        plan_lifecycle in {"implemented", "reviewed"}
+        and attempt > 1
+        and prior_state != "abandoned"
+    ):
+        _diagnose(
+            diagnostics,
+            receipt,
+            "Identity.Prior attempt state",
+            f"{plan_lifecycle} replacement receipts require 'abandoned'",
+        )
+
+
 def _validate_review_and_cleanup(
     receipt: ParsedReceipt,
     lifecycle: str,
@@ -761,6 +996,10 @@ def _validate_review_and_cleanup(
     memory_updated = _plain(
         receipt.get("Cleanup status", "Project memory updated")
     ).lower()
+    attempt_lifecycle = _plain(
+        receipt.get("Identity", "Attempt lifecycle state")
+    ).lower()
+    schema = _plain(receipt.get("Identity", "Receipt schema version"))
 
     for field, value in (
         ("Cleanup status.Brida-owned panes closed", panes_closed),
@@ -803,6 +1042,13 @@ def _validate_review_and_cleanup(
             )
         return
 
+    if schema == "2" and attempt_lifecycle != "complete":
+        _diagnose(
+            diagnostics,
+            receipt,
+            "Identity.Attempt lifecycle state",
+            "reviewed PASS requires 'complete'",
+        )
     if not criteria_pass:
         _diagnose(
             diagnostics,
@@ -849,13 +1095,19 @@ def validate_receipt(
     _validate_path_identity(receipt, projects_root, diagnostics)
     _validate_timestamp(receipt, diagnostics)
     _validate_role_topology(receipt, projects_root, diagnostics)
-    _validate_attempt(receipt, diagnostics)
+    _validate_attempt(receipt, projects_root, diagnostics)
     lifecycle = _validate_plan_and_scope(receipt, diagnostics)
     _validate_sessions(receipt, diagnostics)
     criteria_pass = _validate_acceptance(receipt, lifecycle, diagnostics)
     verification_pass = _validate_verification(receipt, lifecycle, diagnostics)
     implementation_complete = _validate_implementation_evidence(
         receipt, lifecycle, diagnostics
+    )
+    _validate_attempt_lifecycle(
+        receipt,
+        lifecycle,
+        implementation_complete,
+        diagnostics,
     )
     _validate_review_and_cleanup(
         receipt,
