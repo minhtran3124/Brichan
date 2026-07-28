@@ -24,17 +24,18 @@
   stable `bin/` paths.
 - Phase 4 established independent unit, contract, and integration suites plus
   a wheel build/install/smoke CI lane.
-- Phase 5 pointer retirement is not eligible until one compatibility release
-  window completes. Both pre-release startup smokes pass, but operational
-  evidence must be refreshed after that window.
+- Release `v0.3.0` completed the compatibility window at
+  `2026-07-28T12:59:20Z`.
 - A fail-closed Phase 5 preflight now pins all six temporary pointers and
   requires timestamped release, link, repository-search, Codex/Claude startup,
   full-CI, and changelog evidence. Independent Codex review verdict is `PASS`.
-- Current preflight: Codex startup, external links, baseline stale-reference
-  search, a real pre-release Claude startup via `cld-edgeful`, and PR #10
-  implementation-head CI pass. Only the release window remains pending.
-  Strict eligibility correctly fails, and operational evidence must be
-  refreshed after release completion.
+- Post-release Codex and Claude startup smokes, external-link checks, and the
+  stale root-reference search pass with durable evidence.
+- The merged-main CI run completed before the release timestamp, so strict
+  eligibility correctly remains blocked only on a fresh post-release full-CI
+  run.
+- A worker found `brida.__version__` lagging at `0.2.0`; the follow-up branch
+  aligns it with `0.3.0` and adds contract coverage.
 
 ## Approved boundaries
 
@@ -47,8 +48,7 @@
 
 ## Next actions
 
-1. Keep the root compatibility pointers for one release.
-2. Merge PR #10 and publish the refactor through an explicitly authorized
-   release workflow after CI/review.
-3. After that compatibility window, refresh every operational gate and require
-   strict preflight success before removing any temporary pointer.
+1. Run post-release full CI and record its timestamped evidence.
+2. Require strict preflight success before removing any temporary pointer.
+3. Retire the six pointers, update the manifest/contracts/changelog, rerun both
+   startup smokes on the retired tree, and obtain independent review.

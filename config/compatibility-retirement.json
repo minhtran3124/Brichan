@@ -12,34 +12,34 @@
   ],
   "gates": {
     "release_window": {
-      "status": "pending",
-      "checked_at": null,
-      "evidence": "CHANGELOG.md#Unreleased"
+      "status": "pass",
+      "checked_at": "2026-07-28T12:59:20Z",
+      "evidence": "CHANGELOG.md#[0.3.0]"
     },
     "external_links": {
       "status": "pass",
-      "checked_at": "2026-07-28T11:21:10Z",
-      "evidence": "projects/brida-repository-structure-refactor/references.md#Phase 5 baseline external-link audit"
+      "checked_at": "2026-07-28T13:05:15Z",
+      "evidence": "projects/brida-repository-structure-refactor/references.md#Phase 5 post-release external-link audit"
     },
     "codex_startup": {
       "status": "pass",
-      "checked_at": "2026-07-28T10:35:42Z",
-      "evidence": "projects/brida-repository-structure-refactor/handoffs/RSR-002-R/receipt.md#RSR-002-R-3"
+      "checked_at": "2026-07-28T13:03:45Z",
+      "evidence": "projects/brida-repository-structure-refactor/handoffs/RSR-011-C/receipt.md#RSR-011-C-1"
     },
     "claude_startup": {
       "status": "pass",
-      "checked_at": "2026-07-28T11:38:07Z",
-      "evidence": "projects/brida-repository-structure-refactor/handoffs/RSR-010/receipt.md#RSR-010-2"
+      "checked_at": "2026-07-28T13:05:15Z",
+      "evidence": "projects/brida-repository-structure-refactor/handoffs/RSR-011-L/receipt.md#RSR-011-L-1"
     },
     "full_ci": {
-      "status": "pass",
-      "checked_at": "2026-07-28T11:40:34Z",
+      "status": "pending",
+      "checked_at": null,
       "evidence": "projects/brida-repository-structure-refactor/references.md#PR #10 implementation-head CI"
     },
     "repository_search": {
       "status": "pass",
-      "checked_at": "2026-07-28T11:24:48Z",
-      "evidence": "projects/brida-repository-structure-refactor/references.md#Phase 5 baseline stale-reference search"
+      "checked_at": "2026-07-28T13:03:21Z",
+      "evidence": "projects/brida-repository-structure-refactor/references.md#Phase 5 post-release stale-reference search"
     }
   },
   "retirement_evidence": {

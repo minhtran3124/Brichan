@@ -20,17 +20,25 @@ class CompatibilityRetirementContractTest(unittest.TestCase):
     def setUp(self):
         self.config = json.loads(CONFIG.read_text(encoding="utf-8"))
 
-    def test_current_gate_is_valid_but_not_prematurely_eligible(self):
+    def test_current_gate_is_valid_but_waits_for_post_release_ci(self):
         self.assertEqual([], validate_config(self.config))
         self.assertFalse(self.config["retired"])
         self.assertFalse(is_eligible(self.config))
+        self.assertEqual(
+            "pass",
+            self.config["gates"]["release_window"]["status"],
+        )
+        self.assertEqual(
+            "pending",
+            self.config["gates"]["full_ci"]["status"],
+        )
         self.assertEqual(
             "pass",
             self.config["gates"]["claude_startup"]["status"],
         )
         self.assertEqual(
             "projects/brida-repository-structure-refactor/handoffs/"
-            "RSR-010/receipt.md#RSR-010-2",
+            "RSR-011-L/receipt.md#RSR-011-L-1",
             self.config["gates"]["claude_startup"]["evidence"],
         )
 

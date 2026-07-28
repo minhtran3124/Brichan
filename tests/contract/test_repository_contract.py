@@ -225,9 +225,11 @@ class RepositoryContractTest(unittest.TestCase):
         version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        package = (ROOT / "src/brida/__init__.py").read_text(encoding="utf-8")
         self.assertRegex(version, r"^\d+\.\d+\.\d+$")
         self.assertIn(f"## [{version}]", changelog)
         self.assertIn(f'version = "{version}"', pyproject)
+        self.assertIn(f'__version__ = "{version}"', package)
 
     def test_mit_license_is_declared(self):
         license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
