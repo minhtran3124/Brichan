@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "migration_id": "policy-docs-v1",
-  "retired": false,
+  "retired": true,
   "temporary_paths": [
     {"path": "identity.md", "canonical": "docs/policy/identity.md"},
     {"path": "operating-principles.md", "canonical": "docs/policy/operating-principles.md"},
@@ -38,15 +38,15 @@
     },
     "repository_search": {
       "status": "pass",
-      "checked_at": "2026-07-28T13:03:21Z",
-      "evidence": "projects/brida-repository-structure-refactor/references.md#Phase 5 post-release stale-reference search"
+      "checked_at": "2026-07-28T13:25:20Z",
+      "evidence": "projects/brida-repository-structure-refactor/references.md#Phase 5 retired-tree replay search"
     }
   },
   "retirement_evidence": {
     "changelog": {
-      "status": "pending",
-      "checked_at": null,
-      "evidence": null
+      "status": "pass",
+      "checked_at": "2026-07-28T13:25:20Z",
+      "evidence": "CHANGELOG.md#Retired the six temporary root policy pointers"
     }
   }
 }

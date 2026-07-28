@@ -200,7 +200,7 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("Herdr", instructions)
         self.assertIn("brida-", instructions)
 
-    def test_root_policy_files_are_compatibility_pointers(self):
+    def test_retired_root_policy_pointers_are_absent(self):
         canonical_paths = {
             "identity.md": "docs/policy/identity.md",
             "operating-principles.md": "docs/policy/operating-principles.md",
@@ -210,9 +210,8 @@ class RepositoryContractTest(unittest.TestCase):
             "setup-status.md": "docs/history/setup-status.md",
         }
         for stub, canonical in canonical_paths.items():
-            content = (ROOT / stub).read_text(encoding="utf-8")
-            self.assertIn(canonical, content)
-            self.assertIn("one release", content)
+            self.assertFalse((ROOT / stub).exists())
+            self.assertTrue((ROOT / canonical).is_file())
 
     def test_project_config_disables_native_agents(self):
         config = (ROOT / ".codex/config.toml").read_text(encoding="utf-8")

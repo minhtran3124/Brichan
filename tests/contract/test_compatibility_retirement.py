@@ -20,9 +20,9 @@ class CompatibilityRetirementContractTest(unittest.TestCase):
     def setUp(self):
         self.config = json.loads(CONFIG.read_text(encoding="utf-8"))
 
-    def test_current_gate_is_eligible_but_not_yet_retired(self):
+    def test_current_gate_is_eligible_and_retired(self):
         self.assertEqual([], validate_config(self.config))
-        self.assertFalse(self.config["retired"])
+        self.assertTrue(self.config["retired"])
         self.assertTrue(is_eligible(self.config))
         self.assertEqual(
             "pass",
@@ -133,13 +133,14 @@ class CompatibilityRetirementContractTest(unittest.TestCase):
             validate_config(narrowed),
         )
 
-    def test_retired_state_requires_removed_pointers_and_changelog(self):
+    def test_retired_state_requires_changelog_evidence(self):
         retired = copy.deepcopy(self.config)
-        retired["retired"] = True
+        retired["retirement_evidence"]["changelog"] = {
+            "status": "pending",
+            "checked_at": None,
+            "evidence": None,
+        }
         errors = validate_config(retired)
-        self.assertTrue(
-            any("retired pointer still exists" in error for error in errors)
-        )
         self.assertIn(
             "retired migration requires passing changelog evidence",
             errors,

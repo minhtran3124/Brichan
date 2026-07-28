@@ -2,8 +2,8 @@
 
 - Status: Phases 0–4 implemented and independently reviewed with final verdict
   `PASS`; all Brida-owned review panes are closed.
-- Root now contains permanent discovery/public entrypoints and temporary
-  one-release pointers; canonical internal policy and setup history live under
+- Root now contains only permanent discovery/public entrypoints; the six
+  one-release pointers are retired and canonical policy/history remain under
   `docs/`.
 - Four independent read-only agents completed architecture/modules,
   multi-agent coding, testing/deployment, and future-scalability research.
@@ -33,8 +33,14 @@
   stale root-reference search pass with durable evidence.
 - Post-release GitHub Actions run `30362433787` passed Python 3.10, Python
   3.13, and package build/install checks at `2026-07-28T13:13:11Z`.
-- All six retirement gates now pass; the active-state strict preflight must be
-  recorded in an immutable commit before pointer deletion.
+- Immutable checkpoint commit
+  `00fb58a5664403c0b17f7c4b595e26a3a33c67fe` records strict eligibility with
+  `retired: no` and all six pointers present before the deletion commit.
+- The controlled replay retired all six pointers again; path/reference checks,
+  the full local suite, and final Codex/Claude startup smokes pass.
+- Initial final review returned `CHANGES REQUIRED` only for missing immutable
+  chronology and durable receipts/state; those findings are remediated and a
+  focused re-review remains.
 - A worker found `brida.__version__` lagging at `0.2.0`; the follow-up branch
   aligns it with `0.3.0` and adds contract coverage.
 
@@ -44,12 +50,12 @@
 2. `AGENTS.md` and `CLAUDE.md` remain permanent root discovery adapters.
 3. `CONTRIBUTING.md` and `SECURITY.md` remain at root during the first
    migration.
-4. Phases 0–4 are authorized and implemented; Phase 5 remains governed by its
-   release-window and cross-runtime smoke gates.
+4. Phases 0–5 are authorized and implemented; permanent discovery adapters and
+   command wrappers remain unchanged.
 
 ## Next actions
 
-1. Run and record strict preflight while `retired` is false and all pointers
-   exist.
-2. Retire the six pointers in the next commit.
-3. Rerun both startup smokes on the retired tree and obtain final review.
+1. Obtain focused independent re-review of the remediated chronology and
+   durable evidence.
+2. Commit and push the final retirement tree.
+3. Require final branch CI before opening the follow-up PR.
