@@ -18,3 +18,4 @@
 | RSR-009 | Final independent review of Phases 2–4 | `brida-structure-final-review` / `w1X:p2E` / Codex Sol | complete | Final verdict `PASS`; 90 tests, installed-wheel smoke, path/receipt validation, and cleanup complete |
 | RSR-008 | Audit and retire temporary documentation pointers | Brida | gated | Start only after one release/compatibility window, external-link check, both live startup smokes, and full CI |
 | RSR-008-P | Independently review the Phase 5 retirement preflight | `brida-phase5-preflight-review` / `w1X:p2F` / Codex Sol | complete | Five bypass classes and two edge cases remediated; 36 contract tests, final verdict `PASS`, pane cleanup complete |
+| RSR-010 | Run a real Claude startup smoke via `cld-edgeful` | `brida-claude-edgeful-smoke` / `w1X:p2G` / Claude Sonnet 5 | complete | Canonical startup-policy `PASS`, branch/HEAD and package boundaries verified, no worker writes, pane cleanup and aggregate checks complete |

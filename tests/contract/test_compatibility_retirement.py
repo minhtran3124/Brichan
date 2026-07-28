@@ -25,8 +25,13 @@ class CompatibilityRetirementContractTest(unittest.TestCase):
         self.assertFalse(self.config["retired"])
         self.assertFalse(is_eligible(self.config))
         self.assertEqual(
-            "unavailable",
+            "pass",
             self.config["gates"]["claude_startup"]["status"],
+        )
+        self.assertEqual(
+            "projects/brida-repository-structure-refactor/handoffs/"
+            "RSR-010/receipt.md#RSR-010-2",
+            self.config["gates"]["claude_startup"]["evidence"],
         )
 
     def test_require_eligible_rejects_current_pending_state(self):

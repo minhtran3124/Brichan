@@ -29,9 +29,10 @@
 - A fail-closed Phase 5 preflight now pins all six temporary pointers and
   requires timestamped release, link, repository-search, Codex/Claude startup,
   full-CI, and changelog evidence. Independent Codex review verdict is `PASS`.
-- Current preflight: Codex startup, external links, and baseline stale-reference
-  search pass; release window and full CI are pending; Claude startup is
-  unavailable. Strict eligibility correctly fails.
+- Current preflight: Codex startup, external links, baseline stale-reference
+  search, and a real pre-release Claude startup via `cld-edgeful` pass; release
+  window and current-head full CI are pending. Strict eligibility correctly
+  fails, and runtime evidence must be refreshed after release completion.
 
 ## Approved boundaries
 
@@ -45,7 +46,7 @@
 ## Next actions
 
 1. Keep the root compatibility pointers for one release.
-2. Re-run the deferred live Claude startup smoke when provider quota returns.
-3. Publish the refactor through an explicitly authorized release/CI workflow.
-4. After that compatibility window, refresh every operational gate and require
+2. Merge PR #10 and publish the refactor through an explicitly authorized
+   release workflow after CI/review.
+3. After that compatibility window, refresh every operational gate and require
    strict preflight success before removing any temporary pointer.
