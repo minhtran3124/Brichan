@@ -25,7 +25,8 @@
 - Phase 4 established independent unit, contract, and integration suites plus
   a wheel build/install/smoke CI lane.
 - Phase 5 pointer retirement is not eligible until one compatibility release
-  window and the deferred live Claude startup smoke are complete.
+  window completes. Both pre-release startup smokes pass, but operational
+  evidence must be refreshed after that window.
 - A fail-closed Phase 5 preflight now pins all six temporary pointers and
   requires timestamped release, link, repository-search, Codex/Claude startup,
   full-CI, and changelog evidence. Independent Codex review verdict is `PASS`.
