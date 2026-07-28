@@ -27,3 +27,29 @@ jobs:
 
       - name: Run repository checks
         run: make check
+
+  package:
+    name: Build source package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Build wheel
+        run: python -m pip wheel --no-deps --wheel-dir dist .
+
+      - name: Install wheel
+        run: python -m pip install --force-reinstall --no-deps dist/*.whl
+
+      - name: Smoke installed entrypoints
+        run: |
+          brida-validate-receipts projects
+          brida-herdr-agent-start --help
+
+      - name: Verify source imports
+        run: make package-check

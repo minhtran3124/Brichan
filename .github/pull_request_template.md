@@ -12,4 +12,4 @@
 
 ## Independent review
 
-<!-- Required for material changes described in reviewer.md. -->
+<!-- Required for material changes described in docs/policy/reviewer.md. -->

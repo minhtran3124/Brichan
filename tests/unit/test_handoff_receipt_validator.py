@@ -1,11 +1,15 @@
 import contextlib
 import io
+import sys
 import tempfile
 import textwrap
 import unittest
 from pathlib import Path
 
-from scripts import validate_handoff_receipts
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src"))
+
+from brida.contracts.receipts import validation as validate_handoff_receipts
 
 
 class HandoffReceiptValidatorTest(unittest.TestCase):

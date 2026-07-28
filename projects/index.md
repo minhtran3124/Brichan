@@ -15,6 +15,11 @@
 - Summary: Dual-runtime handoffs, isolated concurrent writers, canonical validated receipts, and bounded worker recovery are established.
 - Memory: projects/brida-claude-code-support/
 
+## Brida repository structure refactor
+- Status: active
+- Summary: Plan a scalable modular repository layout, migration path, and multi-agent-safe operating contracts.
+- Memory: projects/brida-repository-structure-refactor/
+
 ## Entry template
 
 ```text

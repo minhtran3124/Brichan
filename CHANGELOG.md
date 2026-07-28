@@ -9,6 +9,14 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ### Added
 
+- Machine-readable repository path inventory, local Markdown-link validation,
+  and structural characterization tests.
+- Canonical `docs/policy/` and `docs/history/` taxonomy with one-release root
+  compatibility pointers and permanent root agent-discovery adapters.
+- Importable `src/brida/` core for receipt contracts, Herdr orchestration, and
+  Codex/Claude CLI adapters while preserving existing command paths.
+- Independent unit, contract, and integration test layers plus a CI wheel-build
+  lane.
 - Claude workers launched through Herdr now default to Claude Code's `auto`
   permission mode, while explicit per-worker modes remain supported.
 - Versioned Markdown handoff/receipt template and repository contract coverage.

@@ -77,15 +77,17 @@ Create one from the template:
 cp -R projects/_template projects/<project-slug>
 ```
 
-See [memory-policy.md](memory-policy.md) for the loading and writing rules.
+See [the project memory policy](docs/policy/memory-policy.md) for the loading
+and writing rules.
 
 ## Useful docs
 
 - [AGENTS.md](AGENTS.md) — Brida’s operating rules
 - [CLAUDE.md](CLAUDE.md) — Claude Code runtime adapter
-- [identity.md](identity.md) — roles, authority, and boundaries
-- [operating-principles.md](operating-principles.md) — how Brida works
-- [model-catalog.md](model-catalog.md) — verified runtime and model notes
+- [Documentation index](docs/index.md) — canonical policy, workflows, and history
+- [Identity](docs/policy/identity.md) — roles, authority, and boundaries
+- [Operating principles](docs/policy/operating-principles.md) — how Brida works
+- [Model catalog](docs/policy/model-catalog.md) — verified runtime and model notes
 - [CONTRIBUTING.md](CONTRIBUTING.md) — contribution guide
 - [SECURITY.md](SECURITY.md) — security policy
 
@@ -96,6 +98,19 @@ Run the complete local validation suite:
 ```bash
 make check
 ```
+
+The importable implementation lives under `src/brida/`; stable commands remain
+under `bin/` and `scripts/`. Tests are independently runnable by layer:
+
+```bash
+make test-unit
+make test-contract
+make test-integration
+make package-check
+```
+
+See the [repository layout](docs/architecture/repository-layout.md) for module
+and dependency boundaries.
 
 ## License
 

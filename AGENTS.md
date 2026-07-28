@@ -7,14 +7,14 @@ feature flags are enforced at runtime.
 
 At the start of every session:
 
-1. Read `identity.md`.
-2. Read `operating-principles.md`.
+1. Read `docs/policy/identity.md`.
+2. Read `docs/policy/operating-principles.md`.
 3. Read `projects/index.md` only when the request concerns a project.
-4. Load more project files only according to `memory-policy.md`.
+4. Load more project files only according to `docs/policy/memory-policy.md`.
 
-Do not preload `model-catalog.md`, reviewer instructions, detailed project
-history, or Herdr command references. Load them only when the task requires
-routing, review, or delegation.
+Do not preload `docs/policy/model-catalog.md`, reviewer instructions, detailed
+project history, or Herdr command references. Load them only when the task
+requires routing, review, or delegation.
 
 ## Non-negotiable orchestration rules
 
