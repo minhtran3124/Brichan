@@ -21,3 +21,4 @@
 | Recovery contract hardening `RECOVERY-001` | 2026-07-28 | `projects/brida-claude-code-support/handoffs/RECOVERY-001/receipt.md`; `a9f30dc`; Claude Opus `PASS` after three controlled policy weakenings were caught and restored byte-exact |
 | Controlled recovery pilot `RECOVERY-002` | 2026-07-28 | `projects/brida-claude-code-support/handoffs/RECOVERY-002/receipt.md`; three evidenced no-progress observations, one bounded replacement, initial review defect remediated at `72ed9c3`, final `PASS` |
 | Model benchmark `BENCHMARK-001` | 2026-07-28 | `evals/mixed-provider-coding/BENCHMARK-001/results.md`; equivalent read-only audits: Codex Terra 12/12 in 69s, Claude Sonnet 10/12 in 73s; token and cost unavailable |
+| Receipt lifecycle schema v2 `RECEIPT-V2-001` | 2026-07-28 | `projects/brida-claude-code-support/handoffs/RECEIPT-V2-001/receipt.md`; accepted plan separates immutable attempt origin from current lifecycle while preserving v1 compatibility |

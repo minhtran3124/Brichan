@@ -33,3 +33,6 @@
 | RECOVERY-002-A2 | One bounded replacement attempt | `brida-recovery-replacement` / `w1X:p1T` / Codex Luna | complete | Same plan/receipt/read-only scope; three evidence answers and 10 focused tests; no second replacement |
 | BENCHMARK-001-C | Audit `RECOVERY-002` with common benchmark packet | `brida-benchmark-codex` / `w1X:p1V` / Codex Terra | complete | 12/12; first-pass `CHANGES REQUIRED`; focused remediation re-review `PASS` |
 | BENCHMARK-001-H | Audit `RECOVERY-002` with common benchmark packet | `brida-benchmark-claude` / `w1X:p1W` / Claude Sonnet | complete | 10/12; first-pass `PASS`; missed explicit `replaced` lifecycle-state requirement |
+| RECEIPT-V2-001-P | Plan machine-validated receipt attempt lifecycle state | `brida-receipt-v2-plan` / `w1X:p1X` / Claude Opus | complete | `RECEIPT-V2-001-P1` accepted; origin/lifecycle separated; v1 compatibility retained |
+| RECEIPT-V2-001-I | Implement schema-v2 lifecycle validation | `brida-receipt-v2-implement` / pane pending / Codex Sol | pending | Seven authorized path groups; focused mutations and full checks required |
+| RECEIPT-V2-001-R | Independently review schema-v2 implementation | `brida-receipt-v2-review` / pane pending / Claude Opus | pending | Mutation review, compatibility, migration, and final verdict |

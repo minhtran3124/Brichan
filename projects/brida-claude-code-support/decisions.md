@@ -54,3 +54,11 @@ policy-audit sample. Record the observed result—Codex Terra caught one blockin
 lifecycle defect that Claude Sonnet missed—but retain provider diversity and
 require repeated implementation, debugging, and review benchmarks before a
 routing change. Leave token and cost unavailable until directly observable.
+
+## 2026-07-28 — Receipt v2 separates origin from lifecycle
+
+Add immutable `Attempt origin` separately from current
+`Attempt lifecycle state`; a successful replacement is
+`replacement` plus `complete`, not permanently `replaced`. Keep v1 valid,
+migrate canonical receipts, and leave retry-limit escalation policy-owned
+instead of imposing an absolute attempt cap or provider-specific session regex.
