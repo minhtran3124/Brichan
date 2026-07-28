@@ -128,20 +128,23 @@ class ConcurrencyContractTest(unittest.TestCase):
         )
 
     def test_normalized_policy_checks_tolerate_only_cosmetic_reflow(self):
-        policy = "A handoff receipt is mandatory for an accepted-plan handoff."
-        harmless_reflow = (
-            "A handoff receipt is mandatory\n"
-            "for an accepted-plan handoff."
+        recovery = WORKER_RECOVERY_PATH.read_text(encoding="utf-8")
+        policy = (
+            "Replacement does not grant broader permissions, authority, paths, "
+            "or goals."
         )
-        semantic_mutation = (
-            "A handoff receipt is optional\n"
-            "for an accepted-plan handoff."
+        harmless_reflow = policy.replace("authority, paths", "authority,\npaths")
+        semantic_mutation = policy.replace("does not grant broader", "grants broader")
+        self.assert_policy(
+            policy,
+            recovery,
+            "The shipped worker-recovery policy must include the real anchor.",
         )
         self.assert_policy(policy, harmless_reflow, "Wrapping must be harmless.")
         self.assertNotIn(
             normalize_markdown_prose(policy),
             normalize_markdown_prose(semantic_mutation),
-            "Changing a mandatory policy to optional must fail its contract.",
+            "Broadening replacement authority must fail its contract.",
         )
 
     def test_canonical_receipt_storage_policy_is_structural(self):
@@ -180,6 +183,11 @@ class ConcurrencyContractTest(unittest.TestCase):
             "The default retry limit is one replacement attempt.",
             "The replacement must reuse the accepted plan, canonical receipt, "
             "authorized scope, and write ownership.",
+            "Replacement does not grant broader permissions, authority, paths, "
+            "or goals.",
+            "Escalate after the one-replacement limit is exhausted.",
+            "Preserve the original session and pane evidence before replacement.",
+            "Do not rewrite or discard evidence from the original session.",
             "Close only panes that Brida created and recorded.",
         )
         for policy in policies:
