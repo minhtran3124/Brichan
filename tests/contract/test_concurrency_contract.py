@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SKILL_PATH = ROOT / ".agents/skills/herdr-orchestration/SKILL.md"
 TASK_PACKET_PATH = (
     ROOT / ".agents/skills/herdr-orchestration/references/task-packet.md"

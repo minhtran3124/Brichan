@@ -3,10 +3,8 @@
 set -eu
 
 BRIDA_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+export BRIDA_ROOT
+PYTHONPATH="$BRIDA_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH
 
-exec codex \
-  -C "$BRIDA_ROOT" \
-  -c agents.enabled=false \
-  --disable multi_agent \
-  --disable multi_agent_v2 \
-  "$@"
+exec python3 -m brida.cli.codex "$@"

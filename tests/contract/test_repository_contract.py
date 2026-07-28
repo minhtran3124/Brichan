@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 class RepositoryContractTest(unittest.TestCase):
@@ -18,11 +18,23 @@ class RepositoryContractTest(unittest.TestCase):
             "CHANGELOG.md",
             "LICENSE",
             "VERSION",
+            "pyproject.toml",
             "bin/brida",
             "bin/brida-codex",
             "bin/brida-claude",
             "bin/brida-herdr-agent-start",
             "CLAUDE.md",
+            "docs/index.md",
+            "docs/policy/identity.md",
+            "docs/policy/operating-principles.md",
+            "docs/policy/memory-policy.md",
+            "docs/policy/model-catalog.md",
+            "docs/policy/reviewer.md",
+            "docs/history/setup-status.md",
+            "docs/architecture/repository-layout.md",
+            "src/brida/contracts/receipts/validation.py",
+            "src/brida/orchestration/worker_launch.py",
+            "src/brida/cli/runtime.py",
             ".codex/config.toml",
             ".agents/skills/herdr-orchestration/references/handoff-receipt.md",
             ".agents/skills/herdr-orchestration/references/task-packet.md",
@@ -154,31 +166,53 @@ class RepositoryContractTest(unittest.TestCase):
         )
 
     def test_launcher_disables_native_agents(self):
-        launcher = (ROOT / "bin/brida-codex").read_text(encoding="utf-8")
-        self.assertIn("-c agents.enabled=false", launcher)
-        self.assertIn("--disable multi_agent", launcher)
-        self.assertIn("--disable multi_agent_v2", launcher)
-        self.assertNotIn("agents.enabled=true", launcher)
+        adapter = (ROOT / "src/brida/cli/codex.py").read_text(encoding="utf-8")
+        self.assertIn('"agents.enabled=false"', adapter)
+        self.assertIn('"multi_agent"', adapter)
+        self.assertIn('"multi_agent_v2"', adapter)
+        self.assertNotIn("agents.enabled=true", adapter)
 
     def test_runtime_dispatcher_supports_only_approved_runtimes(self):
-        launcher = (ROOT / "bin/brida").read_text(encoding="utf-8")
-        self.assertIn('runtime=${BRIDA_RUNTIME:-codex}', launcher)
-        self.assertIn('exec "$BRIDA_ROOT/bin/brida-codex"', launcher)
-        self.assertIn('exec "$BRIDA_ROOT/bin/brida-claude"', launcher)
-        self.assertIn("unsupported runtime", launcher)
+        dispatcher = (ROOT / "src/brida/cli/runtime.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('environment.get("BRIDA_RUNTIME") or "codex"', dispatcher)
+        self.assertIn('{"codex", "claude"}', dispatcher)
+        self.assertIn('f"brida-{runtime}"', dispatcher)
+        self.assertIn("unsupported runtime", dispatcher)
 
     def test_claude_launcher_keeps_herdr_as_worker_control_plane(self):
-        launcher = (ROOT / "bin/brida-claude").read_text(encoding="utf-8")
-        self.assertIn("--disallowed-tools Task", launcher)
-        self.assertIn("cd \"$BRIDA_ROOT\"", launcher)
-        self.assertIn("coordinator_model=${BRIDA_CLAUDE_COORDINATOR_MODEL:-opus}", launcher)
-        self.assertIn('--model "$coordinator_model"', launcher)
+        adapter = (ROOT / "src/brida/cli/claude.py").read_text(encoding="utf-8")
+        self.assertIn(
+            'environment.get("BRIDA_CLAUDE_COORDINATOR_MODEL") or "opus"',
+            adapter,
+        )
+        self.assertIn('"--disallowed-tools"', adapter)
+        self.assertIn('"Task"', adapter)
+        self.assertIn("os.chdir(repository_root())", adapter)
 
     def test_claude_instructions_reference_canonical_policy(self):
         instructions = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
         self.assertIn("AGENTS.md", instructions)
+        self.assertIn("docs/policy/identity.md", instructions)
+        self.assertIn("docs/policy/operating-principles.md", instructions)
+        self.assertIn("docs/policy/memory-policy.md", instructions)
         self.assertIn("Herdr", instructions)
         self.assertIn("brida-", instructions)
+
+    def test_root_policy_files_are_compatibility_pointers(self):
+        canonical_paths = {
+            "identity.md": "docs/policy/identity.md",
+            "operating-principles.md": "docs/policy/operating-principles.md",
+            "memory-policy.md": "docs/policy/memory-policy.md",
+            "model-catalog.md": "docs/policy/model-catalog.md",
+            "reviewer.md": "docs/policy/reviewer.md",
+            "setup-status.md": "docs/history/setup-status.md",
+        }
+        for stub, canonical in canonical_paths.items():
+            content = (ROOT / stub).read_text(encoding="utf-8")
+            self.assertIn(canonical, content)
+            self.assertIn("one release", content)
 
     def test_project_config_disables_native_agents(self):
         config = (ROOT / ".codex/config.toml").read_text(encoding="utf-8")
@@ -190,8 +224,10 @@ class RepositoryContractTest(unittest.TestCase):
     def test_version_matches_changelog(self):
         version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         self.assertRegex(version, r"^\d+\.\d+\.\d+$")
         self.assertIn(f"## [{version}]", changelog)
+        self.assertIn(f'version = "{version}"', pyproject)
 
     def test_mit_license_is_declared(self):
         license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")

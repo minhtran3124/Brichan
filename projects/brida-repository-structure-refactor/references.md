@@ -1,0 +1,35 @@
+# References
+
+| Evidence | Date | Result |
+| --- | --- | --- |
+| Repository inventory at merge commit `2b4ffcd` | 2026-07-28 | Discovery baseline for the structure refactor plan |
+| `brida-structure-architecture`, session `019fa81b-6c27-7212-9d59-c3e8fd2ae9bd`, pane `w1X:p27` | 2026-07-28 | Stable adapters plus canonical docs/importable core; module and migration-risk analysis |
+| `brida-structure-multi-agent`, session `30480aec-9357-47d9-adbd-a5c914dcd228`, pane `w1X:p28` | 2026-07-28 | Discovery-path, ownership, worktree, receipt, and cross-runtime constraints |
+| `brida-structure-testing-deploy`, session `019fa81b-6d7c-74b1-98df-f35c4edaaad9`, pane `w1X:p29` | 2026-07-28 | `make check` baseline, path contracts, CI layers, and compatibility gates |
+| `brida-structure-scalability`, session `965f47e5-120b-4e30-b15e-384bf888a17f`, pane `w1X:p2A` | 2026-07-28 | Scale stressors, extension triggers, ownership gaps, and premature-split risks |
+| [Codex `AGENTS.md` discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md#how-codex-discovers-guidance) | 2026-07-28 | Codex discovers project guidance from the project root toward the working directory |
+| [Claude Code project memory](https://code.claude.com/docs/en/memory) | 2026-07-28 | Root `CLAUDE.md` is a native project instruction location and can import shared instructions |
+| [Python Packaging: src layout](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/) | 2026-07-28 | Supports isolating importable package code under `src/` |
+| [GitHub contribution guidelines](https://docs.github.com/en/enterprise-cloud@latest/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors) | 2026-07-28 | `CONTRIBUTING` is recognized at root, `docs/`, or `.github/` |
+| Local `make check` after plan integration | 2026-07-28 | 65 tests passed, 16 metrics rows validated, and 10 canonical receipts validated |
+| Herdr cleanup for panes `w1X:p27`, `w1X:p28`, `w1X:p29`, and `w1X:p2A` | 2026-07-28 | All four Brida-owned research panes closed successfully; unrelated panes preserved |
+| `config/repository-paths.json` and `scripts/check_repository_paths.py` | 2026-07-28 | 35 required paths and 33 explicit consumer references validated; all non-ephemeral root files classified |
+| Local `make check` after Phase 0 | 2026-07-28 | 69 tests passed, 16 metrics rows and 10 canonical receipts validated, path/link contract passed |
+| `brida-phase1-policy-audit`, session `019fa844-d212-79e0-98f1-49876441ed6d`, pane `w1X:p2B` | 2026-07-28 | Read-only audit found seven active consumer groups plus internal policy cross-links; no implementation blocker |
+| `brida-phase1-workflow-audit`, session `a62b59bb-dead-4423-8984-02b780ce5700`, pane `w1X:p2C` | 2026-07-28 | Read-only audit confirmed `internal-docs/` is ignored scratch with stale links and historical branding; only tracked history is migrated |
+| `projects/brida-repository-structure-refactor/handoffs/RSR-003-A/receipt.md` | 2026-07-28 | Reviewed standalone receipt for the policy migration audit |
+| `projects/brida-repository-structure-refactor/handoffs/RSR-004-A/receipt.md` | 2026-07-28 | Reviewed standalone receipt for the workflow/history migration audit |
+| `projects/brida-repository-structure-refactor/handoffs/RSR-002-R/receipt.md` | 2026-07-28 | Standalone implementation/review receipt for Phase 1 and fresh Codex startup evidence |
+| `brida-phase1-codex-review`, session `019fa849-ddd3-7a33-908d-346fdbc150ed`, pane `w1X:p2D` | 2026-07-28 | Fresh Codex startup loaded canonical policies; review found three ambiguous references and two medium issues, all remediated; final verdict PASS |
+| Phase 1 final local validation | 2026-07-28 | 71 tests passed, 16 metrics rows and 13 canonical receipts validated, 43 path entries and 45 references passed |
+| `projects/brida-repository-structure-refactor/handoffs/RSR-009/receipt.md` | 2026-07-28 | Mandatory standalone receipt for final Phases 2–4 review |
+| `brida-structure-final-review`, session `019fa85c-86f0-7c30-81cd-246e09ebaf59`, pane `w1X:p2E` | 2026-07-28 | Codex Sol reviewed the complete Phases 2–4 worktree; environment-default and stale-authorization findings were remediated; final verdict `PASS` |
+| Phase 2–4 final local validation | 2026-07-28 | 44 unit, 30 contract, 6 integration, and 10 metrics tests passed; 16 metrics rows, 14 receipts, and 55 path entries with 49 references validated; `git diff --check` clean |
+| Disposable installed-wheel smoke | 2026-07-28 | Wheel built and installed; receipt validator, Herdr launcher help, package imports, and unsupported-runtime behavior passed |
+| Phase 5 baseline external-link audit | 2026-07-28 | All 11 unique tracked Markdown HTTP(S) links resolved successfully: Claude Code (3), GitHub (2), LangChain/LangGraph (2), Codex/OpenAI (2), AutoGen (1), and Python Packaging (1) |
+| `brida-phase5-preflight-review`, session `019fa86c-e3b9-7bc2-8c96-f83f5828c3a0`, pane `w1X:p2F` | 2026-07-28 | Codex Sol reproduced five eligibility/state-machine weaknesses; exact pointer, evidence, search, changelog, symlink, release-fragment, and timestamp remediations passed focused re-review |
+| Phase 5 preflight final local validation | 2026-07-28 | 44 unit, 36 contract, 6 integration, and 10 metrics tests passed; 15 receipts and 57 path entries with 51 references validated; strict preflight correctly remained blocked |
+| Phase 5 baseline stale-reference search | 2026-07-28 | No active Markdown link or runtime/policy consumer targets the six temporary root paths; canonical `docs/` references are clean, while frozen `evals/` retain intentional historical prompt text |
+| `brida-claude-edgeful-smoke`, Claude session `c0e7da11-a10b-45df-bffe-6921e2f02229`, pane `w1X:p2G` | 2026-07-28 | Real Claude Code 2.1.220 / Sonnet 5 startup via the user-authorized Edgeful config returned `PASS` for canonical policy discovery, Herdr-only control, branch/HEAD, stable wrappers, importable core, and no writes |
+| RSR-010 final validation | 2026-07-28 | 44 unit, 36 contract, 6 integration, and 10 metrics tests passed; 16 receipts and 57 path entries with 51 references validated; only the coordinator pane remained |
+| PR #10 implementation-head CI | 2026-07-28 | Commit `746b5b2bf89f60c23c0a6e0945e009755bbebb4b` passed Python 3.10, Python 3.13, and build/install/entrypoint package jobs in GitHub Actions run `30355704805`; PR merge state remained clean |

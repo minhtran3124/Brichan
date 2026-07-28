@@ -13,7 +13,7 @@ or automatic delegation as a substitute for Herdr.
 1. Confirm Herdr and the required integration are healthy.
 2. Write a complete task packet before creating a worker.
 3. Read `references/commands.md` and select a verified provider/model from
-   `../../../model-catalog.md`.
+   `../../../docs/policy/model-catalog.md`.
 4. Start a uniquely named `brida-` worker with the balanced-layout wrapper in
    the intended project directory.
 5. Record its agent name, pane ID, model, task, and status in project `tasks.md`.

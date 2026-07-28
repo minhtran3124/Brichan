@@ -44,4 +44,4 @@ A pull request should contain:
 - Any changes to authority, security, provider routing, or cost behavior.
 
 Material changes to orchestration, permissions, security, or public contracts
-require an independent review using `reviewer.md`.
+require an independent review using `docs/policy/reviewer.md`.

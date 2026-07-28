@@ -5,7 +5,7 @@ from importlib.machinery import SourceFileLoader
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "bin" / "brida-herdr-agent-start"
 LOADER = SourceFileLoader("brida_herdr_layout", str(SCRIPT))
 SPEC = importlib.util.spec_from_loader(LOADER.name, LOADER)
