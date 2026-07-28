@@ -26,7 +26,8 @@
   11 committed metrics rows are valid and `git diff --check` is clean.
 - `CONCURRENT-002-P1` is accepted as one single-writer hardening task covering
   canonical receipt storage, completeness validation, structural policy tests,
-  and stale-worker/retry rules. Implementation is pending.
+  and stale-worker/retry rules. Implementation commit `71e3d9d` is complete;
+  independent mutation review is pending.
 
 ## Main gaps and risks
 
