@@ -21,6 +21,9 @@ Replacement does not grant broader permissions, authority, paths, or goals.
 Record the original worker as `stale`, then `abandoned` when its attempt will
 not resume. Record the new attempt as `replaced` and add replacement provenance
 to its receipt. Do not rewrite or discard evidence from the original session.
+In schema-v2 receipt vocabulary, `replacement` is the immutable attempt origin;
+the current attempt lifecycle is recorded separately as `active`, `complete`,
+`stale`, or `abandoned`.
 
 ## Escalation
 

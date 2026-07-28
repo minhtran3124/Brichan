@@ -23,8 +23,14 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
         project="example",
         role="standalone",
         parent="null",
+        schema_version="1",
+        include_v2=None,
         attempt="1",
         replaces="null",
+        origin="initial",
+        attempt_lifecycle="active",
+        prior_state="null",
+        replacement_evidence="null",
         status="accepted",
         criterion_status="pending",
         verification_result="pending",
@@ -37,7 +43,7 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
         memory_updated="yes",
         scope="bounded validator implementation",
     ):
-        return textwrap.dedent(
+        content = textwrap.dedent(
             f"""\
             # Handoff receipt
 
@@ -45,7 +51,7 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
 
             ## Identity
 
-            - Receipt schema version: `1`
+            - Receipt schema version: `{schema_version}`
             - Receipt role: `{role}`
             - Parent receipt path: `{parent}`
             - Task ID: `{task_id}`
@@ -112,6 +118,22 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
             - Project memory updated: `{memory_updated}`
             """
         )
+        if include_v2 is None:
+            include_v2 = schema_version == "2"
+        if include_v2:
+            v2_fields = textwrap.dedent(
+                f"""\
+                - Attempt origin: `{origin}`
+                - Attempt lifecycle state: `{attempt_lifecycle}`
+                - Prior attempt state: `{prior_state}`
+                - Replacement evidence path: `{replacement_evidence}`
+                """
+            )
+            content = content.replace(
+                f"- Replaces session: `{replaces}`\n",
+                f"- Replaces session: `{replaces}`\n{v2_fields}",
+            )
+        return content
 
     def write_receipt(self, content, project="example", task_id="TASK-001"):
         path = self.projects / project / "handoffs" / task_id / "receipt.md"
@@ -125,6 +147,12 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
             result = validate_handoff_receipts.main([str(self.projects)])
         return result, stdout.getvalue(), stderr.getvalue()
+
+    def write_evidence(self, path="evidence/replacement.md", content="evidence"):
+        evidence = self.root / path
+        evidence.parent.mkdir(parents=True, exist_ok=True)
+        evidence.write_text(content, encoding="utf-8")
+        return evidence
 
     def assert_invalid(self, diagnostic):
         result, _, stderr = self.run_validator()
@@ -142,6 +170,7 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
             "test_evidence": "fixture tests pass",
             "panes_closed": "no",
             "memory_updated": "no",
+            "attempt_lifecycle": "complete",
         }
         values.update(overrides)
         return self.receipt(**values)
@@ -158,6 +187,7 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
             "findings": "null",
             "panes_closed": "yes",
             "memory_updated": "yes",
+            "attempt_lifecycle": "complete",
         }
         values.update(overrides)
         return self.receipt(**values)
@@ -186,6 +216,48 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
 
         self.assertEqual(0, result, stderr)
 
+    def test_valid_v2_initial_receipt(self):
+        self.write_receipt(self.receipt(schema_version="2"))
+
+        result, _, stderr = self.run_validator()
+
+        self.assertEqual(0, result, stderr)
+
+    def test_valid_v2_replacement_complete_pass_is_not_mutated(self):
+        evidence = self.write_evidence(content="original recovery observations")
+        content = self.reviewed_receipt(
+            schema_version="2",
+            attempt="2",
+            replaces="opaque:prior/session@provider",
+            origin="replacement",
+            prior_state="abandoned",
+            replacement_evidence="evidence/replacement.md",
+        )
+        path = self.write_receipt(content)
+
+        result, _, stderr = self.run_validator()
+
+        self.assertEqual(0, result, stderr)
+        self.assertEqual(content, path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            "original recovery observations",
+            evidence.read_text(encoding="utf-8"),
+        )
+
+    def test_valid_v2_stale_accepted_receipt_has_concrete_evidence(self):
+        content = self.receipt(
+            schema_version="2",
+            attempt_lifecycle="stale",
+            changed_artifacts="none; read-only attempt",
+            diff_evidence="three no-progress observations",
+            test_evidence="no task output after three observations",
+        )
+        self.write_receipt(content)
+
+        result, _, stderr = self.run_validator()
+
+        self.assertEqual(0, result, stderr)
+
     def test_valid_changes_required_receipt_during_remediation(self):
         content = self.reviewed_receipt(
             criterion_status="fail",
@@ -207,6 +279,26 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
             task_id="CHILD",
             role="child",
             parent="projects/example/handoffs/PARENT/receipt.md",
+        )
+        self.write_receipt(parent, task_id="PARENT")
+        self.write_receipt(child, task_id="CHILD")
+
+        result, stdout, stderr = self.run_validator()
+
+        self.assertEqual(0, result, stderr)
+        self.assertIn("Validated 2 canonical handoff receipt", stdout)
+
+    def test_valid_v2_parent_and_child_topology(self):
+        parent = self.receipt(
+            task_id="PARENT",
+            role="parent",
+            schema_version="2",
+        )
+        child = self.receipt(
+            task_id="CHILD",
+            role="child",
+            parent="projects/example/handoffs/PARENT/receipt.md",
+            schema_version="2",
         )
         self.write_receipt(parent, task_id="PARENT")
         self.write_receipt(child, task_id="CHILD")
@@ -262,6 +354,164 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
         self.write_receipt(content)
 
         self.assert_invalid("attempt 1 must not replace a prior session")
+
+    def test_v2_requires_all_four_fields(self):
+        for field in (
+            "Attempt origin",
+            "Attempt lifecycle state",
+            "Prior attempt state",
+            "Replacement evidence path",
+        ):
+            with self.subTest(field=field):
+                content = self.receipt(schema_version="2")
+                content = content.replace(
+                    next(
+                        line
+                        for line in content.splitlines(keepends=True)
+                        if line.startswith(f"- {field}:")
+                    ),
+                    "",
+                )
+                self.write_receipt(content)
+                self.assert_invalid(f"Identity.{field}")
+
+    def test_v2_enum_fields_reject_invalid_values(self):
+        mutations = (
+            ("Attempt origin", "`initial`", "`complete`"),
+            ("Attempt lifecycle state", "`active`", "`replacement`"),
+            ("Prior attempt state", "`null`", "`active`"),
+        )
+        for field, old, new in mutations:
+            with self.subTest(field=field):
+                content = self.receipt(schema_version="2").replace(
+                    f"- {field}: {old}",
+                    f"- {field}: {new}",
+                )
+                self.write_receipt(content)
+                self.assert_invalid(f"Identity.{field}")
+
+    def test_v2_origin_inversion_is_rejected(self):
+        self.write_evidence()
+        cases = (
+            self.receipt(schema_version="2", origin="replacement"),
+            self.receipt(
+                schema_version="2",
+                attempt="2",
+                replaces="prior-session",
+                origin="initial",
+                prior_state="stale",
+                replacement_evidence="evidence/replacement.md",
+            ),
+        )
+        for content in cases:
+            with self.subTest(origin=content.split("Attempt origin:")[1].splitlines()[0]):
+                self.write_receipt(content)
+                self.assert_invalid("Identity.Attempt origin")
+
+    def test_v2_self_replacement_is_rejected(self):
+        self.write_evidence()
+        content = self.receipt(
+            schema_version="2",
+            attempt="2",
+            replaces="session-1",
+            origin="replacement",
+            prior_state="stale",
+            replacement_evidence="evidence/replacement.md",
+        )
+        self.write_receipt(content)
+
+        self.assert_invalid("cannot equal a session listed in the current receipt")
+
+    def test_v2_unsafe_and_missing_evidence_paths_are_rejected(self):
+        cases = (
+            ("/tmp/evidence.md", "safe repo-relative path"),
+            ("../evidence.md", "safe repo-relative path"),
+            ("~/evidence.md", "safe repo-relative path"),
+            ("evidence/missing.md", "evidence file does not exist"),
+        )
+        for evidence_path, diagnostic in cases:
+            with self.subTest(evidence_path=evidence_path):
+                content = self.receipt(
+                    schema_version="2",
+                    attempt="2",
+                    replaces="prior-session",
+                    origin="replacement",
+                    prior_state="stale",
+                    replacement_evidence=evidence_path,
+                )
+                self.write_receipt(content)
+                self.assert_invalid(diagnostic)
+
+    def test_v2_lifecycle_and_plan_status_must_be_compatible(self):
+        cases = (
+            (
+                self.implemented_receipt(
+                    schema_version="2",
+                    attempt_lifecycle="active",
+                ),
+                "implemented receipts require 'complete'",
+            ),
+            (
+                self.receipt(
+                    schema_version="2",
+                    attempt_lifecycle="abandoned",
+                ),
+                "'abandoned' lifecycle requires concrete evidence",
+            ),
+            (
+                self.reviewed_receipt(
+                    schema_version="2",
+                    attempt_lifecycle="stale",
+                ),
+                "reviewed PASS requires 'complete'",
+            ),
+        )
+        for content, diagnostic in cases:
+            with self.subTest(diagnostic=diagnostic):
+                self.write_receipt(content)
+                self.assert_invalid(diagnostic)
+
+    def test_v2_complete_replacement_requires_abandoned_prior_at_review(self):
+        self.write_evidence()
+        content = self.reviewed_receipt(
+            schema_version="2",
+            attempt="2",
+            replaces="prior-session",
+            origin="replacement",
+            prior_state="stale",
+            replacement_evidence="evidence/replacement.md",
+        )
+        self.write_receipt(content)
+
+        self.assert_invalid("reviewed replacement receipts require 'abandoned'")
+
+    def test_schema_v1_rejects_v2_only_fields(self):
+        content = self.receipt(schema_version="1", include_v2=True)
+        self.write_receipt(content)
+
+        self.assert_invalid("schema version 1 forbids schema-v2 identity fields")
+
+    def test_unsupported_schema_version_is_rejected(self):
+        content = self.receipt(schema_version="3", include_v2=False)
+        self.write_receipt(content)
+
+        self.assert_invalid("supported schema versions are 1 and 2")
+
+    def test_v2_has_no_attempt_cap_or_provider_session_format_guessing(self):
+        self.write_evidence()
+        content = self.receipt(
+            schema_version="2",
+            attempt="1000000",
+            replaces="opaque:provider/session@identifier",
+            origin="replacement",
+            prior_state="stale",
+            replacement_evidence="evidence/replacement.md",
+        )
+        self.write_receipt(content)
+
+        result, _, stderr = self.run_validator()
+
+        self.assertEqual(0, result, stderr)
 
     def test_personal_and_home_paths_are_rejected(self):
         for index, unsafe_path in enumerate(
