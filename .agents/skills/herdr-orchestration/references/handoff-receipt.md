@@ -11,6 +11,8 @@ unknown or unavailable. Do not include personal or home paths.
 - Task ID: `<task-id>`
 - Project: `<project-slug>`
 - Handoff timestamp (UTC): `<ISO-8601 timestamp or null>`
+- Receipt role: `<child or parent or null>`
+- Parent receipt path: `<repo-relative path or null>`
 
 ## Plan version
 
@@ -30,6 +32,9 @@ unknown or unavailable. Do not include personal or home paths.
 
 - In scope: `<bounded deliverables>`
 - Authorized paths: `<paths or null>`
+- Exclusive write ownership: `<paths or null>`
+- Branch: `<branch or null>`
+- Worktree: `<worktree identifier or null>`
 
 ## Non-goals
 
