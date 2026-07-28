@@ -1,10 +1,10 @@
 # Handoff receipt
 
-This standalone schema-v1 receipt bootstraps the `RECEIPT-V2-001` migration.
+This standalone receipt records the `RECEIPT-V2-001` implementation and review.
 
 ## Identity
 
-- Receipt schema version: `1`
+- Receipt schema version: `2`
 - Receipt role: `standalone`
 - Parent receipt path: `null`
 - Task ID: `RECEIPT-V2-001`
@@ -12,6 +12,10 @@ This standalone schema-v1 receipt bootstraps the `RECEIPT-V2-001` migration.
 - Handoff timestamp (UTC): `2026-07-28T07:55:19Z`
 - Attempt: `1`
 - Replaces session: `null`
+- Attempt origin: `initial`
+- Attempt lifecycle state: `complete`
+- Prior attempt state: `null`
+- Replacement evidence path: `null`
 
 ## Plan version
 
@@ -24,7 +28,7 @@ This standalone schema-v1 receipt bootstraps the `RECEIPT-V2-001` migration.
 | Role | Provider | Model | Brida-owned pane | Session |
 | --- | --- | --- | --- | --- |
 | Planner | `Claude` | `Opus 5` | `w1X:p1X` | `d26beba3-5271-4a75-b14f-9a796868124d` |
-| Implementer | `Codex` | `gpt-5.6-sol` | `null` | `null` |
+| Implementer | `Codex` | `gpt-5.6-sol` | `w1X:p1Y` | `019fa7ba-1330-7bc3-adef-7e0db74096ff` |
 | Reviewer | `Claude` | `Opus 5` | `null` | `null` |
 
 ## Scope
@@ -46,30 +50,33 @@ This standalone schema-v1 receipt bootstraps the `RECEIPT-V2-001` migration.
 
 | Criterion ID | Status | Evidence |
 | --- | --- | --- |
-| `V2-1` | `pending` | `pending` |
-| `V2-2` | `pending` | `pending` |
-| `V2-3` | `pending` | `pending` |
-| `V2-4` | `pending` | `pending` |
-| `V2-5` | `pending` | `pending` |
-| `V2-6` | `pending` | `pending` |
-| `V2-7` | `pending` | `pending` |
+| `V2-1` | `pass` | Schema-v1 tests and valid v2 initial/replacement tests pass. |
+| `V2-2` | `pass` | Required-field, enum, and v1-forbidden-field mutations fail. |
+| `V2-3` | `pass` | Origin inversion, self-replacement, provenance, and evidence-path mutations fail. |
+| `V2-4` | `pass` | Lifecycle/status, replacement prior-state, and reviewed-PASS mutations fail. |
+| `V2-5` | `pass` | Four canonical receipts validate; historical eval receipts remain undiscovered. |
+| `V2-6` | `pass` | Validator uses the standard library, preserves fixtures, and emits field-qualified diagnostics. |
+| `V2-7` | `pass` | Coordinator reran 53 focused tests and full checks successfully. |
 | `V2-8` | `pending` | `pending` |
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `python3 -m unittest tests.test_handoff_receipt_validator -v` | `pending` |
-| `python3 -m unittest tests.test_concurrency_contract tests.test_repository_contract -v` | `pending` |
-| `python3 scripts/validate_handoff_receipts.py projects` | `pending` |
-| `make check` | `pending` |
-| `git diff --check` | `pending` |
+| `python3 -m unittest tests.test_handoff_receipt_validator -v` | `pass` |
+| `python3 -m unittest tests.test_concurrency_contract tests.test_repository_contract -v` | `pass` |
+| `python3 scripts/validate_handoff_receipts.py projects` | `pass` |
+| `make check` | `pass` |
+| `git diff --check` | `pass` |
 
 ## Implementation evidence
 
-- Changed artifacts: `pending`
-- Diff evidence: `pending`
-- Test evidence: `pending`
+- Changed artifacts: six validator, test, and policy files plus the three
+  existing canonical receipts authorized by `plan.md`
+- Diff evidence: commits `843d3bf` and `7339415`; `git diff
+  --name-status aa17ae5..7339415` lists only the nine authorized paths
+- Test evidence: coordinator observed 53 focused tests, 10 metrics tests, 62
+  repository tests, and four canonical receipt validations pass
 
 ## Review verdict
 
