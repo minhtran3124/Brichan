@@ -62,7 +62,8 @@
 
 ## Implementation evidence
 
-- Changed artifacts: this receipt and project memory only.
+- Changed artifacts: this receipt, project memory, temporary Claude routing
+  policy, compatibility-gate evidence, and its contract characterization.
 - Diff evidence: coordinator-owned worktree snapshot before and after the smoke.
 - Test evidence: Claude returned a machine-checkable `PASS` response after
   targeted canonical-policy and wrapper/package reads. Coordinator verified
