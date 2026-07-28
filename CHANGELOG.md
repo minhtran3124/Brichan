@@ -12,6 +12,9 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 - Versioned Markdown handoff/receipt template and repository contract coverage.
 - Optional accepted-plan and receipt linkage in task packets with contract
   coverage.
+- Mandatory receipts for accepted-plan and multi-writer handoffs, exclusive
+  writer path ownership, isolated worktrees, and concurrent-writer contract
+  coverage.
 
 ## [0.2.0] - 2026-07-27
 

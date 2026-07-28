@@ -22,6 +22,6 @@
 | PILOT-002-I | Implement accepted task-packet integration | `brida-pilot2-codex-implement` / `w1X:p1F` / Codex Terra | complete | Four-path diff; 14 contract tests and 33 total checks pass |
 | PILOT-002-R | Review integration and filled receipt retrieval | `brida-pilot2-claude-review` / `w1X:p1G` / Claude Opus | complete | Initial `CHANGES REQUIRED`; remediation mutation-tested; final `PASS`; retrieval succeeded |
 | CONCURRENT-001-P | Plan mandatory-receipt and exclusive-ownership policy plus two-writer pilot | `brida-concurrent-plan` / `w1X:p1H` / Claude Opus | complete | `CONCURRENT-001-P1` accepted; exact non-overlapping writer scopes; zero planner changes |
-| CONCURRENT-001-A | Encode mandatory-receipt and concurrent-writer policy | `brida-concurrent-writer-a` / pane pending / Codex Terra | pending | Exclusive policy/reference paths; child receipt required |
-| CONCURRENT-001-B | Add independent contract coverage for concurrent-writer policy | `brida-concurrent-writer-b` / pane pending / Codex Terra | pending | Exclusive test paths; intentional red-before-integration gate |
+| CONCURRENT-001-A | Encode mandatory-receipt and concurrent-writer policy | `brida-concurrent-writer-a` / `w1X:p1J` / Codex Terra | complete | `e65269f` plus exact-anchor remediations `b8382db`, `795a3a5`; authorized policy paths only |
+| CONCURRENT-001-B | Add independent contract coverage for concurrent-writer policy | `brida-concurrent-writer-b` / `w1X:p1K` / Codex Terra | complete | `b816ede`; one new test path; six intentional pre-integration assertion failures |
 | CONCURRENT-001-R | Review integrated two-writer pilot | `brida-concurrent-review` / pane pending / Claude Opus | pending | Integrated diff, ownership, receipts, mutation, and final verdict |

@@ -15,15 +15,15 @@ This parent receipt records the `CONCURRENT-001` multi-writer lifecycle.
 
 - Artifact or plan ID: `CONCURRENT-001-P1`
 - Version: `1`
-- Status: `accepted`
+- Status: `implemented`
 
 ## Sessions
 
 | Role | Provider | Model | Brida-owned pane | Session |
 | --- | --- | --- | --- | --- |
 | Planner | `Claude` | `Opus 5` | `w1X:p1H` | `8c34e821-bebb-4231-81cb-ba26efe2a189` |
-| Implementer A | `Codex` | `gpt-5.6-terra` | `null` | `null` |
-| Implementer B | `Codex` | `gpt-5.6-terra` | `null` | `null` |
+| Implementer A | `Codex` | `gpt-5.6-terra` | `w1X:p1J` | `019fa711-14c1-7063-92a6-f3d0197f1476` |
+| Implementer B | `Codex` | `gpt-5.6-terra` | `w1X:p1K` | `019fa711-1563-7341-8ab2-f073871ff54c` |
 | Reviewer | `Claude` | `Opus 5` | `null` | `null` |
 
 ## Scope
@@ -45,24 +45,30 @@ This parent receipt records the `CONCURRENT-001` multi-writer lifecycle.
 
 | Criterion ID | Status | Evidence |
 | --- | --- | --- |
-| `CONCURRENT-AC-1` | `pending` | `writer path intersection must be empty` |
-| `CONCURRENT-AC-2` | `pending` | `both branches share one dispatch baseline` |
-| `CONCURRENT-AC-3` | `pending` | `integrated make check and diff check` |
+| `CONCURRENT-AC-1` | `pass` | `empty intersection between A and B committed path sets` |
+| `CONCURRENT-AC-2` | `pass` | `both branches descend from dispatch SHA 83c713e` |
+| `CONCURRENT-AC-3` | `pass` | `40 integrated checks pass; git diff --check passes` |
 | `CONCURRENT-AC-4` | `pending` | `independent integrated review` |
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `git diff --name-only <base>..<writer>` | `pending` |
-| `make check` | `pending` |
-| `git diff --check` | `pending` |
+| `git diff --name-only 83c713e...e65269f` | `pass` |
+| `git diff --name-only 83c713e...b816ede` | `pass` |
+| `make check` | `pass; 10 metrics tests and 30 tests-directory tests` |
+| `git diff --check` | `pass` |
 
 ## Implementation evidence
 
-- Changed artifacts: `pending`
-- Diff evidence: `pending`
-- Test evidence: `pending`
+- Changed artifacts: Herdr skill policy/reference files and
+  `tests/test_concurrency_contract.py`.
+- Diff evidence: Writer A changed four authorized paths; Writer B added one
+  authorized test path; path intersection was empty.
+- Test evidence: Writer B demonstrated six intentional pre-integration
+  assertion failures. Integration initially found two exact-anchor wrapping
+  failures; Writer A supplied two owner-scoped commits, after which all 40
+  checks passed.
 
 ## Review verdict
 
@@ -71,8 +77,9 @@ This parent receipt records the `CONCURRENT-001` multi-writer lifecycle.
 
 ## Risks and open decisions
 
-- Risks: root worktree contains unrelated Agent Harness changes; integration
-  must use explicit path checks and partial staging for shared ledgers.
+- Risks: root worktree contains unrelated Agent Harness changes; final evidence
+  must use explicit path checks and partial staging for shared ledgers. Exact
+  text contracts are sensitive to Markdown line wrapping.
 - Open decisions: receipt completeness automation remains deferred until this
   required-receipt pilot is reviewed.
 

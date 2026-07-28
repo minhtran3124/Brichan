@@ -15,14 +15,14 @@ This child receipt records Writer A in `CONCURRENT-001`.
 
 - Artifact or plan ID: `CONCURRENT-001-P1`
 - Version: `1`
-- Status: `accepted`
+- Status: `implemented`
 
 ## Sessions
 
 | Role | Provider | Model | Brida-owned pane | Session |
 | --- | --- | --- | --- | --- |
 | Planner | `Claude` | `Opus 5` | `w1X:p1H` | `8c34e821-bebb-4231-81cb-ba26efe2a189` |
-| Implementer | `Codex` | `gpt-5.6-terra` | `null` | `null` |
+| Implementer | `Codex` | `gpt-5.6-terra` | `w1X:p1J` | `019fa711-14c1-7063-92a6-f3d0197f1476` |
 | Reviewer | `Claude` | `Opus 5` | `null` | `null` |
 
 ## Scope
@@ -34,7 +34,7 @@ This child receipt records Writer A in `CONCURRENT-001`.
   `.agents/skills/herdr-orchestration/references/concurrent-writers.md`.
 - Exclusive write ownership: `Writer A only`
 - Branch: `agent/concurrent-001-a`
-- Worktree: `external temporary worktree assigned by Brida`
+- Worktree: `brida-concurrent-001-a`
 
 ## Non-goals
 
@@ -45,22 +45,26 @@ This child receipt records Writer A in `CONCURRENT-001`.
 
 | Criterion ID | Status | Evidence |
 | --- | --- | --- |
-| `A-1` | `pending` | `policy anchors and reference` |
-| `A-2` | `pending` | `authorized diff only` |
-| `A-3` | `pending` | `pre-existing checks pass` |
+| `A-1` | `pass` | `policy anchors and concurrent-writers reference` |
+| `A-2` | `pass` | `four authorized paths only` |
+| `A-3` | `pass` | `33 baseline checks pass` |
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `make check` | `pending` |
-| `git diff --check` | `pending` |
+| `make check` | `pass; 33 baseline checks` |
+| `git diff --check` | `pass` |
 
 ## Implementation evidence
 
-- Changed artifacts: `pending`
-- Diff evidence: `pending`
-- Test evidence: `pending`
+- Changed artifacts: `.agents/skills/herdr-orchestration/SKILL.md`,
+  `references/task-packet.md`, `references/handoff-receipt.md`, and
+  `references/concurrent-writers.md`.
+- Diff evidence: `e65269f`; exact-anchor remediation commits `b8382db` and
+  `795a3a5`; no path outside Writer A ownership.
+- Test evidence: baseline `make check` passed after each implementation phase;
+  integrated tests exposed and then cleared two line-wrap failures.
 
 ## Review verdict
 
@@ -69,7 +73,8 @@ This child receipt records Writer A in `CONCURRENT-001`.
 
 ## Risks and open decisions
 
-- Risks: exact policy anchors must remain compatible with Writer B tests.
+- Risks: two exact policy anchors initially crossed Markdown line breaks and
+  required owner-scoped remediation after integration.
 - Open decisions: `null`
 
 ## Cleanup status

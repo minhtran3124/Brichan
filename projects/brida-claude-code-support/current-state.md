@@ -1,52 +1,54 @@
 # Current state
 
-- Status: receipt hardening and second mixed-provider dogfood pilot complete.
+- Status: concurrent two-writer pilot implemented; independent review pending.
 - Claude Code 2.1.220 is authenticated and routable; Herdr reports Claude
   integration v7 as current.
 - Brida has validated two sequential workflows using Claude Opus planning,
   Codex Terra implementation, and fresh Claude Opus review.
-- Receipt schema version 1 now has copy-safe placeholders, contract-protected
-  headings and fields, skill discoverability, and home-path guards.
-- Task packets support an optional accepted plan ID/version/status and
-  repo-relative receipt path. Existing packets may omit the block or use
-  `null` values.
+- Receipt schema version 1 now carries parent/child role, parent path, exclusive
+  ownership, branch, and worktree fields while preserving its protected
+  headings and hygiene guards.
+- Receipts are mandatory for accepted-plan handoffs and multi-writer tasks.
+  Task packets declare `mandatory` or `not-required`; the upstream block remains
+  optional only when neither trigger applies.
 - `PILOT-002` filled a real receipt under
   `evals/mixed-provider-coding/PILOT-002/`; a fresh reviewer found it through
   `projects/index.md` → project memory → `references.md` without chat history.
 - Both hardening and `PILOT-002` initially received `CHANGES REQUIRED` for
   weak test assertions. Minimal remediations were mutation-tested and both
   final reviews returned `PASS`.
-- Latest validation: 14 repository contract tests and 33 total checks pass;
-  `git diff --check` is clean.
-- `CONCURRENT-001-P1` is accepted for a two-writer pilot with separate
-  worktrees, non-overlapping path ownership, one parent receipt, and one child
-  receipt per writer. Implementation is in progress.
+- `CONCURRENT-001` ran two Codex Terra writers concurrently from dispatch SHA
+  `83c713e` in separate worktrees. Their committed path sets had an empty
+  intersection and integrated without Git conflicts.
+- Integration exposed two exact-anchor line-wrap failures. Both were returned
+  to Writer A for owner-scoped remediation before the full suite passed.
+- Latest validation: 10 metrics tests and 30 tests-directory tests pass;
+  18 metrics rows are valid and `git diff --check` is clean.
 
 ## Main gaps and risks
 
 - Receipt storage under `evals/mixed-provider-coding/<pilot-id>/` is validated
   for pilots but not yet adopted as a general project contract.
-- Receipts and task-packet linkage remain optional and Markdown-only; no
-  machine-enforced lifecycle state, retry limit, stale-worker rule, or receipt
-  completeness validator exists.
+- Receipts remain Markdown-only; no machine-enforced lifecycle state, retry
+  limit, stale-worker rule, or receipt completeness validator exists.
 - Optional test hardening remains for exact heading cardinality, table shape,
   tilde-style home paths, and label-to-section anchoring.
-- No documented worktree or exclusive-file ownership policy exists for
-  concurrent implementation.
+- Exact string anchors can create integration failures from harmless Markdown
+  wrapping; integrated tests remain necessary even when each shard meets its
+  local gate.
 - Model quality, latency, token, and cost comparisons remain unbenchmarked where
   observations were unavailable.
 
 ## Open questions
 
-1. Should the validated evaluation-artifact receipt location become the
-   default for all delegated implementation, or only cross-provider pilots?
-2. Should a receipt become mandatory whenever an accepted upstream plan exists?
-3. Should parallel implementation require separate git worktrees, exclusive
-   file ownership, or both?
+1. Should required receipts move from evaluation storage to a canonical
+   `projects/<slug>/handoffs/` location after pilot review?
+2. Should receipt completeness become a machine-enforced completion gate?
+3. Should exact policy anchors be normalized structurally rather than bound to
+   Markdown line wrapping?
 
 ## Next actions
 
-1. Decide the adoption boundary for receipt storage and mandatory use.
-2. Add a receipt completeness validator only if receipts become a required
-   completion gate.
-3. Define worktree/file-ownership rules before any parallel code-writing pilot.
+1. Complete independent integrated review and mutation evidence.
+2. Decide the canonical non-evaluation storage contract for required receipts.
+3. Design a receipt completeness validator and stale-worker/retry policy.

@@ -15,14 +15,14 @@ This child receipt records Writer B in `CONCURRENT-001`.
 
 - Artifact or plan ID: `CONCURRENT-001-P1`
 - Version: `1`
-- Status: `accepted`
+- Status: `implemented`
 
 ## Sessions
 
 | Role | Provider | Model | Brida-owned pane | Session |
 | --- | --- | --- | --- | --- |
 | Planner | `Claude` | `Opus 5` | `w1X:p1H` | `8c34e821-bebb-4231-81cb-ba26efe2a189` |
-| Implementer | `Codex` | `gpt-5.6-terra` | `null` | `null` |
+| Implementer | `Codex` | `gpt-5.6-terra` | `w1X:p1K` | `019fa711-1563-7341-8ab2-f073871ff54c` |
 | Reviewer | `Claude` | `Opus 5` | `null` | `null` |
 
 ## Scope
@@ -32,7 +32,7 @@ This child receipt records Writer B in `CONCURRENT-001`.
   `tests/test_repository_contract.py`.
 - Exclusive write ownership: `Writer B only`
 - Branch: `agent/concurrent-001-b`
-- Worktree: `external temporary worktree assigned by Brida`
+- Worktree: `brida-concurrent-001-b`
 
 ## Non-goals
 
@@ -43,23 +43,25 @@ This child receipt records Writer B in `CONCURRENT-001`.
 
 | Criterion ID | Status | Evidence |
 | --- | --- | --- |
-| `B-1` | `pending` | `new test module compiles` |
-| `B-2` | `pending` | `intentional failures are policy assertions only` |
-| `B-3` | `pending` | `authorized diff only` |
+| `B-1` | `pass` | `new test module compiles and collects` |
+| `B-2` | `pass` | `six intentional AssertionError failures before integration` |
+| `B-3` | `pass` | `one authorized test path only` |
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `python3 -m unittest tests.test_concurrency_contract -v` | `pending` |
-| `python3 -m unittest discover -s tests -v` | `pending` |
-| `git diff --check` | `pending` |
+| `python3 -m unittest tests.test_concurrency_contract -v` | `expected fail; six policy assertions before integration` |
+| `python3 -m unittest discover -s tests -v` | `pass after integration; 30 tests` |
+| `git diff --check` | `pass` |
 
 ## Implementation evidence
 
-- Changed artifacts: `pending`
-- Diff evidence: `pending`
-- Test evidence: `pending`
+- Changed artifacts: `tests/test_concurrency_contract.py`.
+- Diff evidence: `b816ede`; one authorized path only.
+- Test evidence: module compiled; existing 14 repository contract tests passed;
+  new module initially failed through six expected policy assertions and passed
+  after Writer A integration and remediation.
 
 ## Review verdict
 
