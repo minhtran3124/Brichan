@@ -10,21 +10,21 @@ This standalone receipt records the `RECOVERY-002` controlled recovery pilot.
 - Task ID: `RECOVERY-002`
 - Project: `brida-claude-code-support`
 - Handoff timestamp (UTC): `2026-07-28T06:30:26Z`
-- Attempt: `1`
-- Replaces session: `null`
+- Attempt: `2`
+- Replaces session: `019fa76c-0471-7a51-819d-ecb93aa9bb03`
 
 ## Plan version
 
 - Artifact or plan ID: `RECOVERY-002-P1`
 - Version: `1`
-- Status: `accepted`
+- Status: `implemented`
 
 ## Sessions
 
 | Role | Provider | Model | Brida-owned pane | Session |
 | --- | --- | --- | --- | --- |
 | Planner | `Brida` | `Codex coordinator` | `w1X:pA` | `019fa6ba-dd94-7681-be71-1950f999a02f` |
-| Implementer | `Codex` | `gpt-5.6-luna` | `null` | `null` |
+| Implementer | `Codex` | `gpt-5.6-luna` | `w1X:p1T` | `019fa76e-6079-7bf2-a170-b520fe2a4439` |
 | Reviewer | `null` | `null` | `null` | `null` |
 
 ## Scope
@@ -45,26 +45,28 @@ This standalone receipt records the `RECOVERY-002` controlled recovery pilot.
 
 | Criterion ID | Status | Evidence |
 | --- | --- | --- |
-| `R2-1` | `pending` | `pending` |
-| `R2-2` | `pending` | `pending` |
-| `R2-3` | `pending` | `pending` |
-| `R2-4` | `pending` | `pending` |
-| `R2-5` | `pending` | `pending` |
+| `R2-1` | `pass` | `three timestamped idle snapshots with unchanged checkpoint output` |
+| `R2-2` | `pass` | `original session and pane evidence preserved before abandoned state` |
+| `R2-3` | `pass` | `attempt 2 reused plan, receipt, read-only scope, and ownership` |
+| `R2-4` | `pass` | `replacement answered all evidence questions; 10 focused tests pass` |
+| `R2-5` | `pass` | `one replacement only; both Brida-owned panes closed` |
 
 ## Verification
 
 | Command | Result |
 | --- | --- |
-| `herdr agent get <original>` | `pending` |
-| `herdr agent read <original> --lines 40` | `pending` |
-| `herdr agent read <replacement> --lines 120` | `pending` |
-| `git status --short` | `pending` |
+| `herdr agent get <original>` | `pass; idle at all three observations` |
+| `herdr agent read <original> --lines 40` | `pass; unchanged checkpoint and no task evidence` |
+| `herdr agent read <replacement> --lines 120` | `pass; all three evidence answers returned` |
+| `git status --short` | `pass; no worker-caused changes` |
 
 ## Implementation evidence
 
-- Changed artifacts: `none by workers; coordinator evidence pending`
-- Diff evidence: `pending`
-- Test evidence: `pending`
+- Changed artifacts: `none by either worker`
+- Diff evidence: original session and three no-progress snapshots preserved in
+  `evals/mixed-provider-coding/RECOVERY-002/observations.md`
+- Test evidence: original produced only `CONTROLLED_STALL_READY`; replacement
+  returned policy/test citations and passed 10 focused contract tests
 
 ## Review verdict
 
@@ -80,5 +82,5 @@ This standalone receipt records the `RECOVERY-002` controlled recovery pilot.
 
 ## Cleanup status
 
-- Brida-owned panes closed: `no`
+- Brida-owned panes closed: `yes`
 - Project memory updated: `yes`

@@ -29,5 +29,7 @@
 | CONCURRENT-002-R | Independent review of receipt hardening | `brida-receipt-hardening-review` / `w1X:p1P` / Claude Opus | complete | `PASS`; two controlled mutations and 40 read-only parser probes; six non-blocking residual risks recorded |
 | RECOVERY-001-I | Add structural recovery-policy anchors | `brida-recovery-anchors` / `w1X:p1Q` / Codex Terra | complete | `a9f30dc`; one authorized test path; 10 focused tests and full checks pass |
 | RECOVERY-001-R | Independently review recovery anchors | `brida-recovery-anchors-review` / `w1X:p1R` / Claude Opus | complete | `PASS`; three policy weakenings caught; byte-exact restoration; two LOW residual risks |
-| RECOVERY-002-A1 | Controlled original-worker stall | `brida-recovery-stall` / pane pending / Codex Luna | pending | Three evidenced no-progress observations before stale/abandoned |
-| RECOVERY-002-A2 | One bounded replacement attempt | `brida-recovery-replacement` / pane pending / Codex Luna | pending | Same plan/receipt/scope; verified read-only evidence; no second replacement |
+| RECOVERY-002-A1 | Controlled original-worker stall | `brida-recovery-stall` / `w1X:p1S` / Codex Luna | abandoned | Three idle snapshots with unchanged checkpoint; `stale` then `abandoned`; original session preserved |
+| RECOVERY-002-A2 | One bounded replacement attempt | `brida-recovery-replacement` / `w1X:p1T` / Codex Luna | complete | Same plan/receipt/read-only scope; three evidence answers and 10 focused tests; no second replacement |
+| BENCHMARK-001-C | Audit `RECOVERY-002` with common benchmark packet | `brida-benchmark-codex` / pane pending / Codex Terra | pending | Read-only report, timing, verification, and 12-point quality score |
+| BENCHMARK-001-H | Audit `RECOVERY-002` with common benchmark packet | `brida-benchmark-claude` / pane pending / Claude Sonnet | pending | Read-only report, timing, verification, and 12-point quality score |

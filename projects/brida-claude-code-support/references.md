@@ -20,3 +20,4 @@
 | Receipt hardening `CONCURRENT-002` | 2026-07-28 | `projects/brida-claude-code-support/handoffs/CONCURRENT-002/receipt.md`; single-writer commit `71e3d9d`; independent Claude Opus review `PASS` after two controlled mutations, 40 read-only probes, and clean full checks |
 | Recovery contract hardening `RECOVERY-001` | 2026-07-28 | `projects/brida-claude-code-support/handoffs/RECOVERY-001/receipt.md`; `a9f30dc`; Claude Opus `PASS` after three controlled policy weakenings were caught and restored byte-exact |
 | Controlled recovery pilot `RECOVERY-002` | 2026-07-28 | `projects/brida-claude-code-support/handoffs/RECOVERY-002/receipt.md`; accepted one-replacement fault-injection pilot; observations under `evals/mixed-provider-coding/RECOVERY-002/` |
+| Model benchmark `BENCHMARK-001` | 2026-07-28 | `evals/mixed-provider-coding/BENCHMARK-001/protocol.md`; fixed 12-point rubric for equivalent Codex Terra and Claude Sonnet read-only audits |
