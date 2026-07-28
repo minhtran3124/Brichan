@@ -33,6 +33,23 @@ def split(split_id, direction, ratio, x, y, width, height):
 
 
 class HerdrLayoutPlannerTest(unittest.TestCase):
+    def test_claude_worker_defaults_to_auto_permission_mode(self):
+        self.assertEqual(
+            ["claude", "--permission-mode", "auto", "--model", "sonnet"],
+            MODULE._apply_worker_defaults(["claude", "--model", "sonnet"]),
+        )
+
+    def test_explicit_claude_permission_mode_is_preserved(self):
+        command = ["claude", "--model", "sonnet", "--permission-mode", "manual"]
+        self.assertEqual(command, MODULE._apply_worker_defaults(command))
+
+        equals_command = ["claude", "--permission-mode=manual"]
+        self.assertEqual(equals_command, MODULE._apply_worker_defaults(equals_command))
+
+    def test_codex_worker_command_is_unchanged(self):
+        command = ["codex", "--disable", "multi_agent"]
+        self.assertEqual(command, MODULE._apply_worker_defaults(command))
+
     def test_cli_accepts_herdr_style_name_then_options(self):
         args = MODULE._parse_args(
             [

@@ -9,6 +9,8 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ### Added
 
+- Claude workers launched through Herdr now default to Claude Code's `auto`
+  permission mode, while explicit per-worker modes remain supported.
 - Versioned Markdown handoff/receipt template and repository contract coverage.
 - Optional accepted-plan and receipt linkage in task packets with contract
   coverage.

@@ -42,8 +42,14 @@ For an authenticated Claude provider:
 bin/brida-herdr-agent-start <brida-name> \
   --anchor-pane <coordinator-pane-id> \
   --cwd <absolute-project-path> \
-  -- claude --model <verified-model> --permission-mode manual
+  -- claude --model <verified-model>
 ```
+
+The wrapper starts Claude workers with `--permission-mode auto` by default, so
+they do not pause for approval prompts while Claude's background safety
+classifier remains active. Pass an explicit `--permission-mode` after `claude`
+to override this default for a particular worker. Do not use
+`bypassPermissions` for normal workers.
 
 Do not use Claude until `claude auth status` succeeds.
 

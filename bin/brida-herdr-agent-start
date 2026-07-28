@@ -31,6 +31,19 @@ class SpawnPlan:
     exact_equal_area: bool = True
 
 
+def _apply_worker_defaults(agent_argv: list[str]) -> list[str]:
+    """Make Claude workers non-interactive without weakening other runtimes."""
+
+    if not agent_argv or agent_argv[0] != "claude":
+        return agent_argv
+    if any(
+        item == "--permission-mode" or item.startswith("--permission-mode=")
+        for item in agent_argv
+    ):
+        return agent_argv
+    return [agent_argv[0], "--permission-mode", "auto", *agent_argv[1:]]
+
+
 def _run_json(argv: list[str]) -> tuple[dict[str, Any], str]:
     result = subprocess.run(argv, check=False, capture_output=True, text=True)
     if result.returncode != 0:
@@ -328,7 +341,7 @@ def main() -> int:
             for item in args.env:
                 command.extend(["--env", item])
             command.append("--")
-            command.extend(args.argv)
+            command.extend(_apply_worker_defaults(args.argv))
 
             start_payload, start_stdout = _run_json(command)
         except HerdrError:
