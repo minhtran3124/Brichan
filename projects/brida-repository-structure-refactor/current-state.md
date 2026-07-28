@@ -30,9 +30,10 @@
   requires timestamped release, link, repository-search, Codex/Claude startup,
   full-CI, and changelog evidence. Independent Codex review verdict is `PASS`.
 - Current preflight: Codex startup, external links, baseline stale-reference
-  search, and a real pre-release Claude startup via `cld-edgeful` pass; release
-  window and current-head full CI are pending. Strict eligibility correctly
-  fails, and runtime evidence must be refreshed after release completion.
+  search, a real pre-release Claude startup via `cld-edgeful`, and PR #10
+  implementation-head CI pass. Only the release window remains pending.
+  Strict eligibility correctly fails, and operational evidence must be
+  refreshed after release completion.
 
 ## Approved boundaries
 
