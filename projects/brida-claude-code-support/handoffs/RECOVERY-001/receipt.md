@@ -4,7 +4,7 @@ This standalone receipt records the `RECOVERY-001` lifecycle.
 
 ## Identity
 
-- Receipt schema version: `1`
+- Receipt schema version: `2`
 - Receipt role: `standalone`
 - Parent receipt path: `null`
 - Task ID: `RECOVERY-001`
@@ -12,6 +12,10 @@ This standalone receipt records the `RECOVERY-001` lifecycle.
 - Handoff timestamp (UTC): `2026-07-28T06:16:44Z`
 - Attempt: `1`
 - Replaces session: `null`
+- Attempt origin: `initial`
+- Attempt lifecycle state: `complete`
+- Prior attempt state: `null`
+- Replacement evidence path: `null`
 
 ## Plan version
 

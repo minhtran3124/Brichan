@@ -4,7 +4,7 @@ This standalone receipt records the `CONCURRENT-002` hardening lifecycle.
 
 ## Identity
 
-- Receipt schema version: `1`
+- Receipt schema version: `2`
 - Receipt role: `standalone`
 - Parent receipt path: `null`
 - Task ID: `CONCURRENT-002`
@@ -12,6 +12,10 @@ This standalone receipt records the `CONCURRENT-002` hardening lifecycle.
 - Handoff timestamp (UTC): `2026-07-28T05:23:11Z`
 - Attempt: `1`
 - Replaces session: `null`
+- Attempt origin: `initial`
+- Attempt lifecycle state: `complete`
+- Prior attempt state: `null`
+- Replacement evidence path: `null`
 
 ## Plan version
 
