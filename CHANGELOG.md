@@ -25,6 +25,14 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 - Simplified the README around getting started, how Brida works, and
   development; model-routing detail now lives in a dedicated guide.
 
+### Verification
+
+- Full local `make check` passes.
+- GitHub Actions CI passes on commit `6a55c97d73945a3f09ca2e52b3613bcb52e0e3a7`
+  for Python 3.10, Python 3.13, and source-package builds.
+- Independent review passed acceptance criteria AC1-AC8 with no blocking
+  findings.
+
 ## [0.3.1] - 2026-07-29
 
 ### Fixed
