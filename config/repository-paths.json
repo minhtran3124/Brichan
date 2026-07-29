@@ -179,6 +179,12 @@
       "policy": "stable-path"
     },
     {
+      "path": "scripts/install-brida",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
       "path": "config/repository-paths.json",
       "kind": "file",
       "category": "structure-guard",
@@ -210,6 +216,12 @@
     },
     {
       "path": ".github/workflows/ci.yml",
+      "kind": "file",
+      "category": "ci-entrypoint",
+      "policy": "stable-path"
+    },
+    {
+      "path": ".github/workflows/publish.yml",
       "kind": "file",
       "category": "ci-entrypoint",
       "policy": "stable-path"

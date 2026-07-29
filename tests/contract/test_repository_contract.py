@@ -23,6 +23,7 @@ class RepositoryContractTest(unittest.TestCase):
             "bin/brida-codex",
             "bin/brida-claude",
             "bin/brida-herdr-agent-start",
+            "scripts/install-brida",
             "CLAUDE.md",
             "docs/index.md",
             "docs/policy/identity.md",
@@ -147,7 +148,12 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("omit the block or use `null` values", skill)
 
     def test_launcher_is_executable_and_valid_shell(self):
-        for name in ("bin/brida", "bin/brida-codex", "bin/brida-claude"):
+        for name in (
+            "bin/brida",
+            "bin/brida-codex",
+            "bin/brida-claude",
+            "scripts/install-brida",
+        ):
             launcher = ROOT / name
             self.assertTrue(os.access(launcher, os.X_OK))
             result = subprocess.run(
@@ -295,6 +301,8 @@ class RepositoryContractTest(unittest.TestCase):
             if (
                 not path.is_file()
                 or ".git" in path.parts
+                or ".venv" in path.parts
+                or "venv" in path.parts
                 or "__pycache__" in path.parts
                 or "internal-docs" in path.parts
                 or "assets" in path.parts

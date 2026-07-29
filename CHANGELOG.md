@@ -7,6 +7,35 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-29
+
+### Changed
+
+- Set the distribution name to `brichan` in preparation for a future PyPI
+  release (not yet published); the importable package stays `brida` and all
+  `brida-*` console commands are unchanged.
+- Added `wheel` to build-system requirements and PyPI classifiers/keywords so
+  Python 3.10+ isolated and non-isolated wheel builds succeed.
+
+### Added
+
+- CI now builds and validates both sdist and wheel artifacts, installs them
+  in a clean environment, runs `twine check`, and smoke-tests
+  every documented installed command that does not require an external
+  provider.
+- A tag-gated Trusted Publishing GitHub Actions workflow scaffold using OIDC
+  and a `pypi` environment. It cannot publish until trusted publishers are
+  configured on PyPI; see the release checklist.
+- `brida`, `brida-codex`, and `brida-claude` now provide `--help` and
+  `--version` outside initialized projects or a source checkout; unsupported
+  invocations there return an owned error rather than a Python traceback.
+
+### Verification
+
+- Full local `make check` passes.
+- `python -m build` produces a clean sdist and wheel; the wheel installs and
+  exposes all `brida-*` console commands in a disposable environment.
+
 ## [0.4.0] - 2026-07-29
 
 ### Added

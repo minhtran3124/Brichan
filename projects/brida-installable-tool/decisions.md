@@ -53,3 +53,36 @@
 - Owner: Brida within the user-approved one-owner dogfood scope.
 - Evidence: `docs/guides/installable-dogfood.md`; installed-wheel integration
   tests; final independent reviewer verdict `PASS`; 152-test `make check`.
+
+## 2026-07-29 — Dedicated external installer environment
+
+- Status: accepted
+- Context: The owner needs one-command installation from outside the Brida
+  checkout without activating a virtual environment.
+- Decision: Install Brida into a dedicated external venv and expose all console
+  commands through guarded symlinks in a user command directory. Do not modify
+  the target project's `.venv` or shell profile automatically.
+- Rationale: Tool lifecycle stays independent from each target repository while
+  `brida` remains directly executable.
+- Trade-offs: Python 3.10+ with local `pip`, `setuptools`, `venv`, and `wheel`
+  is still required; the user may need to add the command directory to `PATH`
+  once.
+- Evidence: `scripts/install-brida`; installed-dogfood integration tests;
+  Claude Opus final verdict `PASS`; 155-check `make check`.
+
+## 2026-07-29 — Brichan distribution identity with stable Brida runtime API
+
+- Status: accepted
+- Context: The tool needs a future pip/PyPI distribution identity while the
+  owner relies on the existing `brida` imports and `brida-*` commands.
+- Decision: Use `brichan` as the distribution and public repository-facing
+  name for version `0.5.0`; retain the `brida` Python package and every
+  existing console command. Prepare—but do not execute—PyPI Trusted Publishing.
+- Rationale: It supports a future registry release without breaking the
+  dogfood runtime or requiring target repositories to migrate command names.
+- Trade-offs: The public repository URL, PyPI trusted publisher, GitHub `pypi`
+  environment, and README image URL must be deliberately configured before the
+  first upload.
+- Owner: User.
+- Evidence: `pyproject.toml`; `.github/workflows/publish.yml`;
+  `handoffs/PYPI-001/receipt.md`; independent Claude Opus review `PASS`.

@@ -5,18 +5,71 @@ an existing top-level Git repository. It is intentionally limited to a
 POSIX-compatible environment, Python 3.10+, and Codex launched through `brida`.
 Herdr is required only when Brida coordinates worker sessions.
 
-## Build and install locally
-
-Build without package-registry access, then install into a virtual environment:
+The planned PyPI distribution name is `brichan`; it is not published yet. The
+importable Python package stays `brida`, and every console command keeps its
+existing `brida`/`brida-*` name, so a future release installs with:
 
 ```bash
-python3 -m pip wheel . --no-deps --no-build-isolation --wheel-dir /tmp/brida-wheel
-python3 -m venv /tmp/brida-venv
-/tmp/brida-venv/bin/python -m pip install --no-deps /tmp/brida-wheel/*.whl
+pip install brichan
 ```
 
-The build interpreter must already provide setuptools and wheel. This dogfood
-stage does not publish a package or fetch build dependencies.
+Until `brichan` is published, use the package-owned installer or a manual
+wheel build from this checkout, both described below.
+
+## Install without activating an environment
+
+Run the package-owned installer by absolute path from any directory:
+
+```bash
+/absolute/path/to/brida/scripts/install-brida
+```
+
+The installer:
+
+- resolves the Brida source checkout from its own location, not the current
+  working directory;
+- selects Python 3.10+ with `pip`, `setuptools`, `venv`, and `wheel`;
+- builds from a temporary source snapshot, leaving the checkout clean;
+- creates a dedicated environment at
+  `$HOME/.local/share/brida/venv` by default, and refuses to reuse an
+  existing one that lacks usable `pip`;
+- links all Brida commands into `$HOME/.local/bin`;
+- never activates or modifies the target project's `.venv`.
+
+No virtualenv activation is required. If `$HOME/.local/bin` is not on `PATH`,
+the installer prints the exact shell-profile export and a full-path command
+that works immediately.
+
+Use explicit locations or a specific build interpreter when needed:
+
+```bash
+/absolute/path/to/brida/scripts/install-brida \
+  --install-root /absolute/tool/location \
+  --bin-dir /absolute/command/location \
+  --python python3.13
+```
+
+Rerunning the installer upgrades the dedicated environment. It refuses to
+overwrite non-symlink commands or symlinks that belong to another installation.
+This dogfood stage does not publish a package or fetch build dependencies.
+
+### Manual wheel installation
+
+The equivalent manual flow is:
+
+```bash
+python3 -m pip wheel /absolute/path/to/brida \
+  --no-deps \
+  --no-build-isolation \
+  --wheel-dir /tmp/brida-wheel
+python3 -m venv /tmp/brida-venv
+/tmp/brida-venv/bin/python -m pip install \
+  --no-deps \
+  /tmp/brida-wheel/brichan-0.5.0-py3-none-any.whl
+```
+
+The build interpreter must already provide `pip`, `setuptools`, `venv`, and
+`wheel`.
 
 ## Initialize a target repository
 
@@ -74,6 +127,12 @@ From inside a healthy initialized repository, bare `brida` also launches Codex.
 `status` reports project state only. `doctor` additionally resolves `codex` on
 `PATH`; Herdr is reported as optional until worker coordination is needed.
 
+`brida --help` and `brida --version` work from any directory, including one
+that is not yet a Git repository or not yet initialized: they print
+installed-package usage and version information instead of an uninitialized
+error. Inside a healthy initialized project, `--help`/`--version` are instead
+forwarded to `codex` as documented CLI overrides (see below).
+
 | Condition | Exit code |
 |---|---:|
 | Healthy | 0 |
@@ -117,3 +176,13 @@ continues dispatching through repository `bin/brida-codex` or
 automatic migration or repair: malformed managed resources and package-version
 mismatches require deliberate reinitialization in a disposable or backed-up
 repository.
+
+The `brida-codex` and `brida-claude` console commands remain checkout-oriented
+after `pip install brichan`. `brida-codex` resolves coordinator configuration
+either from a Brida source checkout (or `BRIDA_ROOT`) or from an
+already-initialized project's `.brida/` state. `brida-claude` only resolves
+from a Brida source checkout or `BRIDA_ROOT`; it has no initialized-project
+path and is not part of the Codex-first installed-project workflow. Outside
+those contexts, both commands' `--help`/`--version` work everywhere and report
+this plainly instead of raising a Python traceback; any other invocation
+outside those contexts is rejected with an actionable, owned error.

@@ -46,6 +46,7 @@ class InstalledDogfoodTest(unittest.TestCase):
                 break
         if build_python is None:
             raise unittest.SkipTest("no offline Python wheel backend is installed")
+        cls.build_python = build_python
 
         result = subprocess.run(
             [
@@ -99,6 +100,16 @@ class InstalledDogfoodTest(unittest.TestCase):
         )
         if result.returncode != 0:
             raise AssertionError(f"wheel install failed:\n{result.stdout}\n{result.stderr}")
+
+        cls.venv_without_pip = cls.build_root / "venv-without-pip"
+        result = subprocess.run(
+            [sys.executable, "-m", "venv", "--without-pip", str(cls.venv_without_pip)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise AssertionError(f"pip-less venv creation failed: {result.stderr}")
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -191,6 +202,153 @@ class InstalledDogfoodTest(unittest.TestCase):
         )
         for suffix in required_suffixes:
             self.assertTrue(any(name.endswith(suffix) for name in names), suffix)
+
+    def test_installer_runs_outside_checkout_without_activation(self):
+        install_root = self.temp_path / "installed-tool"
+        command_dir = self.temp_path / "commands"
+        environment = self.environment()
+        environment.pop("VIRTUAL_ENV", None)
+        environment["PATH"] = (
+            f"{command_dir}{os.pathsep}{self.fake_bin}"
+            f"{os.pathsep}{environment['PATH']}"
+        )
+
+        result = subprocess.run(
+            [
+                str(ROOT / "scripts/install-brida"),
+                "--install-root",
+                str(install_root),
+                "--bin-dir",
+                str(command_dir),
+                "--python",
+                str(self.build_python),
+            ],
+            cwd=self.target,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("No virtualenv activation is required.", result.stdout)
+        self.assertFalse((self.target / ".brida").exists())
+
+        commands = (
+            "brida",
+            "brida-codex",
+            "brida-claude",
+            "brida-herdr-agent-start",
+            "brida-validate-receipts",
+        )
+        for command_name in commands:
+            command_link = command_dir / command_name
+            self.assertTrue(command_link.is_symlink(), command_name)
+            self.assertEqual(
+                (install_root / "venv/bin" / command_name).resolve(),
+                command_link.resolve(),
+            )
+
+        result = subprocess.run(
+            [
+                "brida",
+                "init",
+                "--apply",
+                "--project",
+                str(self.target),
+            ],
+            cwd=self.target,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertTrue((self.target / ".brida/manifest.json").is_file())
+        self.assertNotIn("VIRTUAL_ENV", environment)
+        self.assertFalse((ROOT / "build").exists())
+        self.assertFalse(any((ROOT / "src").glob("*.egg-info")))
+
+    def test_installer_rejects_build_python_without_pip(self):
+        install_root = self.temp_path / "installed-tool"
+        command_dir = self.temp_path / "commands"
+        environment = self.environment()
+        environment.pop("VIRTUAL_ENV", None)
+        environment["PATH"] = (
+            f"{command_dir}{os.pathsep}{self.fake_bin}"
+            f"{os.pathsep}{environment['PATH']}"
+        )
+
+        # self.build_python genuinely has pip, setuptools, venv, and wheel.
+        # Hide only pip from importlib.util.find_spec so this regression is
+        # specific to the pip requirement, not to setuptools/venv/wheel.
+        site_dir = self.temp_path / "hide-pip-site"
+        site_dir.mkdir()
+        (site_dir / "sitecustomize.py").write_text(
+            "import importlib.util\n"
+            "_find_spec = importlib.util.find_spec\n"
+            "def find_spec(name, *args, **kwargs):\n"
+            "    if name == 'pip':\n"
+            "        return None\n"
+            "    return _find_spec(name, *args, **kwargs)\n"
+            "importlib.util.find_spec = find_spec\n",
+            encoding="utf-8",
+        )
+        environment["PYTHONPATH"] = str(site_dir)
+
+        result = subprocess.run(
+            [
+                str(ROOT / "scripts/install-brida"),
+                "--install-root",
+                str(install_root),
+                "--bin-dir",
+                str(command_dir),
+                "--python",
+                str(self.build_python),
+            ],
+            cwd=self.target,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("pip", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertFalse((install_root / "venv").exists())
+
+    def test_installer_rejects_existing_venv_without_pip(self):
+        install_root = self.temp_path / "installed-tool"
+        command_dir = self.temp_path / "commands"
+        environment = self.environment()
+        environment.pop("VIRTUAL_ENV", None)
+        environment["PATH"] = (
+            f"{command_dir}{os.pathsep}{self.fake_bin}"
+            f"{os.pathsep}{environment['PATH']}"
+        )
+
+        venv_dir = install_root / "venv"
+        shutil.copytree(self.venv_without_pip, venv_dir, symlinks=True)
+
+        result = subprocess.run(
+            [
+                str(ROOT / "scripts/install-brida"),
+                "--install-root",
+                str(install_root),
+                "--bin-dir",
+                str(command_dir),
+                "--python",
+                str(self.build_python),
+            ],
+            cwd=self.target,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("pip", result.stderr)
+        self.assertIn(str(venv_dir), result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_installed_init_status_doctor_and_direct_launch(self):
         result = self.run_brida("status", "--project", str(self.target))

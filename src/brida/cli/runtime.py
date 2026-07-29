@@ -8,7 +8,14 @@ import sys
 from pathlib import Path
 
 from .codex import run_project
-from brida.lifecycle import doctor_lines, initialize_project, status_lines
+from brida import __version__
+from brida.lifecycle import (
+    StateKind,
+    doctor_lines,
+    initialize_project,
+    inspect_project,
+    status_lines,
+)
 from brida.orchestration.model_routing import (
     RoutingError,
     load_settings,
@@ -108,18 +115,56 @@ def _checkout_root() -> Path | None:
     return root
 
 
+def _global_help_lines() -> list[str]:
+    return [
+        "usage: brida [--runtime codex|claude] [prompt...]",
+        "       brida init|status|doctor [--project PATH] [--apply|--dry-run]",
+        "       brida run --project PATH -- <codex arguments>",
+        "",
+        "Installed-project mode launches Codex inside an initialized Git",
+        "repository. Run 'brida init --apply --project PATH' first.",
+        "",
+        "Inside a healthy initialized project, --help/--version are instead",
+        "forwarded to codex as documented CLI overrides.",
+    ]
+
+
 def _installed_default(argv: list[str]) -> int:
     try:
         paths = project_paths()
+    except ProjectError as exc:
+        return _unavailable_response(argv, str(exc))
+
+    if inspect_project(paths).kind != StateKind.HEALTHY:
+        response = _unavailable_response(argv, None)
+        if response is not None:
+            return response
+
+    try:
         runtime, remaining = select_runtime(argv, os.environ, "codex")
         if runtime != "codex":
             raise ValueError(
                 "installed-project dogfood supports only the codex runtime"
             )
         return run_project(paths, remaining, os.environ)
-    except (ProjectError, RoutingError, ValueError) as exc:
+    except (RoutingError, ValueError) as exc:
         print(f"brida: {exc}", file=sys.stderr)
         return 2
+
+
+def _unavailable_response(argv: list[str], error: str | None) -> int | None:
+    """Handle --help/--version pre-launch; return None to fall through."""
+
+    if argv[:1] in (["--help"], ["-h"]):
+        _print_lines(_global_help_lines())
+        return 0
+    if argv[:1] in (["--version"], ["-V"]):
+        print(f"brida {__version__}")
+        return 0
+    if error is None:
+        return None
+    print(f"brida: {error}", file=sys.stderr)
+    return 2
 
 
 def main(argv: list[str] | None = None) -> int:

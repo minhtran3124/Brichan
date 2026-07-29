@@ -1,5 +1,8 @@
 # References
 
+- `projects/brida-installable-tool/handoffs/DOGFOOD-005/receipt.md` — bounded Claude implementation and review receipt for installer prerequisite hardening
+- `projects/brida-installable-tool/handoffs/PYPI-001/receipt.md` — Brichan PyPI-readiness implementation and review receipt
+
 | Topic | Source | Verified date | Notes |
 |---|---|---|---|
 | Current package metadata | `pyproject.toml` | 2026-07-29 | Python package and five console entrypoints are declared |
@@ -25,6 +28,9 @@
 | Installed-wheel verification | `tests/integration/test_installed_dogfood.py`; `PYTHONDONTWRITEBYTECODE=1 make check` | 2026-07-29 | Five wheel tests and 152 total checks passed; fake Codex verified direct launch and adversarial boundaries |
 | Implementation review | `brida-dogfood-codex-review` / `w1X:p3B` | 2026-07-29 | Initial and focused re-reviews found seven bounded defects; all remediated; final verdict `PASS` |
 | Claude implementation stabilization | `brida-dogfood-claude-stabilize` / `w1X:p3C`; `config/model-routing.json` | 2026-07-29 | User-requested re-check confirmed `implement` → Claude Sonnet medium; worker found no new defect, changed no files, and passed wheel probes plus 152 checks |
+| External installer | `scripts/install-brida`; `tests/integration/test_installed_dogfood.py` | 2026-07-29 | Dedicated external venv, safe command shims, no activation, and outside-checkout installation verified |
+| Installer hardening and review | `brida-installer-pip-fix` / `w1X:p3E`; `brida-installer-review` / `w1X:p3D`; `projects/brida-installable-tool/handoffs/DOGFOOD-005/receipt.md` | 2026-07-29 | Claude Sonnet implementation; Claude Opus final `PASS`; 155 checks and 34 canonical receipts passed |
+| Brichan PyPI readiness | `pyproject.toml`; `.github/workflows/ci.yml`; `.github/workflows/publish.yml`; `projects/brida-installable-tool/handoffs/PYPI-001/receipt.md` | 2026-07-29 | Claude Sonnet implementation and Claude Opus independent review `PASS`; artifacts, metadata, install smoke, and full checks passed; external publishing setup remains deferred |
 
 Cursor was researched by a worker but its current official rules URL redirected
 to a broader page; detailed Cursor claims are intentionally excluded from the

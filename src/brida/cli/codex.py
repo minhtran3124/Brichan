@@ -6,6 +6,7 @@ import os
 import sys
 
 from ._root import repository_root
+from brida import __version__
 from brida.lifecycle import StateKind, inspect_project
 from brida.orchestration.model_routing import (
     RoutingError,
@@ -91,6 +92,22 @@ def main(argv: list[str] | None = None) -> int:
     try:
         resolved_command = command(arguments, os.environ)
     except RoutingError as exc:
+        print(f"brida-codex: {exc}", file=sys.stderr)
+        return 2
+    except RuntimeError as exc:
+        if arguments[:1] in (["--help"], ["-h"]):
+            print("usage: brida-codex [codex arguments...]")
+            print()
+            print(
+                "brida-codex is checkout-oriented: run it from within the "
+                "Brida source checkout (or with BRIDA_ROOT set), or inside a "
+                "Git project initialized with 'brida init --apply' for the "
+                "installed-project workflow."
+            )
+            return 0
+        if arguments[:1] in (["--version"], ["-V"]):
+            print(f"brida-codex {__version__}")
+            return 0
         print(f"brida-codex: {exc}", file=sys.stderr)
         return 2
     os.execvp("codex", resolved_command)

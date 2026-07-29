@@ -4,7 +4,7 @@ This is the canonical Brida runtime capability and model-routing guidance
 catalog. Active coordinator and worker route defaults live only in
 `../../config/model-routing.json`.
 
-Last verified: 2026-07-28.
+Last verified: 2026-07-29.
 
 Evidence commands:
 
@@ -40,17 +40,24 @@ the installed catalog describes it as enabling automatic task delegation.
 
 - CLI: installed, version `2.1.220`.
 - Herdr integration: installed/current (v7).
-- Authentication: verified outside the restricted sandbox on 2026-07-28.
-  `claude auth status` reports
+- Authentication: verified on 2026-07-29. `claude auth status` reports
   `loggedIn: true`, method `claude.ai`, subscription `max`.
-- Verified models: `opus` resolved to `claude-opus-5` in an observed headless
-  run; `sonnet` resolved to Sonnet 5 in observed Herdr worker sessions. `fable`
-  is accepted by the CLI but has not been exercised.
+- Verified aliases: `fable`, `sonnet`, and `opus` each completed an isolated
+  `claude -p` probe on 2026-07-29. The installed CLI advertises all three as
+  aliases for its current models and supports efforts `low` through `max`.
 
-Claude is routable. Prefer it as an independent reviewer when the implementer
-used Codex. Re-check `claude auth status` before a session that depends on it,
-because authentication can lapse. The active local Claude account route is
-`cld`/the standard `claude` CLI.
+| Alias | Verified effort | Routed use |
+|---|---:|---|
+| `fable` | `low` | Claude coordinator alternative and lightweight bounded probes |
+| `sonnet` | `medium` | Routine implementation |
+| `opus` | `high` | Planning and independent review |
+
+Claude is routable. The active `claude` coordinator uses `fable` at `low`;
+implementation, planning, and review deliberately retain Sonnet or Opus where
+their higher reasoning budget is warranted. Prefer Claude as an independent
+reviewer when the implementer used Codex. Re-check `claude auth status` before
+a session that depends on it, because authentication can lapse. The active
+local Claude account route is `cld`/the standard `claude` CLI.
 
 ## Unavailable providers
 

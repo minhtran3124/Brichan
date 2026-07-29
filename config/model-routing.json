@@ -8,8 +8,8 @@
         "effort": "medium"
       },
       "claude": {
-        "model": "opus",
-        "effort": "high"
+        "model": "fable",
+        "effort": "low"
       }
     }
   },

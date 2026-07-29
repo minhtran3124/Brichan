@@ -24,11 +24,14 @@ small dogfood cohort of 3–5 trusted users.
   Brida checkout, project initialization, status/doctor diagnostics,
   package-owned policy bootstrap, and Herdr skill discovery.
 - Disposable-repository and installed-wheel verification.
+- PyPI release preparation for the `brichan` distribution, including metadata,
+  dual-artifact CI validation, and an inert Trusted Publishing workflow.
 
 ## Out of scope
 
 - Publishing packages, deploying, contacting external parties, or changing
-  remote state.
+  remote state. Release preparation is in scope; an actual TestPyPI/PyPI
+  upload remains a separately authorized action.
 - Commercialization, market sizing, growth, pricing, or support for a broad
   user population.
 - Broad platform and repository-shape compatibility beyond the dogfood
@@ -48,6 +51,11 @@ Installed schema v1 separates three roots: package-owned tool resources, the
 target Git root, and target-owned `.brida/` state. It injects Brida policy and
 Herdr skill discovery through invocation-level Codex configuration and never
 uses target-owned Brida wrappers.
+
+The local installer adds a fourth operational boundary: a dedicated external
+virtual environment for the Brida executable. User command symlinks make it
+available without activation and keep it independent from target `.venv`
+lifecycles.
 
 ## Stable constraints
 
@@ -73,3 +81,6 @@ uses target-owned Brida wrappers.
   status/doctor expose incomplete or incompatible state.
 - Stage 1 disposable acceptance and independent review pass before any real
   owner-repository dogfood.
+- A package-owned installer can install Brida from outside the checkout into a
+  dedicated external environment, expose commands without activation, and
+  leave a target repository's existing `.venv` untouched.

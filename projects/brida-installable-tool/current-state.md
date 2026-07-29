@@ -46,16 +46,40 @@ dogfood in a selected real repository, followed later by 3–5 trusted users.
 - A Claude Sonnet implementation stabilization worker independently rebuilt
   and installed the wheel, reran adversarial probes and all 152 checks, found
   no reproducible defect, and made no code changes.
+- Added `scripts/install-brida`: it can run from any directory, builds from a
+  temporary source snapshot, installs into a dedicated external virtual
+  environment, and exposes commands through safe symlinks without activation.
+- Verified the installer from a disposable target repository with no
+  `VIRTUAL_ENV`; `brida init --apply` succeeded through the installed command
+  shim and left no checkout build artifacts.
+- Hardened interpreter selection and dedicated-environment reuse so missing
+  `pip` fails early with clear, non-destructive recovery guidance.
+- Claude Sonnet implementation and Claude Opus independent review closed all
+  installer prerequisite and local-venv scan findings with final verdict
+  `PASS`.
+- Final independent verification passed 155 checks, including 32 integration
+  tests, 34 canonical receipts, shell parsing, and outside-checkout installation
+  without activation.
+- Prepared the future `brichan` `0.5.0` distribution without publishing it:
+  wheel/sdist metadata, clean-artifact CI, tag/version validation, and an OIDC
+  Trusted Publishing workflow are in place while `brida` imports and commands
+  remain unchanged.
+- Re-checked model routing before the work: Claude coordinator uses Fable low,
+  implementation uses Sonnet medium, and review uses Opus high; all three
+  Claude aliases completed live probes. Claude Sonnet implementation and Claude
+  Opus independent review returned `PASS`.
 
 ## In progress
 
 - Select one owner repository and run the documented dogfood workflow with
   explicit backup/reinitialization expectations.
+- Before the first PyPI release, confirm the public repository URL, configure
+  the PyPI trusted publisher and GitHub `pypi` environment, fix the PyPI README
+  image URL, then explicitly authorize upload.
 
 ## Blockers
 
-- None. Claude is intentionally deferred because local authentication was not
-  available during routing checks.
+- None.
 
 ## Risks
 
@@ -69,11 +93,16 @@ dogfood in a selected real repository, followed later by 3–5 trusted users.
 - Real Codex and real Herdr execution in an owner repository remains the next
   dogfood evidence gate. Disposable acceptance used fake Codex and Herdr
   dry-run only.
+- The gitignored Brida-checkout `.venv/` contains an unexplained Unicode
+  `𝜋thon` alias and packaging utilities. It is excluded from source scans and
+  cannot enter the installer wheel snapshot, but its provenance should be
+  resolved before any future publishing step.
 
 ## Next actions
 
 1. Choose one non-critical owner repository and back up any existing `.brida/`.
-2. Build/install the local wheel and run `init`, `status`, `doctor`, direct
+2. Run `/absolute/path/to/brida/scripts/install-brida`, then run `init`,
+   `status`, `doctor`, direct
    Codex launch, and one bounded Herdr worker lifecycle.
 3. Record friction and defects; only then decide whether to expand to 3–5
    trusted users.

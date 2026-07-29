@@ -1,10 +1,12 @@
-# Brida
+# Brichan
 
-![Brida coordinating a team of AI workers](assets/brida-hero.png)
+![Brichan coordinating a team of AI workers](assets/brida-hero.png)
 
-Brida is an AI Chief of Staff for Codex and Claude Code. Give it a project
+Brichan is an AI Chief of Staff for Codex and Claude Code. Give it a project
 goal; it keeps the necessary context, coordinates independent workers through
 Herdr, checks their evidence, and records useful project state outside chat.
+Its existing runtime package and console commands remain `brida` and
+`brida-*` for compatibility.
 
 ## Current dogfood scope
 
@@ -13,28 +15,32 @@ inside an existing top-level Git repository. Installed-project mode currently
 supports Codex on POSIX-compatible systems with Python 3.10+. Herdr is needed
 only when Brida coordinates independent worker sessions.
 
-Brida is not published to a package registry yet. Build the wheel locally from
-this repository, then install it outside the checkout:
+Brida is not published to a package registry yet; the planned PyPI
+distribution name is `brichan` (`pip install brichan`), while the importable
+package stays `brida` and every console command keeps its existing name.
+Until it is published, build the wheel locally from this repository with the
+installer. It can be invoked from any directory and does not activate or
+modify the target project's virtual environment:
 
 ```bash
-git clone <repository-url> brida
-cd brida
-make check
-python3 -m pip wheel . --no-deps --no-build-isolation --wheel-dir /tmp/brida-wheel
-python3 -m venv /tmp/brida-venv
-/tmp/brida-venv/bin/python -m pip install --no-deps /tmp/brida-wheel/*.whl
+/absolute/path/to/brida/scripts/install-brida
 ```
 
-The build interpreter must already provide `setuptools` and `wheel`. The
-dogfood workflow does not fetch dependencies or publish a package.
+By default, the script creates a dedicated environment at
+`$HOME/.local/share/brida/venv` and command symlinks in `$HOME/.local/bin`.
+It automatically selects an available Python 3.10+ interpreter with `pip`,
+`setuptools`, `venv`, and `wheel`, builds from a temporary source snapshot,
+and installs all Brida console commands. No virtualenv activation is
+required. If the command directory is not on `PATH`, the installer prints
+the exact export to add to the shell profile.
 
 ## Initialize a project
 
 Preview the complete footprint before writing:
 
 ```bash
-/tmp/brida-venv/bin/brida init --project /absolute/path/to/repository
-/tmp/brida-venv/bin/brida init --apply --project /absolute/path/to/repository
+brida init --project /absolute/path/to/repository
+brida init --apply --project /absolute/path/to/repository
 ```
 
 `init` defaults to dry-run and performs zero writes. `--apply` creates only a
@@ -45,9 +51,9 @@ state is idempotent.
 Diagnose and launch from any directory with an explicit target:
 
 ```bash
-/tmp/brida-venv/bin/brida status --project /absolute/path/to/repository
-/tmp/brida-venv/bin/brida doctor --project /absolute/path/to/repository
-/tmp/brida-venv/bin/brida run --project /absolute/path/to/repository -- <codex arguments>
+brida status --project /absolute/path/to/repository
+brida doctor --project /absolute/path/to/repository
+brida run --project /absolute/path/to/repository -- <codex arguments>
 ```
 
 From inside a healthy initialized repository, bare `brida` also launches
@@ -84,6 +90,15 @@ does not. Coordinator defaults and worker routes are settings-driven, so the
 coordinator and implementation, review, planning, or scan workers may use
 different runtimes. See the [model-routing guide](docs/guides/model-routing.md)
 to change defaults, select a named route, or use a one-off override.
+
+The `brida-codex` and `brida-claude` console commands installed by `brichan`
+remain checkout-oriented: `brida-codex` resolves coordinator routing from a
+Brida source checkout (or `BRIDA_ROOT`) or from an already-initialized
+project's `.brida/` state, while `brida-claude` resolves only from a checkout
+or `BRIDA_ROOT`. Both are for development and checkout use, not standalone
+installed-project launches. `--help`/`--version` work from any directory; the
+[installed Codex dogfood guide](docs/guides/installable-dogfood.md) has the
+exact boundary.
 
 ## How it works
 
