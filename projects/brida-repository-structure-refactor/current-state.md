@@ -55,7 +55,5 @@
 
 ## Next actions
 
-1. Commit the final review receipts and active project-memory updates.
-2. Push the final retirement tree and verify CI on the literal retirement
-   commit.
-3. Open the follow-up PR for user review; do not merge without approval.
+1. Review follow-up PR #11 for the compatibility-pointer retirement.
+2. Obtain explicit user approval before merging; no merge has been performed.

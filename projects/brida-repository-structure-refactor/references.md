@@ -49,3 +49,4 @@
 | `projects/brida-repository-structure-refactor/handoffs/RSR-013-L/receipt.md` | 2026-07-28 | Fresh Claude Sonnet 5 startup on committed retired-tree HEAD `ef57e54` passed all canonical discovery, version, wrapper/import, preflight, and no-write checks |
 | `projects/brida-repository-structure-refactor/handoffs/RSR-013-R/receipt.md` | 2026-07-29 | Codex Sol replacement-review attempt verified chronology, tests, and CI but became stale at quota exhaustion before issuing its final verdict |
 | `projects/brida-repository-structure-refactor/handoffs/RSR-014-R/receipt.md` | 2026-07-29 | Replacement independent Claude Sonnet 5 review returned PASS; it disclosed the low-risk ancestor-CI evidence gap and required literal-HEAD CI before merge |
+| Follow-up PR #11 | 2026-07-29 | `agent/retire-compatibility-pointers` is open against `main`; final branch CI is green and merge remains pending explicit user approval |
