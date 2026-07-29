@@ -26,6 +26,9 @@
   a wheel build/install/smoke CI lane.
 - Release `v0.3.0` completed the compatibility window at
   `2026-07-28T12:59:20Z`.
+- Release `v0.3.1` was published from main commit
+  `3dba8ed5dcfffada7a5366265f2c67e2bc1f63db` with the version alignment and
+  compatibility-pointer retirement follow-up.
 - A fail-closed Phase 5 preflight now pins all six temporary pointers and
   requires timestamped release, link, repository-search, Codex/Claude startup,
   full-CI, and changelog evidence. Independent Codex review verdict is `PASS`.
@@ -41,8 +44,8 @@
 - Initial final review returned `CHANGES REQUIRED` only for missing immutable
   chronology and durable receipts/state; the replacement independent Claude
   review returned `PASS` after those findings were remediated.
-- A worker found `brida.__version__` lagging at `0.2.0`; the follow-up branch
-  aligns it with `0.3.0` and adds contract coverage.
+- A worker found `brida.__version__` lagging at `0.2.0`; the follow-up release
+  aligns it with `0.3.1` and adds contract coverage.
 
 ## Approved boundaries
 
@@ -55,5 +58,5 @@
 
 ## Next actions
 
-1. Review follow-up PR #11 for the compatibility-pointer retirement.
-2. Obtain explicit user approval before merging; no merge has been performed.
+1. Continue maintenance from `main`; PR #11 is merged and release `v0.3.1` is
+   published.
