@@ -64,10 +64,11 @@ dogfood in a selected real repository, followed later by 3–5 trusted users.
   wheel/sdist metadata, clean-artifact CI, tag/version validation, and an OIDC
   Trusted Publishing workflow are in place while `brida` imports and commands
   remain unchanged.
-- Re-checked model routing before the work: Claude coordinator uses Fable low,
-  implementation uses Sonnet medium, and review uses Opus high; all three
-  Claude aliases completed live probes. Claude Sonnet implementation and Claude
-  Opus independent review returned `PASS`.
+- Re-checked and pinned model routing: Claude coordinator uses
+  `claude-fable-5` low, implementation uses `claude-sonnet-5` medium, and
+  review uses `claude-opus-5` high. The canonical IDs and their aliases
+  completed live probes. Claude Sonnet implementation and Claude Opus
+  independent review returned `PASS`.
 
 ## In progress
 

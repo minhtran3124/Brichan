@@ -43,21 +43,25 @@ the installed catalog describes it as enabling automatic task delegation.
 - Authentication: verified on 2026-07-29. `claude auth status` reports
   `loggedIn: true`, method `claude.ai`, subscription `max`.
 - Verified aliases: `fable`, `sonnet`, and `opus` each completed an isolated
-  `claude -p` probe on 2026-07-29. The installed CLI advertises all three as
-  aliases for its current models and supports efforts `low` through `max`.
+  `claude -p` probe on 2026-07-29. Canonical IDs `claude-fable-5`,
+  `claude-sonnet-5`, and `claude-opus-5` also completed live CLI probes. The
+  installed CLI advertises these aliases and full names and supports efforts
+  `low` through `max`.
 
-| Alias | Verified effort | Routed use |
-|---|---:|---|
-| `fable` | `low` | Claude coordinator alternative and lightweight bounded probes |
-| `sonnet` | `medium` | Routine implementation |
-| `opus` | `high` | Planning and independent review |
+| Alias | Canonical ID | Verified effort | Routed use |
+|---|---|---:|---|
+| `fable` | `claude-fable-5` | `low` | Claude coordinator alternative and lightweight bounded probes |
+| `sonnet` | `claude-sonnet-5` | `medium` | Routine implementation |
+| `opus` | `claude-opus-5` | `high` | Planning and independent review |
 
-Claude is routable. The active `claude` coordinator uses `fable` at `low`;
-implementation, planning, and review deliberately retain Sonnet or Opus where
-their higher reasoning budget is warranted. Prefer Claude as an independent
-reviewer when the implementer used Codex. Re-check `claude auth status` before
-a session that depends on it, because authentication can lapse. The active
-local Claude account route is `cld`/the standard `claude` CLI.
+Claude is routable. Brida pins canonical IDs in its routing files so a future
+Claude alias update cannot silently change the model. The active `claude`
+coordinator uses `claude-fable-5` at `low`; implementation, planning, and
+review deliberately retain the canonical Sonnet or Opus IDs where their higher
+reasoning budget is warranted. Prefer Claude as an independent reviewer when
+the implementer used Codex. Re-check `claude auth status` before a session that
+depends on it, because authentication can lapse. The active local Claude
+account route is `cld`/the standard `claude` CLI.
 
 ## Unavailable providers
 

@@ -8,7 +8,7 @@
         "effort": "medium"
       },
       "claude": {
-        "model": "fable",
+        "model": "claude-fable-5",
         "effort": "low"
       }
     }
@@ -16,17 +16,17 @@
   "routes": {
     "plan": {
       "runtime": "claude",
-      "model": "opus",
+      "model": "claude-opus-5",
       "effort": "high"
     },
     "implement": {
       "runtime": "claude",
-      "model": "sonnet",
+      "model": "claude-sonnet-5",
       "effort": "medium"
     },
     "review": {
       "runtime": "claude",
-      "model": "opus",
+      "model": "claude-opus-5",
       "effort": "high"
     },
     "scan": {

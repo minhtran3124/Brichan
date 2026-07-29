@@ -31,6 +31,7 @@
 | External installer | `scripts/install-brida`; `tests/integration/test_installed_dogfood.py` | 2026-07-29 | Dedicated external venv, safe command shims, no activation, and outside-checkout installation verified |
 | Installer hardening and review | `brida-installer-pip-fix` / `w1X:p3E`; `brida-installer-review` / `w1X:p3D`; `projects/brida-installable-tool/handoffs/DOGFOOD-005/receipt.md` | 2026-07-29 | Claude Sonnet implementation; Claude Opus final `PASS`; 155 checks and 34 canonical receipts passed |
 | Brichan PyPI readiness | `pyproject.toml`; `.github/workflows/ci.yml`; `.github/workflows/publish.yml`; `projects/brida-installable-tool/handoffs/PYPI-001/receipt.md` | 2026-07-29 | Claude Sonnet implementation and Claude Opus independent review `PASS`; artifacts, metadata, install smoke, and full checks passed; external publishing setup remains deferred |
+| Claude canonical model IDs | `config/model-routing.json`; `docs/policy/model-catalog.md`; `claude --help`; [Claude Code model configuration](https://code.claude.com/docs/en/model-config) | 2026-07-29 | Local Claude Code 2.1.220 accepted `claude-fable-5`, `claude-sonnet-5`, and `claude-opus-5`; Brida pins these IDs instead of mutable aliases |
 
 Cursor was researched by a worker but its current official rules URL redirected
 to a broader page; detailed Cursor claims are intentionally excluded from the
