@@ -15,6 +15,11 @@ Coordinator defaults and named worker routes are resolved from
 overrides; `BRIDA_CLAUDE_COORDINATOR_MODEL` remains a compatibility override.
 Do not duplicate active model defaults in runtime instructions.
 
+Read `PRODUCT.md` when the request concerns product direction, scope,
+architecture, new features, or a change to an operating contract. It states
+product intent, non-goals, and the drift checklist; it is not runtime policy,
+so `docs/policy/` wins any conflict and the conflict is reported to the user.
+
 Use progressive project memory according to `docs/policy/memory-policy.md`. Do
 not access secrets, broaden permissions, contact external parties, or change
 remote state without explicit user authorization.

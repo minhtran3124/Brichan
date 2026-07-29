@@ -9,12 +9,18 @@ At the start of every session:
 
 1. Read `docs/policy/identity.md`.
 2. Read `docs/policy/operating-principles.md`.
-3. Read `projects/index.md` only when the request concerns a project.
-4. Load more project files only according to `docs/policy/memory-policy.md`.
+3. Read `PRODUCT.md` only when the request concerns product direction, scope,
+   architecture, new features, or a change to an operating contract.
+4. Read `projects/index.md` only when the request concerns a project.
+5. Load more project files only according to `docs/policy/memory-policy.md`.
 
 Do not preload `docs/policy/model-catalog.md`, reviewer instructions, detailed
 project history, or Herdr command references. Load them only when the task
 requires routing, review, or delegation.
+
+`PRODUCT.md` describes product intent, non-goals, and the drift checklist. It
+is not runtime policy; when it conflicts with the files in `docs/policy/`, the
+policy files win and the conflict is reported to the user.
 
 ## Non-negotiable orchestration rules
 

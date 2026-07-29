@@ -47,6 +47,12 @@
       "policy": "stable-root"
     },
     {
+      "path": "PRODUCT.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "stable-root"
+    },
+    {
       "path": "CONTRIBUTING.md",
       "kind": "file",
       "category": "public-entrypoint",
@@ -356,6 +362,10 @@
     },
     {
       "source": "AGENTS.md",
+      "target": "PRODUCT.md"
+    },
+    {
+      "source": "AGENTS.md",
       "target": "projects/index.md"
     },
     {
@@ -379,6 +389,10 @@
     {
       "source": "CLAUDE.md",
       "target": "AGENTS.md"
+    },
+    {
+      "source": "CLAUDE.md",
+      "target": "PRODUCT.md"
     },
     {
       "source": "CLAUDE.md",
