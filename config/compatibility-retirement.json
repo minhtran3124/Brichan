@@ -33,8 +33,8 @@
     },
     "full_ci": {
       "status": "pass",
-      "checked_at": "2026-07-28T13:13:11Z",
-      "evidence": "projects/brida-repository-structure-refactor/references.md#Phase 5 post-release full CI"
+      "checked_at": "2026-07-29T04:32:04Z",
+      "evidence": "projects/brida-repository-structure-refactor/references.md#Phase 5 final-branch full CI"
     },
     "repository_search": {
       "status": "pass",
