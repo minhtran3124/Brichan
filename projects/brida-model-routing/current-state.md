@@ -5,7 +5,8 @@ Last updated: 2026-07-29
 ## Summary
 
 Plan `MODEL-ROUTING-P1` version 3 is implemented and independently reviewed
-with a `PASS` verdict on branch `feat/settings-driven-model-routing`.
+with a `PASS` verdict. Commit `218daa0` is pushed on
+`feat/settings-driven-model-routing`, and pull request #12 is open.
 
 ## Completed recently
 
@@ -27,10 +28,12 @@ with a `PASS` verdict on branch `feat/settings-driven-model-routing`.
 - The final legacy Claude `--tools` guard and regressions passed 29 focused
   tests, full repository checks, and a fresh release sandbox.
 - Final independent review passed AC1–AC8 with no blocking findings.
+- Feature commit `218daa0` was pushed and pull request #12 was opened with
+  verification evidence and residual risks.
 
 ## In progress
 
-- Commit, push, and pull-request handoff.
+- Pull request review and CI.
 
 ## Blockers
 
@@ -45,9 +48,8 @@ with a `PASS` verdict on branch `feat/settings-driven-model-routing`.
 
 ## Next actions
 
-1. Commit the reviewed implementation.
-2. Push `feat/settings-driven-model-routing`.
-3. Open a pull request with verification evidence and residual risks.
+1. Monitor pull request #12 review and CI.
+2. Address only evidence-backed follow-up findings.
 
 ## Unverified assumptions
 
