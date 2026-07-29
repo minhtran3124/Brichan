@@ -28,6 +28,23 @@ bin/brida --runtime claude
 See the [model-routing guide](docs/guides/model-routing.md) to change model
 defaults, select a worker route, or use a one-off override.
 
+### Installed Codex dogfood
+
+The first installed-package slice can initialize an existing top-level Git
+repository without a separate Brida checkout:
+
+```bash
+brida init --project /path/to/repository          # dry-run; zero writes
+brida init --apply --project /path/to/repository
+brida doctor --project /path/to/repository
+brida run --project /path/to/repository
+```
+
+It creates only `.brida/`, leaves root instructions and provider configuration
+untouched, and launches the external `codex` executable directly. See the
+[installed Codex dogfood guide](docs/guides/installable-dogfood.md) for the
+footprint, exit codes, safeguards, and compatibility boundary.
+
 ## How it works
 
 1. You describe the outcome and constraints.
@@ -67,6 +84,7 @@ for module boundaries.
 ## Learn more
 
 - [Model routing and worker launch settings](docs/guides/model-routing.md)
+- [Installed Codex dogfood](docs/guides/installable-dogfood.md)
 - [Documentation index](docs/index.md)
 - [Operating principles](docs/policy/operating-principles.md)
 - [Security policy](SECURITY.md)

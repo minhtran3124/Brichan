@@ -90,11 +90,21 @@ class WorkerRoutingCliTest(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         start = next(call for call in self.calls() if call[:2] == ["agent", "start"])
         command = start[start.index("--") + 1 :]
-        self.assertEqual("claude", command[0])
-        self.assertIn("--disallowed-tools=Task", command)
-        self.assertIn("--permission-mode", command)
+        runtime = self.manifest["routes"]["review"]["runtime"]
+        self.assertEqual(runtime, command[0])
+        if runtime == "codex":
+            self.assertIn("agents.enabled=false", command)
+            self.assertIn("multi_agent_v2", command)
+        else:
+            self.assertIn("--disallowed-tools=Task", command)
+            self.assertIn("--permission-mode", command)
         self.assertIn("--model", command)
-        self.assertIn("--effort", command)
+        if runtime == "claude":
+            self.assertIn("--effort", command)
+        else:
+            self.assertTrue(
+                any(item.startswith("model_reasoning_effort=") for item in command)
+            )
 
     def test_named_route_cli_overrides_manifest(self):
         result = self.run_launcher(
@@ -130,7 +140,10 @@ class WorkerRoutingCliTest(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertTrue(payload["dry_run"])
         self.assertEqual("implement", payload["route"])
-        self.assertEqual("codex", payload["resolved"]["runtime"])
+        self.assertEqual(
+            self.manifest["routes"]["implement"]["runtime"],
+            payload["resolved"]["runtime"],
+        )
         self.assertEqual([], self.calls())
 
     def test_human_readable_dry_run_has_no_herdr_mutation(self):
@@ -144,7 +157,8 @@ class WorkerRoutingCliTest(unittest.TestCase):
         )
 
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertTrue(result.stdout.startswith("codex "))
+        expected_runtime = self.manifest["routes"]["implement"]["runtime"]
+        self.assertTrue(result.stdout.startswith(f"{expected_runtime} "))
         self.assertEqual([], self.calls())
 
     def test_invalid_route_fails_before_herdr(self):
@@ -159,9 +173,11 @@ class WorkerRoutingCliTest(unittest.TestCase):
         self.assertEqual([], self.calls())
 
     def test_invalid_runtime_and_effort_fail_before_herdr(self):
+        implement_runtime = self.manifest["routes"]["implement"]["runtime"]
+        opposite_runtime = "claude" if implement_runtime == "codex" else "codex"
         cases = (
             ("--runtime", "unknown"),
-            ("--runtime", "claude"),
+            ("--runtime", opposite_runtime),
             ("--effort", "ultra"),
             ("--effort", "impossible"),
         )

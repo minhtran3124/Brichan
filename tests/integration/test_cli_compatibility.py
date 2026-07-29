@@ -32,6 +32,7 @@ class CliCompatibilityTest(unittest.TestCase):
         launcher: str,
         *arguments: str,
         environment: dict[str, str] | None = None,
+        cwd: Path | None = None,
     ) -> dict:
         with tempfile.TemporaryDirectory() as temporary:
             runtime_directory = Path(temporary)
@@ -44,7 +45,7 @@ class CliCompatibilityTest(unittest.TestCase):
             process_environment.update(environment or {})
             result = subprocess.run(
                 [str(ROOT / "bin" / launcher), *arguments],
-                cwd=ROOT,
+                cwd=ROOT if cwd is None else cwd,
                 env=process_environment,
                 check=False,
                 capture_output=True,
@@ -202,6 +203,17 @@ class CliCompatibilityTest(unittest.TestCase):
         claude = self.run_launcher("brida", "--runtime=claude", "--help")
         self.assertIn("agents.enabled=false", codex["argv"])
         self.assertIn("--disallowed-tools=Task", claude["argv"])
+
+    def test_checkout_dispatch_works_from_descendant_directory(self):
+        result = self.run_launcher(
+            "brida",
+            "--runtime",
+            "codex",
+            "--help",
+            cwd=ROOT / "tests" / "integration",
+        )
+        self.assertIn("agents.enabled=false", result["argv"])
+        self.assertEqual(str(ROOT / "tests" / "integration"), result["cwd"])
 
     def test_dispatcher_rejects_unknown_runtime(self):
         result = subprocess.run(

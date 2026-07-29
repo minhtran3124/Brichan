@@ -15,18 +15,18 @@
   },
   "routes": {
     "plan": {
-      "runtime": "claude",
-      "model": "opus",
+      "runtime": "codex",
+      "model": "gpt-5.6-sol",
       "effort": "high"
     },
     "implement": {
-      "runtime": "claude",
-      "model": "sonnet",
+      "runtime": "codex",
+      "model": "gpt-5.6-terra",
       "effort": "medium"
     },
     "review": {
-      "runtime": "claude",
-      "model": "opus",
+      "runtime": "codex",
+      "model": "gpt-5.6-sol",
       "effort": "high"
     },
     "scan": {

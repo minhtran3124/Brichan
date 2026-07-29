@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Iterable
 
@@ -22,6 +23,38 @@ CODEX_NATIVE_AGENT_FLAGS = (
     "multi_agent_v2",
 )
 CLAUDE_NATIVE_AGENT_FLAGS = ("--disallowed-tools=Task",)
+PROJECT_SAFE_CONFIG_KEYS = frozenset({"model", "model_reasoning_effort"})
+PROJECT_SAFE_FLAGS = frozenset(
+    {"-h", "--help", "-V", "--version", "--no-alt-screen", "--strict-config"}
+)
+PROJECT_FORBIDDEN_COMMANDS = frozenset(
+    {
+        "app",
+        "app-server",
+        "apply",
+        "archive",
+        "cloud",
+        "completion",
+        "debug",
+        "delete",
+        "doctor",
+        "exec",
+        "exec-server",
+        "features",
+        "fork",
+        "login",
+        "logout",
+        "mcp",
+        "mcp-server",
+        "plugin",
+        "remote-control",
+        "resume",
+        "review",
+        "sandbox",
+        "unarchive",
+        "update",
+    }
+)
 
 
 def _option_value(item: str, name: str) -> str | None:
@@ -34,10 +67,14 @@ def _option_value(item: str, name: str) -> str | None:
     return None
 
 
+def _option_prefix(argv: list[str]) -> list[str]:
+    return argv[: argv.index("--")] if "--" in argv else argv
+
+
 def _has_option(argv: list[str], names: set[str]) -> bool:
     return any(
         item == name or _option_value(item, name) is not None
-        for item in argv
+        for item in _option_prefix(argv)
         for name in names
     )
 
@@ -46,6 +83,8 @@ def _value_after(argv: list[str], names: set[str]) -> Iterable[tuple[str, str]]:
     index = 0
     while index < len(argv):
         item = argv[index]
+        if item == "--":
+            break
         if item in names:
             if index + 1 >= len(argv):
                 raise RoutingError(f"{item} requires a value")
@@ -73,6 +112,67 @@ def _assignment_key_value(assignment: str) -> tuple[str, str]:
     return key.strip(), value.strip().strip("\"'")
 
 
+def _namespace_matches(key: str, namespace: str) -> bool:
+    return (
+        key == namespace
+        or key.startswith(f"{namespace}.")
+        or key.startswith(f"{namespace}[")
+    )
+
+
+def _project_config_assignments(argv: list[str]) -> list[tuple[str, str]]:
+    assignments = [
+        _assignment_key_value(item) for item in _config_assignments(argv)
+    ]
+    for key, _ in assignments:
+        if _namespace_matches(key, "developer_instructions") or _namespace_matches(
+            key, "skills.config"
+        ):
+            raise RoutingError(
+                f"Brida project launch owns the Codex setting namespace: {key}"
+            )
+        if key not in PROJECT_SAFE_CONFIG_KEYS:
+            raise RoutingError(
+                f"Codex setting is forbidden in installed project mode: {key}"
+            )
+    return assignments
+
+
+def _validate_project_passthrough(argv: list[str]) -> None:
+    """Allow only bounded interactive-project arguments before `--`."""
+
+    index = 0
+    saw_positional = False
+    while index < len(argv):
+        item = argv[index]
+        if item == "--":
+            return
+        if item in PROJECT_SAFE_FLAGS:
+            index += 1
+            continue
+        if item in {"-m", "--model", "-c", "--config"}:
+            if index + 1 >= len(argv):
+                raise RoutingError(f"{item} requires a value")
+            index += 2
+            continue
+        if any(
+            _option_value(item, name) is not None
+            for name in ("-m", "--model", "-c", "--config")
+        ):
+            index += 1
+            continue
+        if item.startswith("-"):
+            raise RoutingError(
+                f"Codex option is forbidden in installed project mode: {item}"
+            )
+        if not saw_positional and item in PROJECT_FORBIDDEN_COMMANDS:
+            raise RoutingError(
+                f"Codex subcommand is forbidden in installed project mode: {item}"
+            )
+        saw_positional = True
+        index += 1
+
+
 def _reject_codex_native_delegation(argv: list[str]) -> None:
     for _, feature in _value_after(argv, {"--enable"}):
         if feature in {"multi_agent", "multi_agent_v2", "agents"}:
@@ -92,7 +192,9 @@ def _reject_codex_permission_bypass(argv: list[str]) -> None:
         "--dangerously-bypass-approvals-and-sandbox",
         "--dangerously-bypass-hook-trust",
     }
-    if any(item.split("=", 1)[0] in forbidden for item in argv):
+    if any(
+        item.split("=", 1)[0] in forbidden for item in _option_prefix(argv)
+    ):
         raise RoutingError("Codex permission-bypass options are forbidden")
     for _, value in _value_after(argv, {"-s", "--sandbox"}):
         if value == "danger-full-access":
@@ -118,11 +220,12 @@ def _reject_claude_native_delegation(argv: list[str]) -> None:
         "--background",
         "--forward-subagent-text",
     }
-    for item in argv:
+    prefix = _option_prefix(argv)
+    for item in prefix:
         name = item.split("=", 1)[0]
         if name in forbidden:
             raise RoutingError(f"Claude native delegation option is forbidden: {name}")
-    if argv[:1] == ["agents"]:
+    if prefix[:1] == ["agents"]:
         raise RoutingError("Claude native agent commands are forbidden")
 
 
@@ -131,7 +234,9 @@ def _reject_claude_permission_bypass(argv: list[str]) -> None:
         "--allow-dangerously-skip-permissions",
         "--dangerously-skip-permissions",
     }
-    if any(item.split("=", 1)[0] in forbidden for item in argv):
+    if any(
+        item.split("=", 1)[0] in forbidden for item in _option_prefix(argv)
+    ):
         raise RoutingError("Claude permission-bypass options are forbidden")
     for _, mode in _value_after(argv, {"--permission-mode"}):
         if mode == "bypassPermissions":
@@ -184,6 +289,33 @@ def codex_command(
     if not any(key == "model_reasoning_effort" for key, _ in assignments):
         command.extend(["-c", f"model_reasoning_effort={route.effort}"])
     command.extend(passthrough)
+    return command
+
+
+def codex_project_command(
+    route: ResolvedRoute,
+    argv: list[str],
+    *,
+    cwd: Path,
+    developer_instructions: str,
+    skill_path: Path,
+) -> list[str]:
+    """Build a guarded Codex command for an initialized target project."""
+
+    _validate_project_passthrough(argv)
+    _project_config_assignments(argv)
+    command = codex_command(route, argv, cwd=cwd)
+    passthrough_count = len(argv)
+    insertion = len(command) - passthrough_count if passthrough_count else len(command)
+    bootstrap = (
+        f"developer_instructions={json.dumps(developer_instructions)}"
+    )
+    skill = (
+        "skills.config=[{path="
+        f"{json.dumps(str(skill_path.resolve()))},enabled=true"
+        "}]"
+    )
+    command[insertion:insertion] = ["-c", bootstrap, "-c", skill]
     return command
 
 
@@ -248,7 +380,10 @@ def secure_legacy_command(argv: list[str]) -> list[str]:
         return ["codex", *CODEX_NATIVE_AGENT_FLAGS, *arguments]
 
     if runtime == "claude":
-        if any(item.split("=", 1)[0] == "--settings" for item in arguments):
+        if any(
+            item.split("=", 1)[0] == "--settings"
+            for item in _option_prefix(arguments)
+        ):
             raise RoutingError("Claude settings options are forbidden in legacy commands")
         _reject_legacy_claude_hook_overrides(arguments)
         _reject_claude_permission_bypass(arguments)
