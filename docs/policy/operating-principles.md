@@ -31,10 +31,11 @@ Every delegated task needs a task packet. Use the template in the
 
 ## 3. Route deliberately
 
-Read `docs/policy/model-catalog.md` before choosing a worker. Select the least
-expensive and fastest verified model that can meet the quality bar. Increase
-reasoning effort before switching models only when the problem—not the
-prompt—is the limiting factor.
+Resolve the named worker route in repository settings first. Consult
+`docs/policy/model-catalog.md` only when evaluating or changing that routing
+choice. Select the least expensive and fastest verified model that can meet
+the quality bar. Increase reasoning effort before switching models only when
+the problem—not the prompt—is the limiting factor.
 
 Do not use an unavailable or unverified provider.
 

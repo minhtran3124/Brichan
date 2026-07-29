@@ -15,7 +15,7 @@ herdr agent list
 List agents before mutation. The commands return JSON containing stable IDs such
 as `workspace_id`, `tab_id`, `pane_id`, and `terminal_id`. Copy IDs exactly.
 
-## Start a Codex main agent
+## Start a routed main agent
 
 Resolve the coordinator pane once before starting a related worker group:
 
@@ -30,26 +30,44 @@ wrapper so the coordinator tab stays balanced:
 bin/brida-herdr-agent-start <brida-name> \
   --anchor-pane <coordinator-pane-id> \
   --cwd <absolute-project-path> \
-  -- codex --disable multi_agent -m <model>
+  --route <plan|implement|review|scan>
 ```
 
-Use a unique name beginning with `brida-`. Do not pass
-`--dangerously-bypass-approvals-and-sandbox`. Do not select `ultra` reasoning.
+The named route is resolved from `config/model-routing.json`. For a one-off
+launch, `--runtime`, `--model`, and `--effort` take precedence over the
+manifest. Use `--dry-run` for a shell-readable command or `--json` for a
+machine-readable resolution; both paths validate without calling Herdr:
 
-For an authenticated Claude provider:
+```text
+bin/brida-herdr-agent-start <brida-name> \
+  --cwd <absolute-project-path> \
+  --route review \
+  --runtime codex \
+  --model <verified-model> \
+  --effort high \
+  --json
+```
+
+Use a unique name beginning with `brida-`. The launcher rejects unsupported
+runtimes and efforts, Codex `ultra`, arbitrary settings, native-agent options,
+and permission-bypass controls before Herdr mutation.
+
+## Legacy explicit commands
+
+The explicit provider command remains available during migration:
 
 ```text
 bin/brida-herdr-agent-start <brida-name> \
   --anchor-pane <coordinator-pane-id> \
   --cwd <absolute-project-path> \
-  -- claude --model <verified-model>
+  -- codex --model <verified-model>
 ```
 
-The wrapper starts Claude workers with `--permission-mode auto` by default, so
-they do not pause for approval prompts while Claude's background safety
-classifier remains active. Pass an explicit `--permission-mode` after `claude`
-to override this default for a particular worker. Do not use
-`bypassPermissions` for normal workers.
+Legacy commands are limited to the `codex` and `claude` providers and are
+validated before Herdr mutation. The launcher injects native-delegation
+disabling for both providers and defaults legacy Claude workers to
+`--permission-mode auto`. Safe explicit Claude permission modes remain
+compatible; `bypassPermissions` does not.
 
 Do not use Claude until `claude auth status` succeeds.
 

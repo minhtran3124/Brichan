@@ -15,6 +15,10 @@ and orchestration boundaries.
 
 - [Workflow documentation policy](workflows/README.md)
 
+## Guides
+
+- [Model routing and worker launch settings](guides/model-routing.md)
+
 ## Architecture
 
 - [Repository layout](architecture/repository-layout.md)

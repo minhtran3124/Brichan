@@ -12,8 +12,9 @@ or automatic delegation as a substitute for Herdr.
 
 1. Confirm Herdr and the required integration are healthy.
 2. Write a complete task packet before creating a worker.
-3. Read `references/commands.md` and select a verified provider/model from
-   `../../../docs/policy/model-catalog.md`.
+3. Read `references/commands.md`, select a named route from
+   `../../../config/model-routing.json`, and use
+   `../../../docs/policy/model-catalog.md` only as capability guidance.
 4. Start a uniquely named `brida-` worker with the balanced-layout wrapper in
    the intended project directory.
 5. Record its agent name, pane ID, model, task, and status in project `tasks.md`.
@@ -34,7 +35,7 @@ Do not create a worker until the task has:
 - Acceptance criteria.
 - Permissions and constraints.
 - Escalation conditions.
-- A selected verified provider/model.
+- A selected named route or a documented legacy explicit provider command.
 
 Use `references/task-packet.md` as the prompt template. When an accepted
 upstream plan exists, fill its optional upstream plan and receipt block; when

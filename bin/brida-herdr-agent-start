@@ -14,9 +14,9 @@ if str(SRC) not in sys.path:
 
 from brida.orchestration.worker_launch import (
     HerdrError,
+    LaunchResolution,
     ResizeOp,
     SpawnPlan,
-    _apply_worker_defaults,
     _focus_pane,
     _layout,
     _members,
@@ -26,6 +26,7 @@ from brida.orchestration.worker_launch import (
     _perpendicular,
     _resize,
     _resize_first_side,
+    _resolve_launch,
     _root_split,
     _run_json,
     _split_is_within_group,

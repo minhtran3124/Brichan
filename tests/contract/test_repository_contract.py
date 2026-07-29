@@ -34,7 +34,10 @@ class RepositoryContractTest(unittest.TestCase):
             "docs/architecture/repository-layout.md",
             "src/brida/contracts/receipts/validation.py",
             "src/brida/orchestration/worker_launch.py",
+            "src/brida/orchestration/model_routing.py",
+            "src/brida/cli/provider_commands.py",
             "src/brida/cli/runtime.py",
+            "config/model-routing.json",
             ".codex/config.toml",
             ".agents/skills/herdr-orchestration/references/handoff-receipt.md",
             ".agents/skills/herdr-orchestration/references/task-packet.md",
@@ -166,30 +169,74 @@ class RepositoryContractTest(unittest.TestCase):
         )
 
     def test_launcher_disables_native_agents(self):
-        adapter = (ROOT / "src/brida/cli/codex.py").read_text(encoding="utf-8")
-        self.assertIn('"agents.enabled=false"', adapter)
-        self.assertIn('"multi_agent"', adapter)
-        self.assertIn('"multi_agent_v2"', adapter)
-        self.assertNotIn("agents.enabled=true", adapter)
+        providers = (
+            ROOT / "src/brida/cli/provider_commands.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('"agents.enabled=false"', providers)
+        self.assertIn('"multi_agent"', providers)
+        self.assertIn('"multi_agent_v2"', providers)
+        self.assertIn('("--disallowed-tools=Task",)', providers)
+        self.assertNotIn("agents.enabled=true", providers)
 
     def test_runtime_dispatcher_supports_only_approved_runtimes(self):
         dispatcher = (ROOT / "src/brida/cli/runtime.py").read_text(
             encoding="utf-8"
         )
-        self.assertIn('environment.get("BRIDA_RUNTIME") or "codex"', dispatcher)
-        self.assertIn('{"codex", "claude"}', dispatcher)
+        routing = (
+            ROOT / "src/brida/orchestration/model_routing.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('environment.get("BRIDA_RUNTIME") or default_runtime', dispatcher)
+        self.assertIn('{"codex", "claude"}', routing)
+        self.assertIn("settings.default_runtime", dispatcher)
         self.assertIn('f"brida-{runtime}"', dispatcher)
         self.assertIn("unsupported runtime", dispatcher)
 
     def test_claude_launcher_keeps_herdr_as_worker_control_plane(self):
         adapter = (ROOT / "src/brida/cli/claude.py").read_text(encoding="utf-8")
         self.assertIn(
-            'environment.get("BRIDA_CLAUDE_COORDINATOR_MODEL") or "opus"',
+            'environment.get("BRIDA_CLAUDE_COORDINATOR_MODEL") or None',
             adapter,
         )
-        self.assertIn('"--disallowed-tools"', adapter)
-        self.assertIn('"Task"', adapter)
+        self.assertIn("claude_command", adapter)
         self.assertIn("os.chdir(repository_root())", adapter)
+
+    def test_model_routing_manifest_has_only_model_selection_settings(self):
+        import json
+
+        manifest = json.loads(
+            (ROOT / "config/model-routing.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(1, manifest["schema_version"])
+        self.assertEqual(
+            {"plan", "implement", "review", "scan"},
+            set(manifest["routes"]),
+        )
+        serialized = json.dumps(manifest).lower()
+        for forbidden in (
+            "argv",
+            "permission",
+            "sandbox",
+            "approval",
+            "agents.enabled",
+            "multi_agent",
+        ):
+            self.assertNotIn(forbidden, serialized)
+
+        active_models = {
+            defaults["model"]
+            for defaults in manifest["coordinator"]["runtimes"].values()
+        }
+        active_models.update(
+            route["model"] for route in manifest["routes"].values()
+        )
+        python_source = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (ROOT / "src").rglob("*.py")
+        )
+        runtime_instructions = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+        for model in active_models:
+            self.assertNotIn(model, python_source)
+            self.assertNotIn(model, runtime_instructions)
 
     def test_claude_instructions_reference_canonical_policy(self):
         instructions = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
