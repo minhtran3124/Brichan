@@ -7,6 +7,8 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-29
+
 ### Fixed
 
 - Keep the importable `brida.__version__` value aligned with release metadata.
