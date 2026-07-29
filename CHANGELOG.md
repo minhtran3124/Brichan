@@ -7,6 +7,8 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-29
+
 ### Added
 
 - Repository-owned schema-v1 model routing for coordinator defaults and named
@@ -20,6 +22,8 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
   manifest while preserving guarded legacy explicit worker commands.
 - Native delegation disabling, forbidden effort, arbitrary setting, and
   permission-bypass checks are enforced in code before Herdr mutation.
+- Simplified the README around getting started, how Brida works, and
+  development; model-routing detail now lives in a dedicated guide.
 
 ## [0.3.1] - 2026-07-29
 

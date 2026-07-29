@@ -14,7 +14,8 @@
 | Version 3 remediation | `projects/brida-model-routing/handoffs/ROUTING-FIX-002/task-packet.md` | 2026-07-29 | Import-boundary and legacy-safety assignment |
 | Version 3 final review | `projects/brida-model-routing/handoffs/ROUTING-REVIEW-003/task-packet.md` | 2026-07-29 | Fresh independent release gate |
 | Feature commit | `218daa0` | 2026-07-29 | Reviewed settings-driven model-routing implementation |
-| Pull request #12 | https://github.com/minhtran3124/brida/pull/12 | 2026-07-29 | Open release handoff with verification evidence |
+| Pull request #12 | https://github.com/minhtran3124/brida/pull/12 | 2026-07-29 | Merged release handoff with verification evidence |
+| Release v0.4.0 | https://github.com/minhtran3124/brida/releases/tag/v0.4.0 | 2026-07-29 | Settings-driven routing release |
 | Codex configuration | https://developers.openai.com/codex/config-advanced | 2026-07-29 | Profiles, project config, and CLI overrides |
 | Claude model configuration | https://code.claude.com/docs/en/model-config | 2026-07-29 | Model, effort, settings, and `opusplan` behavior |
 

@@ -5,8 +5,8 @@ Last updated: 2026-07-29
 ## Summary
 
 Plan `MODEL-ROUTING-P1` version 3 is implemented and independently reviewed
-with a `PASS` verdict. Commit `218daa0` is pushed on
-`feat/settings-driven-model-routing`, and pull request #12 is open.
+with a `PASS` verdict. Pull request #12 merged to `main` at `6a55c97`; release
+`v0.4.0` is published.
 
 ## Completed recently
 
@@ -32,10 +32,12 @@ with a `PASS` verdict. Commit `218daa0` is pushed on
   verification evidence and residual risks.
 - GitHub CI passed on Python 3.10, Python 3.13, and source-package builds; the
   pull request reports a clean merge state.
+- Pull request #12 merged into `main` with its reviewed routing implementation
+  and simplified getting-started documentation.
 
 ## In progress
 
-- Pull request review; all current CI checks are green.
+- Post-release monitoring.
 
 ## Blockers
 
@@ -50,7 +52,7 @@ with a `PASS` verdict. Commit `218daa0` is pushed on
 
 ## Next actions
 
-1. Monitor pull request #12 review.
+1. Monitor post-release feedback.
 2. Address only evidence-backed follow-up findings.
 
 ## Unverified assumptions
