@@ -39,8 +39,8 @@
 - The controlled replay retired all six pointers again; path/reference checks,
   the full local suite, and final Codex/Claude startup smokes pass.
 - Initial final review returned `CHANGES REQUIRED` only for missing immutable
-  chronology and durable receipts/state; those findings are remediated and a
-  focused re-review remains.
+  chronology and durable receipts/state; the replacement independent Claude
+  review returned `PASS` after those findings were remediated.
 - A worker found `brida.__version__` lagging at `0.2.0`; the follow-up branch
   aligns it with `0.3.0` and adds contract coverage.
 
@@ -55,7 +55,7 @@
 
 ## Next actions
 
-1. Obtain focused independent re-review of the remediated chronology and
-   durable evidence.
-2. Commit and push the final retirement tree.
-3. Require final branch CI before opening the follow-up PR.
+1. Commit the final review receipts and active project-memory updates.
+2. Push the final retirement tree and verify CI on the literal retirement
+   commit.
+3. Open the follow-up PR for user review; do not merge without approval.

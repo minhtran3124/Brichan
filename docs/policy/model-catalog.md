@@ -47,19 +47,8 @@ the installed catalog describes it as enabling automatic task delegation.
 
 Claude is routable. Prefer it as an independent reviewer when the implementer
 used Codex. Re-check `claude auth status` before a session that depends on it,
-because authentication can lapse.
-
-### Temporary Edgeful Claude route
-
-The user authorized the interactive `cld-edgeful` alias as a temporary Claude
-worker route on 2026-07-28 after the default Claude subscription reached its
-limit. It uses a separate authenticated Edgeful team configuration and enables
-Claude's bypass-permissions mode.
-
-This authorization is narrow: launch it only as a Brida-owned Herdr worker,
-disable the `Task` tool, give it a bounded task packet, and preserve normal
-receipt, evidence, and pane-cleanup requirements. Do not interpret the alias as
-general permission to broaden task scope or perform remote/destructive actions.
+because authentication can lapse. The active local Claude account route is
+`cld`/the standard `claude` CLI.
 
 ## Unavailable providers
 
