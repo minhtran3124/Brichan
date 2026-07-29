@@ -6,10 +6,18 @@ import os
 import sys
 
 from ._root import repository_root
+from brida.orchestration.model_routing import (
+    RoutingError,
+    load_settings,
+)
 
 
-def select_runtime(argv: list[str], environment: dict[str, str]) -> tuple[str, list[str]]:
-    runtime = environment.get("BRIDA_RUNTIME") or "codex"
+def select_runtime(
+    argv: list[str],
+    environment: dict[str, str],
+    default_runtime: str,
+) -> tuple[str, list[str]]:
+    runtime = environment.get("BRIDA_RUNTIME") or default_runtime
     remaining = list(argv)
     if remaining[:1] == ["--runtime"]:
         if len(remaining) < 2:
@@ -29,8 +37,13 @@ def select_runtime(argv: list[str], environment: dict[str, str]) -> tuple[str, l
 def main(argv: list[str] | None = None) -> int:
     arguments = sys.argv[1:] if argv is None else argv
     try:
-        runtime, remaining = select_runtime(arguments, os.environ)
-    except ValueError as exc:
+        settings = load_settings(repository=repository_root(), environment=os.environ)
+        runtime, remaining = select_runtime(
+            arguments,
+            os.environ,
+            settings.default_runtime,
+        )
+    except (RoutingError, ValueError) as exc:
         print(exc, file=sys.stderr)
         return 2
 

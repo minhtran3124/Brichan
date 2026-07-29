@@ -20,6 +20,11 @@
 - Summary: Plan a scalable modular repository layout, migration path, and multi-agent-safe operating contracts.
 - Memory: projects/brida-repository-structure-refactor/
 
+## Brida settings-driven model routing
+- Status: active
+- Summary: Move coordinator and worker role model selection into validated repository settings with safe per-launch overrides.
+- Memory: projects/brida-model-routing/
+
 ## Entry template
 
 ```text

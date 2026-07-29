@@ -5,12 +5,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
 from typing import Any
 
-
+from .model_routing import (
+    ResolvedRoute,
+    RoutingError,
+    load_settings,
+    resolve_route,
+)
 class HerdrError(RuntimeError):
     """Raised when a Herdr command cannot be completed."""
 
@@ -31,17 +37,11 @@ class SpawnPlan:
     exact_equal_area: bool = True
 
 
-def _apply_worker_defaults(agent_argv: list[str]) -> list[str]:
-    """Make Claude workers non-interactive without weakening other runtimes."""
-
-    if not agent_argv or agent_argv[0] != "claude":
-        return agent_argv
-    if any(
-        item == "--permission-mode" or item.startswith("--permission-mode=")
-        for item in agent_argv
-    ):
-        return agent_argv
-    return [agent_argv[0], "--permission-mode", "auto", *agent_argv[1:]]
+@dataclass(frozen=True)
+class LaunchResolution:
+    command: tuple[str, ...]
+    route_name: str | None = None
+    route: ResolvedRoute | None = None
 
 
 def _run_json(argv: list[str]) -> tuple[dict[str, Any], str]:
@@ -287,21 +287,96 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         )
     )
     parser.add_argument("name")
-    parser.add_argument("--anchor-pane", required=True)
+    parser.add_argument("--anchor-pane")
     parser.add_argument("--cwd", required=True)
     parser.add_argument("--env", action="append", default=[])
+    parser.add_argument("--route")
+    parser.add_argument("--runtime")
+    parser.add_argument("--model")
+    parser.add_argument("--effort")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="resolve and validate the worker command without calling Herdr",
+    )
+    parser.add_argument(
+        "--json",
+        dest="json_output",
+        action="store_true",
+        help="emit machine-readable resolution JSON; implies --dry-run",
+    )
     args = parser.parse_args(launcher_argv)
     args.argv = agent_argv
-    if not agent_argv:
-        parser.error("agent command is required after --")
     if not args.name.startswith("brida-"):
         parser.error("agent name must begin with brida-")
+    if args.route and agent_argv:
+        parser.error("--route cannot be combined with a legacy command after --")
+    if not args.route and not agent_argv:
+        parser.error("use --route NAME or provide a legacy agent command after --")
+    if not args.route and any((args.runtime, args.model, args.effort)):
+        parser.error("--runtime, --model, and --effort require --route")
+    if args.json_output:
+        args.dry_run = True
+    if not args.dry_run and not args.anchor_pane:
+        parser.error("--anchor-pane is required unless --dry-run or --json is used")
     return args
 
 
-def main() -> int:
-    args = _parse_args()
+def _resolve_launch(args: argparse.Namespace) -> LaunchResolution:
+    if args.route:
+        # Keep the orchestration package provider-neutral at import time.  The
+        # CLI adapter is needed only after a named route has been resolved.
+        from brida.cli.provider_commands import worker_command
+
+        settings = load_settings()
+        route = resolve_route(
+            settings,
+            args.route,
+            runtime=args.runtime,
+            model=args.model,
+            effort=args.effort,
+        )
+        return LaunchResolution(
+            command=tuple(worker_command(route)),
+            route_name=args.route,
+            route=route,
+        )
+    # Legacy commands need the provider guard only when that compatibility
+    # path is selected, not while importing orchestration primitives.
+    from brida.cli.provider_commands import secure_legacy_command
+
+    return LaunchResolution(command=tuple(secure_legacy_command(args.argv)))
+
+
+def _print_dry_run(
+    args: argparse.Namespace,
+    resolution: LaunchResolution,
+) -> None:
+    if args.json_output:
+        payload = {
+            "dry_run": True,
+            "name": args.name,
+            "cwd": args.cwd,
+            "route": resolution.route_name,
+            "resolved": (
+                resolution.route.as_dict() if resolution.route is not None else None
+            ),
+            "command": list(resolution.command),
+            "legacy_explicit_command": resolution.route_name is None,
+        }
+        print(json.dumps(payload, sort_keys=True))
+        return
+    print(shlex.join(resolution.command))
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parse_args(argv)
     try:
+        resolution = _resolve_launch(args)
+        if args.dry_run:
+            _print_dry_run(args, resolution)
+            return 0
+
         anchor_payload, _ = _run_json(
             ["herdr", "pane", "get", args.anchor_pane]
         )
@@ -341,7 +416,7 @@ def main() -> int:
             for item in args.env:
                 command.extend(["--env", item])
             command.append("--")
-            command.extend(_apply_worker_defaults(args.argv))
+            command.extend(resolution.command)
 
             start_payload, start_stdout = _run_json(command)
         except HerdrError:
@@ -376,7 +451,7 @@ def main() -> int:
             raise HerdrError("Herdr reused the coordinator pane unexpectedly")
         sys.stdout.write(start_stdout)
         return 0
-    except (HerdrError, KeyError, ValueError) as exc:
+    except (HerdrError, KeyError, RoutingError, ValueError) as exc:
         print(f"brida-herdr-agent-start: {exc}", file=sys.stderr)
         return 1
 

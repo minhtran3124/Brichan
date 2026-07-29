@@ -20,14 +20,16 @@ make check
 ./bin/brida
 ```
 
-The default runtime is Codex. To use Claude Code instead:
+The coordinator runtime and model defaults are read from
+[`config/model-routing.json`](config/model-routing.json). To select Claude Code
+for one session:
 
 ```bash
 ./bin/brida --runtime claude
 ```
 
-The Claude coordinator uses Opus 5 by default. Herdr implementation workers
-use Sonnet 5. To use Fable 5 for coordination:
+Existing Claude coordinator environment overrides remain available as a
+compatibility path:
 
 ```bash
 BRIDA_CLAUDE_COORDINATOR_MODEL=fable ./bin/brida --runtime claude
@@ -35,16 +37,52 @@ BRIDA_CLAUDE_COORDINATOR_MODEL=fable ./bin/brida --runtime claude
 
 ### Model routing
 
-- Codex coordinator: uses the Codex CLI default model unless you choose one
-  explicitly.
-- Claude coordinator: Opus 5 (`opus`) by default, or Fable 5 (`fable`).
-- Herdr implementation workers: Sonnet 5 (`sonnet`).
+The routing manifest is the only active repository source for coordinator
+defaults and the named `plan`, `implement`, `review`, and `scan` worker routes.
+The Python adapters validate it before launching a provider or mutating Herdr.
 
-Choose a Codex model explicitly with `-m`:
+Explicit coordinator CLI options take precedence over compatibility environment
+overrides, which take precedence over manifest values:
 
 ```bash
-./bin/brida -m gpt-5.6-terra
+./bin/brida --model <verified-model>
+./bin/brida-claude --model fable --effort high
 ```
+
+Start a worker by named route:
+
+```bash
+bin/brida-herdr-agent-start brida-example \
+  --anchor-pane <coordinator-pane-id> \
+  --cwd <absolute-project-path> \
+  --route implement
+```
+
+For one launch, `--runtime`, `--model`, and `--effort` override that route's
+manifest values. Resolve and validate without calling Herdr by using `--dry-run`
+for shell-readable output or `--json` for machine-readable output:
+
+```bash
+bin/brida-herdr-agent-start brida-example \
+  --cwd <absolute-project-path> \
+  --route review \
+  --runtime codex \
+  --model <verified-model> \
+  --effort <supported-effort> \
+  --json
+```
+
+The explicit command form remains a documented legacy compatibility path:
+
+```bash
+bin/brida-herdr-agent-start brida-example \
+  --anchor-pane <coordinator-pane-id> \
+  --cwd <absolute-project-path> \
+  -- codex --model <verified-model>
+```
+
+Legacy commands are provider-allowlisted and receive the same code-enforced
+native-delegation and permission-bypass guardrails as named routes.
 
 ## How it works
 

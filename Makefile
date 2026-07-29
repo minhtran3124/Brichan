@@ -45,6 +45,8 @@ phase5-preflight:
 	$(PYTHON) scripts/check_compatibility_retirement.py
 
 package-check:
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "import brida.cli.provider_commands"
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "import brida.orchestration; import sys; assert not any(name == 'brida.cli' or name.startswith('brida.cli.') for name in sys.modules)"
 	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "import brida; from brida.contracts.receipts import validation; from brida.orchestration import worker_launch"
 
 contract-check: path-check test-contract

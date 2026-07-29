@@ -1,6 +1,8 @@
 # Model catalog
 
-This is the canonical Brida runtime and model-routing catalog.
+This is the canonical Brida runtime capability and model-routing guidance
+catalog. Active coordinator and worker route defaults live only in
+`../../config/model-routing.json`.
 
 Last verified: 2026-07-28.
 
@@ -21,10 +23,10 @@ Pricing was not verified. Do not make exact cost claims.
 All listed Codex models report a 272,000-token context window and parallel tool
 call support in the installed catalog.
 
-| Model | Verified catalog description | Default effort | Brida routing |
+| Model | Verified catalog description | Observed catalog effort | Suggested uses |
 |---|---|---:|---|
 | `gpt-5.6-sol` | Latest frontier agentic coding model | `low` | Complex architecture, difficult debugging, high-risk implementation, final review |
-| `gpt-5.6-terra` | Balanced model for everyday agentic coding | `medium` | Default coordinator/worker, normal implementation, structured research |
+| `gpt-5.6-terra` | Balanced model for everyday agentic coding | `medium` | Normal coordination, implementation, structured research |
 | `gpt-5.6-luna` | Fast and affordable agentic coding model | `medium` | Repository scanning, summaries, routine edits, test execution |
 | `gpt-5.5` | Frontier model for complex coding and research | `medium` | Compatibility fallback when 5.6 is unavailable |
 | `gpt-5.4` | Strong model for everyday coding | `medium` | Compatibility fallback for normal coding |
@@ -60,6 +62,9 @@ The following CLIs were not found and must not be routed:
 - Aider
 
 ## Routing policy
+
+This table is selection guidance, not executable routing state. Change active
+defaults in `config/model-routing.json`.
 
 | Task | First choice | Escalate when |
 |---|---|---|

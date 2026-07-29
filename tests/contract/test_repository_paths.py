@@ -22,6 +22,7 @@ class RepositoryPathContractTest(unittest.TestCase):
             "CLAUDE.md": "permanent-root",
             "CONTRIBUTING.md": "retain-root-first-migration",
             "SECURITY.md": "retain-root-first-migration",
+            "config/model-routing.json": "canonical",
             "projects": "frozen",
             "evals": "frozen",
             "metrics": "frozen",

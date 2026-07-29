@@ -7,6 +7,20 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+### Added
+
+- Repository-owned schema-v1 model routing for coordinator defaults and named
+  `plan`, `implement`, `review`, and `scan` Herdr worker routes.
+- Dependency-free routing validation, provider-native command construction,
+  one-off route overrides, and no-mutation dry-run JSON resolution.
+
+### Changed
+
+- Coordinator adapters and Herdr worker launches now consume the routing
+  manifest while preserving guarded legacy explicit worker commands.
+- Native delegation disabling, forbidden effort, arbitrary setting, and
+  permission-bypass checks are enforced in code before Herdr mutation.
+
 ## [0.3.1] - 2026-07-29
 
 ### Fixed

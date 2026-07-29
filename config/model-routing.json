@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "coordinator": {
+    "default_runtime": "codex",
+    "runtimes": {
+      "codex": {
+        "model": "gpt-5.6-terra",
+        "effort": "medium"
+      },
+      "claude": {
+        "model": "opus",
+        "effort": "high"
+      }
+    }
+  },
+  "routes": {
+    "plan": {
+      "runtime": "claude",
+      "model": "opus",
+      "effort": "high"
+    },
+    "implement": {
+      "runtime": "codex",
+      "model": "gpt-5.6-terra",
+      "effort": "medium"
+    },
+    "review": {
+      "runtime": "claude",
+      "model": "opus",
+      "effort": "high"
+    },
+    "scan": {
+      "runtime": "codex",
+      "model": "gpt-5.6-luna",
+      "effort": "medium"
+    }
+  }
+}

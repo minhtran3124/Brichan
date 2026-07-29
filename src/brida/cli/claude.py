@@ -6,24 +6,35 @@ import os
 import sys
 
 from ._root import repository_root
+from brida.orchestration.model_routing import (
+    RoutingError,
+    load_settings,
+    resolve_coordinator,
+)
+from .provider_commands import claude_command
 
 
 def command(argv: list[str], environment: dict[str, str]) -> list[str]:
-    model = environment.get("BRIDA_CLAUDE_COORDINATOR_MODEL") or "opus"
-    return [
+    root = repository_root()
+    settings = load_settings(repository=root, environment=environment)
+    compatibility_model = environment.get("BRIDA_CLAUDE_COORDINATOR_MODEL") or None
+    route = resolve_coordinator(
+        settings,
         "claude",
-        "--model",
-        model,
-        "--disallowed-tools",
-        "Task",
-        *argv,
-    ]
+        model=compatibility_model,
+    )
+    return claude_command(route, argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     arguments = sys.argv[1:] if argv is None else argv
     os.chdir(repository_root())
-    os.execvp("claude", command(arguments, os.environ))
+    try:
+        resolved_command = command(arguments, os.environ)
+    except RoutingError as exc:
+        print(f"brida-claude: {exc}", file=sys.stderr)
+        return 2
+    os.execvp("claude", resolved_command)
     return 0
 
 
