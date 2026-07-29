@@ -6,44 +6,84 @@ Brida is an AI Chief of Staff for Codex and Claude Code. Give it a project
 goal; it keeps the necessary context, coordinates independent workers through
 Herdr, checks their evidence, and records useful project state outside chat.
 
-## Getting started
+## Current dogfood scope
 
-You need a POSIX-compatible shell, Python 3.10+, a supported AI CLI, and
-Herdr when you want Brida to coordinate workers.
+The primary one-user dogfood path is now an installed Python package running
+inside an existing top-level Git repository. Installed-project mode currently
+supports Codex on POSIX-compatible systems with Python 3.10+. Herdr is needed
+only when Brida coordinates independent worker sessions.
+
+Brida is not published to a package registry yet. Build the wheel locally from
+this repository, then install it outside the checkout:
 
 ```bash
 git clone <repository-url> brida
 cd brida
 make check
-bin/brida
+python3 -m pip wheel . --no-deps --no-build-isolation --wheel-dir /tmp/brida-wheel
+python3 -m venv /tmp/brida-venv
+/tmp/brida-venv/bin/python -m pip install --no-deps /tmp/brida-wheel/*.whl
 ```
 
-Brida starts with the repository default runtime. Choose Claude Code for one
-session with:
+The build interpreter must already provide `setuptools` and `wheel`. The
+dogfood workflow does not fetch dependencies or publish a package.
+
+## Initialize a project
+
+Preview the complete footprint before writing:
 
 ```bash
+/tmp/brida-venv/bin/brida init --project /absolute/path/to/repository
+/tmp/brida-venv/bin/brida init --apply --project /absolute/path/to/repository
+```
+
+`init` defaults to dry-run and performs zero writes. `--apply` creates only a
+versioned `.brida/` directory containing managed policy, model routing, Herdr
+skill resources, and mutable project memory. Repeating it against healthy
+state is idempotent.
+
+Diagnose and launch from any directory with an explicit target:
+
+```bash
+/tmp/brida-venv/bin/brida status --project /absolute/path/to/repository
+/tmp/brida-venv/bin/brida doctor --project /absolute/path/to/repository
+/tmp/brida-venv/bin/brida run --project /absolute/path/to/repository -- <codex arguments>
+```
+
+From inside a healthy initialized repository, bare `brida` also launches
+Codex. The installed entrypoint:
+
+- leaves `AGENTS.md`, `CLAUDE.md`, `.codex/`, and provider configuration
+  untouched;
+- launches external `codex` directly at the target root and never executes
+  target-owned `bin/brida-*` wrappers;
+- injects package-owned Brida policy and Herdr skill discovery;
+- rejects native delegation, permission bypasses, cwd/scope widening, profiles,
+  remote execution, and arbitrary Codex configuration before `--`;
+- treats option-looking text after `--` as literal prompt content.
+
+State diagnostics reject malformed, dangling, symlinked, inaccessible, or
+incompatible `.brida/` state without silently repairing it. Schema v1 has no
+automatic migration: package-version changes require deliberate backup and
+reinitialization. See the
+[installed Codex dogfood guide](docs/guides/installable-dogfood.md) for the
+exact footprint, exit codes, safeguards, and compatibility boundary.
+
+## Checkout compatibility and development
+
+The original checkout workflow remains available for development and for
+Claude Code:
+
+```bash
+bin/brida
 bin/brida --runtime claude
 ```
 
-See the [model-routing guide](docs/guides/model-routing.md) to change model
-defaults, select a worker route, or use a one-off override.
-
-### Installed Codex dogfood
-
-The first installed-package slice can initialize an existing top-level Git
-repository without a separate Brida checkout:
-
-```bash
-brida init --project /path/to/repository          # dry-run; zero writes
-brida init --apply --project /path/to/repository
-brida doctor --project /path/to/repository
-brida run --project /path/to/repository
-```
-
-It creates only `.brida/`, leaves root instructions and provider configuration
-untouched, and launches the external `codex` executable directly. See the
-[installed Codex dogfood guide](docs/guides/installable-dogfood.md) for the
-footprint, exit codes, safeguards, and compatibility boundary.
+Checkout mode uses package-owned `bin/brida-*` wrappers. Installed-project mode
+does not. Coordinator defaults and worker routes are settings-driven, so the
+coordinator and implementation, review, planning, or scan workers may use
+different runtimes. See the [model-routing guide](docs/guides/model-routing.md)
+to change defaults, select a named route, or use a one-off override.
 
 ## How it works
 
