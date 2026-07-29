@@ -71,7 +71,7 @@
     {"source": "CLAUDE.md", "target": "docs/policy/operating-principles.md"},
     {"source": "CLAUDE.md", "target": "docs/policy/memory-policy.md"},
     {"source": "CLAUDE.md", "target": "config/model-routing.json"},
-    {"source": "README.md", "target": "config/model-routing.json"},
+    {"source": "docs/guides/model-routing.md", "target": "config/model-routing.json"},
     {"source": "docs/policy/operating-principles.md", "target": "docs/policy/model-catalog.md"},
     {"source": "docs/policy/operating-principles.md", "target": "docs/policy/reviewer.md"},
     {"source": "docs/policy/operating-principles.md", "target": "docs/policy/memory-policy.md"},
