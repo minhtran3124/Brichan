@@ -30,7 +30,7 @@ class RepositoryPathContractTest(unittest.TestCase):
             self.assertIn(path, entries)
             self.assertEqual(policy, entries[path]["policy"])
 
-    def test_internal_policy_files_have_canonical_docs_and_root_stubs(self):
+    def test_internal_policy_files_are_canonical_without_root_stubs(self):
         entries = {entry["path"]: entry for entry in self.manifest["entries"]}
         policy_names = (
             "identity.md",
@@ -40,10 +40,7 @@ class RepositoryPathContractTest(unittest.TestCase):
             "reviewer.md",
         )
         for path in policy_names:
-            self.assertEqual(
-                "one-release",
-                entries[path]["policy"],
-            )
+            self.assertNotIn(path, entries)
             self.assertEqual(
                 "canonical",
                 entries[f"docs/policy/{path}"]["policy"],

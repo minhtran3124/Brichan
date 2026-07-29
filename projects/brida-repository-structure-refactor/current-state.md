@@ -2,8 +2,8 @@
 
 - Status: Phases 0–4 implemented and independently reviewed with final verdict
   `PASS`; all Brida-owned review panes are closed.
-- Root now contains permanent discovery/public entrypoints and temporary
-  one-release pointers; canonical internal policy and setup history live under
+- Root now contains only permanent discovery/public entrypoints; the six
+  one-release pointers are retired and canonical policy/history remain under
   `docs/`.
 - Four independent read-only agents completed architecture/modules,
   multi-agent coding, testing/deployment, and future-scalability research.
@@ -24,17 +24,25 @@
   stable `bin/` paths.
 - Phase 4 established independent unit, contract, and integration suites plus
   a wheel build/install/smoke CI lane.
-- Phase 5 pointer retirement is not eligible until one compatibility release
-  window completes. Both pre-release startup smokes pass, but operational
-  evidence must be refreshed after that window.
+- Release `v0.3.0` completed the compatibility window at
+  `2026-07-28T12:59:20Z`.
 - A fail-closed Phase 5 preflight now pins all six temporary pointers and
   requires timestamped release, link, repository-search, Codex/Claude startup,
   full-CI, and changelog evidence. Independent Codex review verdict is `PASS`.
-- Current preflight: Codex startup, external links, baseline stale-reference
-  search, a real pre-release Claude startup via `cld-edgeful`, and PR #10
-  implementation-head CI pass. Only the release window remains pending.
-  Strict eligibility correctly fails, and operational evidence must be
-  refreshed after release completion.
+- Post-release Codex and Claude startup smokes, external-link checks, and the
+  stale root-reference search pass with durable evidence.
+- Post-release GitHub Actions run `30362433787` passed Python 3.10, Python
+  3.13, and package build/install checks at `2026-07-28T13:13:11Z`.
+- Immutable checkpoint commit
+  `00fb58a5664403c0b17f7c4b595e26a3a33c67fe` records strict eligibility with
+  `retired: no` and all six pointers present before the deletion commit.
+- The controlled replay retired all six pointers again; path/reference checks,
+  the full local suite, and final Codex/Claude startup smokes pass.
+- Initial final review returned `CHANGES REQUIRED` only for missing immutable
+  chronology and durable receipts/state; the replacement independent Claude
+  review returned `PASS` after those findings were remediated.
+- A worker found `brida.__version__` lagging at `0.2.0`; the follow-up branch
+  aligns it with `0.3.0` and adds contract coverage.
 
 ## Approved boundaries
 
@@ -42,13 +50,10 @@
 2. `AGENTS.md` and `CLAUDE.md` remain permanent root discovery adapters.
 3. `CONTRIBUTING.md` and `SECURITY.md` remain at root during the first
    migration.
-4. Phases 0–4 are authorized and implemented; Phase 5 remains governed by its
-   release-window and cross-runtime smoke gates.
+4. Phases 0–5 are authorized and implemented; permanent discovery adapters and
+   command wrappers remain unchanged.
 
 ## Next actions
 
-1. Keep the root compatibility pointers for one release.
-2. Merge PR #10 and publish the refactor through an explicitly authorized
-   release workflow after CI/review.
-3. After that compatibility window, refresh every operational gate and require
-   strict preflight success before removing any temporary pointer.
+1. Review follow-up PR #11 for the compatibility-pointer retirement.
+2. Obtain explicit user approval before merging; no merge has been performed.

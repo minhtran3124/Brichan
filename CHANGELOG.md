@@ -7,6 +7,15 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep the importable `brida.__version__` value aligned with release metadata.
+
+### Removed
+
+- Retired the six temporary root policy pointers after the `v0.3.0`
+  compatibility release; canonical policy and history remain under `docs/`.
+
 ## [0.3.0] - 2026-07-28
 
 ### Added
