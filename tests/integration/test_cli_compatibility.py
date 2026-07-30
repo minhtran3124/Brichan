@@ -94,9 +94,11 @@ class CliCompatibilityTest(unittest.TestCase):
         self.assertEqual(str(ROOT), result["cwd"])
 
     def test_empty_environment_values_preserve_defaults(self):
+        # A bare prompt, not --help: from a checkout `brida --help` reports
+        # Brida and never reaches the runtime, so it cannot carry this probe.
         codex = self.run_launcher(
             "brida",
-            "--help",
+            "probe",
             environment={"BRIDA_RUNTIME": ""},
         )
         claude = self.run_launcher(
@@ -214,6 +216,34 @@ class CliCompatibilityTest(unittest.TestCase):
         )
         self.assertIn("agents.enabled=false", result["argv"])
         self.assertEqual(str(ROOT / "tests" / "integration"), result["cwd"])
+
+    def _brida(self, *arguments: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [str(ROOT / "bin" / "brida"), *arguments],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_checkout_help_reports_brida_not_the_runtime(self):
+        """A checkout has no project to launch into, so --help is about Brida."""
+        for flag in ("--help", "-h"):
+            result = self._brida(flag)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn("usage: brida", result.stdout)
+            self.assertNotIn("Codex CLI", result.stdout)
+
+    def test_checkout_version_reports_brida_not_the_runtime(self):
+        for flag in ("--version", "-V"):
+            result = self._brida(flag)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertTrue(result.stdout.startswith("brida "), result.stdout)
+
+    def test_explicit_runtime_still_forwards_help_to_that_runtime(self):
+        """`--runtime codex --help` names a runtime, so it wants its help."""
+        result = self.run_launcher("brida", "--runtime", "codex", "--help")
+        self.assertIn("--help", result["argv"])
 
     def test_dispatcher_rejects_unknown_runtime(self):
         result = subprocess.run(

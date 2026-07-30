@@ -8,7 +8,13 @@ import sys
 from pathlib import Path
 
 from .codex import run_project
-from .render import INIT_DESCRIPTION, format_init, resolve_style
+from .render import (
+    DOCTOR_DESCRIPTION,
+    INIT_DESCRIPTION,
+    STATUS_DESCRIPTION,
+    format_init,
+    resolve_style,
+)
 from brida import __version__
 from brida.lifecycle import (
     StateKind,
@@ -46,8 +52,11 @@ def select_runtime(
     return runtime, remaining
 
 
-#: Only `init` is described for now; status and doctor keep their existing help.
-LIFECYCLE_DESCRIPTIONS = {"init": INIT_DESCRIPTION}
+LIFECYCLE_DESCRIPTIONS = {
+    "init": INIT_DESCRIPTION,
+    "status": STATUS_DESCRIPTION,
+    "doctor": DOCTOR_DESCRIPTION,
+}
 
 
 def _print_lines(lines: list[str]) -> None:
@@ -139,7 +148,8 @@ def _global_help_lines() -> list[str]:
         "repository. Run 'brida init --apply --project PATH' first.",
         "",
         "Inside a healthy initialized project, --help/--version are instead",
-        "forwarded to codex as documented CLI overrides.",
+        "forwarded to codex as documented CLI overrides. From a source",
+        "checkout they report Brida; use bin/brida-codex --help for codex.",
     ]
 
 
@@ -166,15 +176,27 @@ def _installed_default(argv: list[str]) -> int:
         return 2
 
 
-def _unavailable_response(argv: list[str], error: str | None) -> int | None:
-    """Handle --help/--version pre-launch; return None to fall through."""
+def _brida_help_or_version(argv: list[str]) -> int | None:
+    """Answer a request for Brida's own help/version; None if it is not one.
 
+    Shared by both dispatch modes so `brida --help` cannot mean one thing in
+    a source checkout and another outside it.
+    """
     if argv[:1] in (["--help"], ["-h"]):
         _print_lines(_global_help_lines())
         return 0
     if argv[:1] in (["--version"], ["-V"]):
         print(f"brida {__version__}")
         return 0
+    return None
+
+
+def _unavailable_response(argv: list[str], error: str | None) -> int | None:
+    """Handle --help/--version pre-launch; return None to fall through."""
+
+    response = _brida_help_or_version(argv)
+    if response is not None:
+        return response
     if error is None:
         return None
     print(f"brida: {error}", file=sys.stderr)
@@ -190,6 +212,13 @@ def main(argv: list[str] | None = None) -> int:
     root = _checkout_root()
     if root is None:
         return _installed_default(arguments)
+
+    # A checkout has no project state to launch into, so `brida --help` here
+    # is a question about Brida. `bin/brida-<runtime> --help` still reaches
+    # the runtime's own help.
+    response = _brida_help_or_version(arguments)
+    if response is not None:
+        return response
 
     try:
         settings = load_settings(repository=root, environment=os.environ)

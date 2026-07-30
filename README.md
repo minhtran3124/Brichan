@@ -90,6 +90,10 @@ bin/brida
 bin/brida --runtime claude
 ```
 
+From a checkout, `brida --help` and `brida --version` report Brida itself; a
+checkout has no project state to launch into. Name a runtime to reach its own
+help instead, with `brida --runtime codex --help` or `bin/brida-codex --help`.
+
 Checkout mode uses package-owned `bin/brida-*` wrappers. Installed-project mode
 does not. Coordinator defaults and worker routes are settings-driven, so the
 coordinator and implementation, review, planning, or scan workers may use

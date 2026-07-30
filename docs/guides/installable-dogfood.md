@@ -133,6 +133,12 @@ installed-package usage and version information instead of an uninitialized
 error. Inside a healthy initialized project, `--help`/`--version` are instead
 forwarded to `codex` as documented CLI overrides (see below).
 
+From a source checkout — that is, with `BRIDA_ROOT` pointing at a checkout
+whose `src/brida` is the running package — `brida --help`/`--version` report
+Brida rather than the runtime, because a checkout has no project state to
+launch into. Naming a runtime keeps the forwarding: `brida --runtime codex
+--help` reaches `codex`, as does `bin/brida-codex --help`.
+
 | Condition | Exit code |
 |---|---:|
 | Healthy | 0 |

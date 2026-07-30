@@ -30,6 +30,21 @@ INIT_DESCRIPTION = (
     "footprint. Existing repository files are never modified."
 )
 
+STATUS_DESCRIPTION = (
+    "Report the state of this repository's .brida/ directory as one of "
+    "uninitialized, healthy, malformed, or incompatible. The exit code "
+    "carries the same answer for scripts: 0 healthy, 1 uninitialized, "
+    "2 malformed, 3 incompatible. Reports problems rather than repairing "
+    "them; nothing is written."
+)
+
+DOCTOR_DESCRIPTION = (
+    "Diagnose everything a launch needs: the resolved project root, the "
+    ".brida/ state, and whether the external codex and herdr executables "
+    "are on PATH. herdr is optional and is only required when Brida "
+    "coordinates worker sessions. Nothing is written."
+)
+
 _UNICODE_GLYPHS = {"tee": "├── ", "elbow": "└── ", "pipe": "│   ", "gap": "    "}
 _ASCII_GLYPHS = {"tee": "|-- ", "elbow": "`-- ", "pipe": "|   ", "gap": "    "}
 

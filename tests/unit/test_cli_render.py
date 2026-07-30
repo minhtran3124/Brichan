@@ -4,8 +4,10 @@ import re
 import unittest
 
 from brida.cli.render import (
+    DOCTOR_DESCRIPTION,
     INIT_DESCRIPTION,
     INIT_SUBTITLE,
+    STATUS_DESCRIPTION,
     Style,
     format_init,
     resolve_style,
@@ -192,25 +194,43 @@ class TreeRenderTest(unittest.TestCase):
         self.assertEqual(0, depth, "unclosed escape sequence")
 
 
-class InitHelpTest(unittest.TestCase):
-    """`brida init --help` must say what the command does, not just its flags."""
+class LifecycleHelpTest(unittest.TestCase):
+    """Each lifecycle command must say what it does, not just list its flags."""
 
-    def _help(self) -> str:
+    def _help(self, command: str) -> str:
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             with self.assertRaises(SystemExit) as caught:
-                runtime.main(["init", "--help"])
+                runtime.main([command, "--help"])
         self.assertEqual(0, caught.exception.code)
-        return buffer.getvalue()
+        return " ".join(buffer.getvalue().split())
 
-    def test_help_carries_the_description(self):
-        text = " ".join(self._help().split())
-        self.assertIn(" ".join(INIT_DESCRIPTION.split()), text)
+    def test_every_lifecycle_command_carries_its_description(self):
+        for command, description in runtime.LIFECYCLE_DESCRIPTIONS.items():
+            with self.subTest(command=command):
+                self.assertIn(" ".join(description.split()), self._help(command))
 
-    def test_help_still_documents_every_flag(self):
-        text = self._help()
+    def test_no_lifecycle_command_is_left_undescribed(self):
+        self.assertEqual({"init", "status", "doctor"}, set(runtime.LIFECYCLE_DESCRIPTIONS))
+
+    def test_init_help_still_documents_every_flag(self):
+        text = self._help("init")
         for flag in ("--project", "--apply", "--dry-run"):
             self.assertIn(flag, text, flag)
+
+    def test_status_description_names_every_state_and_exit_code(self):
+        for state in ("uninitialized", "healthy", "malformed", "incompatible"):
+            self.assertIn(state, STATUS_DESCRIPTION, state)
+        for code in ("0", "1", "2", "3"):
+            self.assertIn(code, STATUS_DESCRIPTION, code)
+
+    def test_doctor_description_names_what_it_probes(self):
+        for probe in ("codex", "herdr", ".brida/"):
+            self.assertIn(probe, DOCTOR_DESCRIPTION, probe)
+
+    def test_read_only_commands_promise_not_to_write(self):
+        for description in (STATUS_DESCRIPTION, DOCTOR_DESCRIPTION):
+            self.assertIn("nothing is written", description.lower())
 
 
 if __name__ == "__main__":
