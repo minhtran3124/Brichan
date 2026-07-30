@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import sys
 
-from ._root import repository_root
+from ._root import exec_runtime, repository_root
 from brida import __version__
 from brida.lifecycle import StateKind, inspect_project
 from brida.orchestration.model_routing import (
@@ -74,8 +74,7 @@ def run_project(
 ) -> int:
     resolved_command = project_command(paths, argv, environment)
     os.chdir(paths.project_root)
-    os.execvp("codex", resolved_command)
-    return 0
+    return exec_runtime("codex", resolved_command, owner="brida")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -110,8 +109,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         print(f"brida-codex: {exc}", file=sys.stderr)
         return 2
-    os.execvp("codex", resolved_command)
-    return 0
+    return exec_runtime("codex", resolved_command, owner="brida-codex")
 
 
 if __name__ == "__main__":

@@ -69,12 +69,17 @@ jobs:
           "$BIN/python" -c "import brida; print(brida.__version__)"
           "$BIN/brida" --help
           "$BIN/brida" --version
-          "$BIN/brida-codex" --help
-          "$BIN/brida-codex" --version
-          "$BIN/brida-claude" --help
-          "$BIN/brida-claude" --version
           "$BIN/brida-herdr-agent-start" --help
           "$BIN/brida-validate-receipts" projects
+          # brida-codex and brida-claude are checkout-oriented: from inside a
+          # Brida checkout they resolve routing and hand off to the provider,
+          # which is not installed here. Their documented no-provider contract
+          # is the outside-a-checkout path, so smoke them from somewhere else.
+          ( cd /tmp && unset BRIDA_ROOT \
+            && "$BIN/brida-codex" --help \
+            && "$BIN/brida-codex" --version \
+            && "$BIN/brida-claude" --help \
+            && "$BIN/brida-claude" --version )
           mkdir /tmp/brichan-smoke-project
           git init --quiet /tmp/brichan-smoke-project
           "$BIN/brida" init --project /tmp/brichan-smoke-project

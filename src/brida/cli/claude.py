@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import sys
 
-from ._root import repository_root
+from ._root import exec_runtime, repository_root
 from brida import __version__
 from brida.orchestration.model_routing import (
     RoutingError,
@@ -50,8 +50,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         print(f"brida-claude: {exc}", file=sys.stderr)
         return 2
-    os.execvp("claude", resolved_command)
-    return 0
+    return exec_runtime("claude", resolved_command, owner="brida-claude")
 
 
 if __name__ == "__main__":

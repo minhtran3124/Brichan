@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from brida import __version__
+from brida.cli._root import exec_runtime
 from brida.cli import claude as claude_cli
 from brida.cli import codex as codex_cli
 from brida.cli import runtime as runtime_cli
@@ -208,6 +209,50 @@ class ClaudeEntrypointOutsideCheckoutTest(_OutsideCheckoutTestCase):
         self.assertEqual("", out)
         self.assertIn("brida-claude:", err)
         self.assertNotIn("Traceback", err)
+
+
+class ExecRuntimeTest(unittest.TestCase):
+    """A missing provider binary is an ordinary condition, not a crash.
+
+    CI installs no providers, and plain machines often have neither codex nor
+    claude, so the handoff has to fail like a CLI rather than like Python.
+    """
+
+    def _run(self, program):
+        err = io.StringIO()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = exec_runtime(program, [program, "--help"], owner="brida-codex")
+        return code, out.getvalue(), err.getvalue()
+
+    def test_missing_binary_is_an_owned_error_not_a_traceback(self):
+        code, out, err = self._run("brida-no-such-runtime-binary")
+        self.assertEqual(2, code)
+        self.assertEqual("", out)
+        self.assertIn("brida-codex:", err)
+        self.assertIn("not installed or not on PATH", err)
+        self.assertNotIn("Traceback", err)
+
+    def test_missing_absolute_path_is_handled_the_same_way(self):
+        code, _out, err = self._run("/nonexistent/bin/brida-claude")
+        self.assertEqual(2, code)
+        self.assertNotIn("Traceback", err)
+
+    def test_other_os_errors_are_owned_too(self):
+        """A present-but-unexecutable target must not surface as a traceback."""
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "not-executable"
+            target.write_text("#!/bin/sh\n", encoding="utf-8")
+            code, _out, err = self._run(str(target))
+        self.assertEqual(2, code)
+        self.assertIn("brida-codex:", err)
+        self.assertNotIn("Traceback", err)
+
+    def test_successful_exec_replaces_the_process(self):
+        with mock.patch.object(os, "execvp") as execvp:
+            code = exec_runtime("codex", ["codex", "--help"], owner="brida")
+        execvp.assert_called_once_with("codex", ["codex", "--help"])
+        self.assertEqual(0, code)
 
 
 if __name__ == "__main__":

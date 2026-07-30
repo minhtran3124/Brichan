@@ -7,6 +7,7 @@ import os
 import sys
 from pathlib import Path
 
+from ._root import exec_runtime
 from .codex import run_project
 from .render import (
     DOCTOR_DESCRIPTION,
@@ -231,9 +232,12 @@ def main(argv: list[str] | None = None) -> int:
         print(exc, file=sys.stderr)
         return 2
 
+    # _checkout_root only guarantees bin/brida, so the per-runtime wrapper may
+    # be absent in a partial checkout.
     executable = root / "bin" / f"brida-{runtime}"
-    os.execv(str(executable), [str(executable), *remaining])
-    return 0
+    return exec_runtime(
+        str(executable), [str(executable), *remaining], owner="brida"
+    )
 
 
 if __name__ == "__main__":
