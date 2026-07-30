@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "brichan"
-version = "0.6.0"
+version = "0.7.0"
 description = "Repository-native AI Chief of Staff orchestration"
 # Generated from README.md by scripts/build_pypi_readme.py; see that module
 # for why the published description cannot just be README.md.

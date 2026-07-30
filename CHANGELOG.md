@@ -7,6 +7,8 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-30
+
 ### Changed
 
 - Renamed the importable Python package, console commands, `.brida/` state
@@ -14,6 +16,14 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
   `.brichan/`, and `BRICHAN_*` respectively, matching the `brichan` PyPI
   distribution name. Entries below this point describe releases made under
   the prior `brida` name.
+
+### Verification
+
+- Full local `make check` passes (262 tests across the metrics, unit,
+  contract, and integration suites).
+- `python -m build` produces a clean sdist and wheel; `twine check` passes on
+  both, and the wheel installs into a disposable virtual environment where
+  `brichan --version` reports the released version.
 
 ## [0.6.0] - 2026-07-30
 
