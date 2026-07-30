@@ -198,6 +198,12 @@
       "policy": "stable-path"
     },
     {
+      "path": "scripts/release_pypi.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-path"
+    },
+    {
       "path": "scripts/check_compatibility_retirement.py",
       "kind": "file",
       "category": "structure-guard",
