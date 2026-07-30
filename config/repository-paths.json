@@ -1,7 +1,8 @@
 {
   "schema_version": 1,
   "ignored_root_files": [
-    ".DS_Store"
+    ".DS_Store",
+    ".env"
   ],
   "entries": [
     {
