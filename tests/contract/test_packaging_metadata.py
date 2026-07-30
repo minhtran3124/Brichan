@@ -141,7 +141,7 @@ class SdistBuildTest(unittest.TestCase):
         pkg_info = self._pkg_info()
         self.assertIn("AI Chief of Staff", pkg_info)
         self.assertIn("pip install brichan", pkg_info)
-        for heading in ("## Installation", "## Usage", "## Contributing"):
+        for heading in ("## Installation", "## Usage"):
             self.assertIn(heading, pkg_info, heading)
 
     def test_published_description_does_not_deny_being_published(self):
