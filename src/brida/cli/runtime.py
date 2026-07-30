@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from .codex import run_project
+from .render import INIT_DESCRIPTION, format_init, resolve_style
 from brida import __version__
 from brida.lifecycle import (
     StateKind,
@@ -45,13 +46,20 @@ def select_runtime(
     return runtime, remaining
 
 
+#: Only `init` is described for now; status and doctor keep their existing help.
+LIFECYCLE_DESCRIPTIONS = {"init": INIT_DESCRIPTION}
+
+
 def _print_lines(lines: list[str]) -> None:
     for line in lines:
         print(line)
 
 
 def _lifecycle_command(command_name: str, argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(prog=f"brida {command_name}")
+    parser = argparse.ArgumentParser(
+        prog=f"brida {command_name}",
+        description=LIFECYCLE_DESCRIPTIONS.get(command_name),
+    )
     parser.add_argument(
         "--project",
         type=Path,
@@ -78,6 +86,12 @@ def _lifecycle_command(command_name: str, argv: list[str]) -> int:
 
     if command_name == "init":
         code, lines = initialize_project(paths, apply=args.apply)
+        lines = format_init(
+            lines,
+            project_root=str(paths.project_root),
+            apply=args.apply,
+            style=resolve_style(sys.stdout, os.environ),
+        )
     elif command_name == "status":
         code, lines = status_lines(paths)
     else:

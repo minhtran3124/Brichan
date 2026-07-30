@@ -1,0 +1,217 @@
+import contextlib
+import io
+import re
+import unittest
+
+from brida.cli.render import (
+    INIT_DESCRIPTION,
+    INIT_SUBTITLE,
+    Style,
+    format_init,
+    resolve_style,
+)
+from brida.cli import runtime
+from brida.lifecycle import documented_footprint
+
+
+FOOTPRINT = [f"create .brida/{path}" for path in documented_footprint()]
+DRY_RUN = ["dry-run: zero writes", *FOOTPRINT]
+APPLIED = ["initialized: /repo/.brida", *FOOTPRINT]
+
+FANCY = Style(color=True, unicode=True)
+PLAIN = Style(color=False, unicode=False)
+
+
+class FakeStream:
+    def __init__(self, *, tty: bool, encoding: str = "utf-8"):
+        self._tty = tty
+        self.encoding = encoding
+
+    def isatty(self) -> bool:
+        return self._tty
+
+
+class ResolveStyleTest(unittest.TestCase):
+    def test_non_interactive_stream_gets_nothing(self):
+        """Piped output must stay byte-identical to the lifecycle lines."""
+        style = resolve_style(FakeStream(tty=False), {})
+        self.assertFalse(style.enabled)
+
+    def test_interactive_stream_gets_colour_and_unicode(self):
+        style = resolve_style(FakeStream(tty=True), {})
+        self.assertTrue(style.color)
+        self.assertTrue(style.unicode)
+
+    def test_no_color_suppresses_colour_but_keeps_the_tree(self):
+        style = resolve_style(FakeStream(tty=True), {"NO_COLOR": "1"})
+        self.assertFalse(style.color)
+        self.assertTrue(style.unicode)
+
+    def test_empty_no_color_value_still_counts(self):
+        """no-color.org specifies presence, not truthiness."""
+        style = resolve_style(FakeStream(tty=True), {"NO_COLOR": ""})
+        self.assertFalse(style.color)
+
+    def test_dumb_terminal_gets_nothing(self):
+        style = resolve_style(FakeStream(tty=True), {"TERM": "dumb"})
+        self.assertFalse(style.enabled)
+
+    def test_ascii_terminal_keeps_colour_but_drops_box_drawing(self):
+        style = resolve_style(FakeStream(tty=True, encoding="ascii"), {})
+        self.assertTrue(style.color)
+        self.assertFalse(style.unicode)
+
+    def test_stream_without_isatty_is_treated_as_non_interactive(self):
+        class Bare:
+            encoding = "utf-8"
+
+        self.assertFalse(resolve_style(Bare(), {}).enabled)
+
+
+class PlainOutputContractTest(unittest.TestCase):
+    """The machine-readable lines are a contract; rendering must not touch them."""
+
+    def test_plain_style_returns_the_lines_untouched(self):
+        self.assertEqual(
+            DRY_RUN, format_init(DRY_RUN, project_root="/repo", apply=False, style=PLAIN)
+        )
+
+    def test_first_line_stays_the_documented_dry_run_marker(self):
+        rendered = format_init(DRY_RUN, project_root="/repo", apply=False, style=PLAIN)
+        self.assertEqual("dry-run: zero writes", rendered[0])
+
+    def test_results_without_create_lines_are_never_reformatted(self):
+        for lines in (
+            ["no changes: /repo/.brida is already healthy"],
+            ["malformed: /repo/.brida: manifest contains malformed JSON"],
+        ):
+            self.assertEqual(
+                lines,
+                format_init(lines, project_root="/repo", apply=False, style=FANCY),
+                lines,
+            )
+
+
+class TreeRenderTest(unittest.TestCase):
+    def render(self, lines=DRY_RUN, apply=False, style=Style(unicode=True)):
+        return format_init(
+            lines, project_root="/repo", apply=apply, style=style
+        )
+
+    def test_every_footprint_file_appears_exactly_once(self):
+        text = "\n".join(self.render())
+        for path in documented_footprint():
+            leaf = path.rsplit("/", 1)[-1]
+            self.assertEqual(text.count(leaf), 1, leaf)
+
+    def test_directories_are_rendered_once_not_repeated_per_file(self):
+        text = "\n".join(self.render())
+        self.assertEqual(text.count("policy/"), 1)
+        self.assertEqual(text.count("herdr-orchestration/"), 1)
+
+    def test_last_child_uses_an_elbow_and_others_use_a_tee(self):
+        text = "\n".join(self.render())
+        self.assertIn("└── tasks.md", text)
+        self.assertIn("├── manifest.json", text)
+
+    def test_nesting_is_indented_under_its_parent(self):
+        rendered = self.render()
+        line = next(l for l in rendered if "model-routing.json" in l)
+        self.assertIn("│   └── ", line)
+
+    def test_subtitle_explains_the_directory_directly_under_the_header(self):
+        rendered = self.render()
+        self.assertEqual(f"  {INIT_SUBTITLE}", rendered[1])
+
+    def test_subtitle_is_present_for_apply_too(self):
+        self.assertIn(INIT_SUBTITLE, "\n".join(self.render(APPLIED, apply=True)))
+
+    def test_subtitle_and_help_description_name_the_same_contents(self):
+        """Two surfaces answering one question must not drift apart."""
+        for topic in ("policy", "model routing", "Herdr skills", "project memory"):
+            self.assertIn(topic, INIT_SUBTITLE, topic)
+            self.assertIn(topic, INIT_DESCRIPTION, topic)
+
+    def test_subtitle_stays_one_line(self):
+        self.assertNotIn("\n", INIT_SUBTITLE)
+        self.assertLessEqual(len(INIT_SUBTITLE), 79)
+
+    def test_header_states_the_mode_and_the_target(self):
+        self.assertIn("dry run", self.render()[0])
+        self.assertIn("/repo", self.render()[0])
+        self.assertIn("applied", self.render(APPLIED, apply=True)[0])
+
+    def test_dry_run_footer_promises_no_writes_and_offers_the_next_step(self):
+        text = "\n".join(self.render())
+        self.assertIn("15 files", text)
+        self.assertIn("zero writes", text)
+        self.assertIn("brida init --apply", text)
+
+    def test_apply_footer_reports_creation_and_drops_the_hint(self):
+        text = "\n".join(self.render(APPLIED, apply=True))
+        self.assertIn("15 files created", text)
+        self.assertNotIn("--apply", text)
+
+    def test_single_file_is_not_pluralised(self):
+        text = "\n".join(
+            self.render(["dry-run: zero writes", "create .brida/manifest.json"])
+        )
+        self.assertIn("1 file ", text + " ")
+        self.assertNotIn("1 files", text)
+
+    def test_ascii_style_avoids_box_drawing_characters(self):
+        text = "\n".join(self.render(style=Style(color=True, unicode=False)))
+        self.assertIn("|-- ", text)
+        for glyph in ("├", "└", "│"):
+            self.assertNotIn(glyph, text)
+
+    def test_uncoloured_tree_emits_no_escape_sequences(self):
+        text = "\n".join(self.render(style=Style(color=False, unicode=True)))
+        self.assertNotIn("\033", text)
+
+    def test_colour_changes_only_appearance_never_layout(self):
+        """Stripping the escapes must reproduce the uncoloured tree exactly."""
+        coloured = "\n".join(self.render(style=FANCY))
+        stripped = re.sub(r"\033\[[0-9;]*m", "", coloured)
+        self.assertEqual(
+            "\n".join(self.render(style=Style(color=False, unicode=True))),
+            stripped,
+        )
+
+    def test_every_opened_sequence_is_closed(self):
+        text = "\n".join(self.render(style=FANCY))
+        self.assertTrue(text.endswith("\033[0m"))
+        # No reset may be emitted while nothing is open.
+        depth = 0
+        for code in re.findall(r"\033\[([0-9;]*)m", text):
+            if code == "0":
+                self.assertGreater(depth, 0, "reset with nothing open")
+                depth = 0
+            else:
+                depth += 1
+        self.assertEqual(0, depth, "unclosed escape sequence")
+
+
+class InitHelpTest(unittest.TestCase):
+    """`brida init --help` must say what the command does, not just its flags."""
+
+    def _help(self) -> str:
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            with self.assertRaises(SystemExit) as caught:
+                runtime.main(["init", "--help"])
+        self.assertEqual(0, caught.exception.code)
+        return buffer.getvalue()
+
+    def test_help_carries_the_description(self):
+        text = " ".join(self._help().split())
+        self.assertIn(" ".join(INIT_DESCRIPTION.split()), text)
+
+    def test_help_still_documents_every_flag(self):
+        text = self._help()
+        for flag in ("--project", "--apply", "--dry-run"):
+            self.assertIn(flag, text, flag)
+
+
+if __name__ == "__main__":
+    unittest.main()

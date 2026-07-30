@@ -305,6 +305,12 @@
       "policy": "canonical"
     },
     {
+      "path": "src/brida/cli/render.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
       "path": "src/brida/cli/codex.py",
       "kind": "file",
       "category": "provider-adapter",
