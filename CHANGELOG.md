@@ -7,6 +7,51 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-30
+
+### Changed
+
+- `brida init` draws its footprint as a tree above a one-line description of
+  what `.brida/` holds and a summary ending in the next command. The rendering
+  applies only when stdout is a terminal, respects `NO_COLOR` and
+  `TERM=dumb`, and falls back to ASCII connectors when the terminal cannot
+  encode box drawing. Redirected output still emits the unchanged
+  `dry-run: zero writes` and `create .brida/<path>` lines that scripts parse.
+- `brida --help` and `brida --version` report Brida from a source checkout
+  instead of forwarding to the runtime, which a checkout has no project state
+  to launch into. Inside a healthy initialized project they still forward to
+  `codex` as documented, and naming a runtime still forwards, so
+  `brida --runtime codex --help` and `bin/brida-codex --help` are unaffected.
+- The PyPI project page is now generated from a dedicated package README
+  rather than `README.md`, which is written for readers already standing in
+  the repository. Repository-relative images and links no longer reach the
+  project page, where they resolved against pypi.org and rendered broken.
+
+### Added
+
+- `brida status --help` and `brida doctor --help` describe what the commands
+  do. `status` names the four states it reports and the exit code each maps
+  to; `doctor` names what it probes. Both state that they write nothing.
+- `scripts/release_pypi.py` performs the release checklist in order and
+  refuses to continue when the release is inconsistent. It previews by
+  default, and reads `PYPI_TOKEN` from the environment or `.env`.
+
+### Fixed
+
+- A missing provider binary is reported as an owned, actionable error instead
+  of a `FileNotFoundError` traceback. This affected `brida-codex`,
+  `brida-claude`, `brida run`, and the checkout dispatcher on any machine
+  without `codex` or `claude` installed, and had failed both packaging CI
+  jobs on every push.
+
+### Verification
+
+- Full local `make check` passes (259 tests).
+- CI passes on all four jobs, including both packaging matrices.
+- `python -m build` produces a clean sdist and wheel; `twine check` passes on
+  both, and the wheel installs and reports its version in a disposable
+  environment.
+
 ## [0.5.0] - 2026-07-29
 
 ### Changed
