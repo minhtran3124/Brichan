@@ -6,7 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "brichan"
 version = "0.5.0"
 description = "Repository-native AI Chief of Staff orchestration"
-readme = "README.md"
+# Generated from README.md by scripts/build_pypi_readme.py; see that module
+# for why the published description cannot just be README.md.
+readme = "README_PYPI.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
 authors = [{name = "Minh Tran"}]

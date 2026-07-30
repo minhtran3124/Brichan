@@ -1,7 +1,5 @@
 # Brichan
 
-![Brichan coordinating a team of AI workers](assets/brida-hero.png)
-
 Brichan is an AI Chief of Staff for Codex and Claude Code. Give it a project
 goal; it keeps the necessary context, coordinates independent workers through
 Herdr, checks their evidence, and records useful project state outside chat.
@@ -72,7 +70,7 @@ State diagnostics reject malformed, dangling, symlinked, inaccessible, or
 incompatible `.brida/` state without silently repairing it. Schema v1 has no
 automatic migration: package-version changes require deliberate backup and
 reinitialization. See the
-[installed Codex dogfood guide](docs/guides/installable-dogfood.md) for the
+installed Codex dogfood guide for the
 exact footprint, exit codes, safeguards, and compatibility boundary.
 
 ## Checkout compatibility and development
@@ -88,7 +86,7 @@ bin/brida --runtime claude
 Checkout mode uses package-owned `bin/brida-*` wrappers. Installed-project mode
 does not. Coordinator defaults and worker routes are settings-driven, so the
 coordinator and implementation, review, planning, or scan workers may use
-different runtimes. See the [model-routing guide](docs/guides/model-routing.md)
+different runtimes. See the model-routing guide
 to change defaults, select a named route, or use a one-off override.
 
 The `brida-codex` and `brida-claude` console commands installed by `brichan`
@@ -97,7 +95,7 @@ Brida source checkout (or `BRIDA_ROOT`) or from an already-initialized
 project's `.brida/` state, while `brida-claude` resolves only from a checkout
 or `BRIDA_ROOT`. Both are for development and checkout use, not standalone
 installed-project launches. `--help`/`--version` work from any directory; the
-[installed Codex dogfood guide](docs/guides/installable-dogfood.md) has the
+installed Codex dogfood guide has the
 exact boundary.
 
 ## How it works
@@ -112,7 +110,7 @@ worker ownership, evidence, and cleanup remain visible.
 
 Project context lives in `projects/<project-slug>/` as a small set of Markdown
 files for overview, current state, tasks, decisions, and references. Read the
-[project memory policy](docs/policy/memory-policy.md) for the contract.
+project memory policy for the contract.
 
 ## Development
 
@@ -132,18 +130,18 @@ make package-check
 ```
 
 The importable implementation is in `src/brida/`; stable command wrappers are
-in `bin/` and `scripts/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the change
-workflow and [the repository layout](docs/architecture/repository-layout.md)
+in `bin/` and `scripts/`. See CONTRIBUTING.md for the change
+workflow and the repository layout
 for module boundaries.
 
 ## Learn more
 
-- [Model routing and worker launch settings](docs/guides/model-routing.md)
-- [Installed Codex dogfood](docs/guides/installable-dogfood.md)
-- [Documentation index](docs/index.md)
-- [Operating principles](docs/policy/operating-principles.md)
-- [Security policy](SECURITY.md)
+- Model routing and worker launch settings
+- Installed Codex dogfood
+- Documentation index
+- Operating principles
+- Security policy
 
 ## License
 
-Brida is available under the [MIT License](LICENSE).
+Brida is available under the MIT License.

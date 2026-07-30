@@ -24,7 +24,9 @@ class InstalledDogfoodTest(unittest.TestCase):
         wheel_dir.mkdir()
         source_root = cls.build_root / "source"
         source_root.mkdir()
-        for name in ("pyproject.toml", "README.md", "LICENSE"):
+        # README_PYPI.md is the packaged long description named by
+        # pyproject.toml, so the copied tree is not buildable without it.
+        for name in ("pyproject.toml", "README.md", "README_PYPI.md", "LICENSE"):
             shutil.copy2(ROOT / name, source_root / name)
         shutil.copytree(ROOT / "src", source_root / "src")
         candidates = (

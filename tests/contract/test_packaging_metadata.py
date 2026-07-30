@@ -31,6 +31,22 @@ class PackagingMetadataTest(unittest.TestCase):
         self.assertTrue((ROOT / "src/brida/__init__.py").is_file())
         self.assertFalse((ROOT / "src/brichan").exists())
 
+    def test_packaged_description_is_the_generated_one(self):
+        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        self.assertIn('readme = "README_PYPI.md"', pyproject)
+
+    def test_generated_description_is_in_sync_with_the_readme(self):
+        """A stale committed description would re-ship the broken image."""
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import build_pypi_readme
+
+        committed = (ROOT / "README_PYPI.md").read_text(encoding="utf-8")
+        self.assertEqual(
+            committed,
+            build_pypi_readme.expected(),
+            "README_PYPI.md is stale; run `make readme-check`",
+        )
+
 
 class SdistBuildTest(unittest.TestCase):
     @classmethod
@@ -59,7 +75,7 @@ class SdistBuildTest(unittest.TestCase):
         cls.addClassCleanup(cls.temporary.cleanup)
         cls.source_root = Path(cls.temporary.name) / "source"
         cls.source_root.mkdir()
-        for name in ("pyproject.toml", "README.md", "LICENSE"):
+        for name in ("pyproject.toml", "README.md", "README_PYPI.md", "LICENSE"):
             shutil.copy2(ROOT / name, cls.source_root / name)
         shutil.copytree(ROOT / "src", cls.source_root / "src")
         cls.sdist_dir = Path(cls.temporary.name) / "sdist"
@@ -95,6 +111,37 @@ class SdistBuildTest(unittest.TestCase):
         self.assertTrue(
             any(name.endswith("PKG-INFO") for name in names), "sdist has no PKG-INFO"
         )
+
+    def _pkg_info(self):
+        with tarfile.open(self.sdist) as archive:
+            name = next(
+                item
+                for item in archive.getnames()
+                if item.count("/") == 1 and item.endswith("PKG-INFO")
+            )
+            handle = archive.extractfile(name)
+            self.assertIsNotNone(handle, name)
+            return handle.read().decode("utf-8")
+
+    def test_published_description_carries_no_repository_relative_target(self):
+        """The 0.5.0 page shipped `assets/brida-hero.png` and rendered broken.
+
+        PyPI resolves relative targets against pypi.org, so any that survive
+        into PKG-INFO are a broken image or a dead link on the project page.
+        """
+        pkg_info = self._pkg_info()
+        self.assertIn("Brichan", pkg_info)
+        self.assertNotIn("(assets/", pkg_info)
+        self.assertNotIn("(docs/", pkg_info)
+        self.assertNotIn("(CONTRIBUTING.md)", pkg_info)
+        self.assertNotIn("(LICENSE)", pkg_info)
+
+    def test_published_description_keeps_the_readme_prose(self):
+        """Stripping targets must not cost the description its content."""
+        pkg_info = self._pkg_info()
+        self.assertIn("AI Chief of Staff", pkg_info)
+        # The link text survives even when the relative target cannot.
+        self.assertIn("CONTRIBUTING.md", pkg_info)
 
 
 if __name__ == "__main__":
