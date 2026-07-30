@@ -2,7 +2,9 @@
 
 This is the canonical Brichan runtime capability and model-routing guidance
 catalog. Active coordinator and worker route defaults live only in
-`../../config/model-routing.json`.
+`../../config/model-routing.json`. This file describes provider and model
+capabilities only; it must not restate which route or coordinator currently
+uses which model, so a routing change never requires editing this file.
 
 Last verified: 2026-07-29.
 
@@ -48,20 +50,19 @@ the installed catalog describes it as enabling automatic task delegation.
   installed CLI advertises these aliases and full names and supports efforts
   `low` through `max`.
 
-| Alias | Canonical ID | Verified effort | Routed use |
+| Alias | Canonical ID | Verified effort | Suggested uses |
 |---|---|---:|---|
-| `fable` | `claude-fable-5` | `low` | Claude coordinator alternative and lightweight bounded probes |
-| `sonnet` | `claude-sonnet-5` | `medium` | Routine implementation |
-| `opus` | `claude-opus-5` | `high` | Planning and independent review |
+| `fable` | `claude-fable-5` | `low` | Complex planning, architectural reasoning, coordination, final review |
+| `opus` | `claude-opus-5` | `high` | Complex implementation, difficult debugging |
+| `sonnet` | `claude-sonnet-5` | `medium` | Repository scanning, summaries, routine implementation |
 
 Claude is routable. Brichan pins canonical IDs in its routing files so a future
-Claude alias update cannot silently change the model. The active `claude`
-coordinator uses `claude-fable-5` at `low`; implementation, planning, and
-review deliberately retain the canonical Sonnet or Opus IDs where their higher
-reasoning budget is warranted. Prefer Claude as an independent reviewer when
-the implementer used Codex. Re-check `claude auth status` before a session that
-depends on it, because authentication can lapse. The active local Claude
-account route is `cld`/the standard `claude` CLI.
+Claude alias update cannot silently change the model. Re-check
+`claude auth status` before a session that depends on it, because
+authentication can lapse. The active local Claude account route is `cld`/the
+standard `claude` CLI. When the active manifest places review on the same
+provider or model as the implementer or coordinator, the independence rules in
+[reviewer policy](reviewer.md) still apply.
 
 ## Unavailable providers
 
