@@ -1,6 +1,6 @@
 # Brichan
 
-![Brichan coordinating a team of AI workers](assets/brida-hero.png)
+![Brichan coordinating a team of AI workers](https://raw.githubusercontent.com/minhtran3124/Brichan/main/assets/brida-hero.png)
 
 Brichan is an AI Chief of Staff for Codex and Claude Code. Give it a project
 goal; it keeps the necessary context, coordinates independent workers through
