@@ -234,9 +234,21 @@ def require_tool(module: str) -> None:
         )
 
 
+def clean_build_outputs() -> None:
+    """Remove build residue before verifying and before building.
+
+    A previous build leaves dist/ and src/*.egg-info behind. Both are ignored
+    by Git but not by `make check`, whose repository contract walks the
+    filesystem and fails on the binary artifacts and the stray egg-info
+    directory -- so a second release run would trip over the first one.
+    """
+    for path in [DIST, ROOT / "build", *(ROOT / "src").glob("*.egg-info")]:
+        if path.is_dir():
+            shutil.rmtree(path)
+
+
 def build_distributions() -> list[Path]:
-    if DIST.exists():
-        shutil.rmtree(DIST)
+    clean_build_outputs()
     run([sys.executable, "-m", "build", "--outdir", str(DIST), str(ROOT)])
     artifacts = sorted(DIST.iterdir())
     if not artifacts:
@@ -366,6 +378,7 @@ def main(argv: list[str] | None = None) -> int:
         require_tool("build")
         require_tool("twine")
 
+        clean_build_outputs()
         if not args.skip_checks:
             run(["make", "check"])
 
