@@ -8,6 +8,35 @@ Herdr, checks their evidence, and records useful project state outside chat.
 Its existing runtime package and console commands remain `brida` and
 `brida-*` for compatibility.
 
+## Requirements
+
+Brida coordinates independent worker sessions through
+[Herdr](https://herdr.dev), the approved worker-control plane. A single
+coordinator session runs without it, but Herdr is required as soon as Brida
+hands off bounded tasks to workers.
+
+Install it on Linux or macOS:
+
+```bash
+curl -fsSL https://herdr.dev/install.sh | sh
+```
+
+or via Homebrew on macOS:
+
+```bash
+brew install herdr
+```
+
+Then install the integration for your runtime, e.g.:
+
+```bash
+herdr integration install claude
+herdr integration install codex
+```
+
+See the [Herdr documentation](https://herdr.dev/docs/) for other install
+methods (mise, Nix, Windows preview) and integration options.
+
 ## Current dogfood scope
 
 The primary one-user dogfood path is now an installed Python package running
