@@ -136,12 +136,18 @@ class SdistBuildTest(unittest.TestCase):
         self.assertNotIn("(CONTRIBUTING.md)", pkg_info)
         self.assertNotIn("(LICENSE)", pkg_info)
 
-    def test_published_description_keeps_the_readme_prose(self):
+    def test_published_description_keeps_the_pypi_prose(self):
         """Stripping targets must not cost the description its content."""
         pkg_info = self._pkg_info()
         self.assertIn("AI Chief of Staff", pkg_info)
-        # The link text survives even when the relative target cannot.
-        self.assertIn("CONTRIBUTING.md", pkg_info)
+        self.assertIn("pip install brichan", pkg_info)
+        for heading in ("## Installation", "## Usage", "## Contributing"):
+            self.assertIn(heading, pkg_info, heading)
+
+    def test_published_description_states_the_package_is_installable(self):
+        """README.md still says Brida is unpublished; the PyPI page must not."""
+        pkg_info = self._pkg_info()
+        self.assertNotIn("not published to a package registry", pkg_info)
 
 
 if __name__ == "__main__":

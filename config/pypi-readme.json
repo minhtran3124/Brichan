@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source": "README.md",
+  "source": "packaging/pypi-readme.md",
   "output": "README_PYPI.md",
   "public_repository": false,
   "asset_base_url": "https://raw.githubusercontent.com/minhtran3124/Brichan/main",

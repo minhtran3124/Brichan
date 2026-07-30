@@ -4,6 +4,8 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/brichan.svg)](https://pypi.org/project/brichan/)
 [![License](https://img.shields.io/pypi/l/brichan.svg)](https://pypi.org/project/brichan/)
 
+![Brichan coordinating a team of AI workers](/assets/brida-hero.png)
+
 Coding agents are very good at the work in front of them and very bad at
 remembering why it was asked for. Context lives in a chat window, so it is lost
 when the window closes; decisions are re-litigated, status is reconstructed from

@@ -79,6 +79,12 @@ class PublicRepositoryRenderTest(unittest.TestCase):
         self.assertIn("/main/assets/h.png)", rendered)
         self.assertNotIn("main/./assets", rendered)
 
+    def test_root_relative_target_does_not_double_the_slash(self):
+        """packaging/pypi-readme.md uses /assets/... so it resolves from ROOT."""
+        rendered = build_pypi_readme.render("![h](/assets/h.png)", PUBLIC)
+        self.assertIn("/main/assets/h.png)", rendered)
+        self.assertNotIn("main//assets", rendered)
+
 
 class ValidateTest(unittest.TestCase):
     def test_surviving_relative_target_is_reported(self):
@@ -90,25 +96,41 @@ class ValidateTest(unittest.TestCase):
 
 
 class RepositoryReadmeTest(unittest.TestCase):
-    def test_readme_keeps_the_relative_hero_path_for_github_and_local_preview(self):
+    def test_repository_readme_keeps_the_relative_hero_path(self):
+        """README.md serves local preview and GitHub, which resolve it."""
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("](assets/brida-hero.png)", readme)
 
     def test_hero_asset_exists_on_disk(self):
         self.assertTrue((ROOT / "assets/brida-hero.png").is_file())
 
-    def test_rendering_the_real_readme_leaves_no_relative_target(self):
+    def test_pypi_source_is_separate_from_the_repository_readme(self):
         config = build_pypi_readme.load_config()
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        source = ROOT / config["source"]
+        self.assertTrue(source.is_file(), config["source"])
+        self.assertNotEqual(source, ROOT / "README.md")
+
+    def test_rendering_the_real_pypi_source_leaves_no_relative_target(self):
+        config = build_pypi_readme.load_config()
+        source = (ROOT / config["source"]).read_text(encoding="utf-8")
         self.assertEqual(build_pypi_readme.validate(
-            build_pypi_readme.render(readme, config)
+            build_pypi_readme.render(source, config)
         ), [])
+
+    def test_pypi_source_hero_resolves_when_the_repository_goes_public(self):
+        """The one-line flip must produce a reachable raw URL, not a mangled one."""
+        config = {**build_pypi_readme.load_config(), "public_repository": True}
+        source = (ROOT / config["source"]).read_text(encoding="utf-8")
+        rendered = build_pypi_readme.render(source, config)
+        self.assertIn(
+            f"{config['asset_base_url']}/assets/brida-hero.png", rendered
+        )
 
 
 class ConfigTest(unittest.TestCase):
     def test_shipped_config_loads(self):
         config = build_pypi_readme.load_config()
-        self.assertEqual(config["source"], "README.md")
+        self.assertEqual(config["source"], "packaging/pypi-readme.md")
 
     def test_public_mode_requires_https_base_urls(self):
         broken = {**PUBLIC, "asset_base_url": "assets"}

@@ -41,6 +41,12 @@
       "policy": "stable-root"
     },
     {
+      "path": "packaging/pypi-readme.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "canonical"
+    },
+    {
       "path": "README_PYPI.md",
       "kind": "file",
       "category": "public-entrypoint",
