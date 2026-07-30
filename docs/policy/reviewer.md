@@ -1,6 +1,6 @@
 # Independent reviewer
 
-This is the canonical Brida independent-review policy.
+This is the canonical Brichan independent-review policy.
 
 Use this instruction for a fresh reviewer session after material implementation
 or when the user explicitly requests review.

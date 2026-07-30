@@ -9,15 +9,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from brida.contracts.receipts.discovery import discover_receipts
-from brida.contracts.receipts.parser import parse_receipt
-from brida.contracts.receipts.schema import (
+from brichan.contracts.receipts.discovery import discover_receipts
+from brichan.contracts.receipts.parser import parse_receipt
+from brichan.contracts.receipts.schema import (
     Diagnostic,
     RECEIPT_ROLES,
     REQUIRED_SECTIONS,
 )
-from brida.orchestration.layout import ResizeOp, SpawnPlan, plan_spawn
-from brida.orchestration.model_routing import (
+from brichan.orchestration.layout import ResizeOp, SpawnPlan, plan_spawn
+from brichan.orchestration.model_routing import (
     ResolvedRoute,
     load_settings,
     resolve_route,
@@ -39,13 +39,13 @@ class ModuleBoundaryTest(unittest.TestCase):
         )
 
     def test_provider_commands_import_first_in_fresh_interpreter(self):
-        result = self._fresh_python("import brida.cli.provider_commands")
+        result = self._fresh_python("import brichan.cli.provider_commands")
         self.assertEqual(0, result.returncode, result.stderr)
 
     def test_orchestration_import_does_not_load_cli_modules(self):
         result = self._fresh_python(
-            "import brida.orchestration; import sys; "
-            "assert not any(name == 'brida.cli' or name.startswith('brida.cli.') "
+            "import brichan.orchestration; import sys; "
+            "assert not any(name == 'brichan.cli' or name.startswith('brichan.cli.') "
             "for name in sys.modules)"
         )
         self.assertEqual(0, result.returncode, result.stderr)

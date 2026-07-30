@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the PyPI long description from Brida's repository README.
+"""Render the PyPI long description from Brichan's repository README.
 
 PyPI serves the long description as a standalone page with no repository
 behind it, so repository-relative targets never resolve there: images render

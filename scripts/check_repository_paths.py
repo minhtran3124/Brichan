@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Brida's repository path and local Markdown-link contracts."""
+"""Validate Brichan's repository path and local Markdown-link contracts."""
 
 from __future__ import annotations
 

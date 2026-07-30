@@ -1,6 +1,6 @@
 # Project memory policy
 
-This is the canonical Brida project-memory policy.
+This is the canonical Brichan project-memory policy.
 
 ## Read progressively
 
@@ -36,5 +36,5 @@ When a file exceeds its target, archive obsolete detail before adding more.
 ## Evidence and uncertainty
 
 Mark unverified claims as `Unverified`. Include dates for time-sensitive facts.
-Never convert a worker's assertion into durable memory until Brida has checked
+Never convert a worker's assertion into durable memory until Brichan has checked
 the relevant evidence.

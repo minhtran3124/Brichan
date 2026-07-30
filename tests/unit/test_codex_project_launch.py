@@ -8,10 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from brida.cli.codex import project_command
-from brida.lifecycle import initialize_project
-from brida.orchestration.model_routing import RoutingError
-from brida.project import project_paths
+from brichan.cli.codex import project_command
+from brichan.lifecycle import initialize_project
+from brichan.orchestration.model_routing import RoutingError
+from brichan.project import project_paths
 
 
 class CodexProjectLaunchTest(unittest.TestCase):
@@ -43,7 +43,7 @@ class CodexProjectLaunchTest(unittest.TestCase):
             item for item in assignments if item.startswith("developer_instructions=")
         )
         instructions = json.loads(developer.split("=", 1)[1])
-        self.assertIn("You are Brida", instructions)
+        self.assertIn("You are Brichan", instructions)
         self.assertIn(str(self.paths.project_root), instructions)
         skill = next(item for item in assignments if item.startswith("skills.config="))
         self.assertIn(str(self.paths.state_root / "skills/herdr-orchestration"), skill)

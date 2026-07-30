@@ -1,6 +1,6 @@
 # Model catalog
 
-This is the canonical Brida runtime capability and model-routing guidance
+This is the canonical Brichan runtime capability and model-routing guidance
 catalog. Active coordinator and worker route defaults live only in
 `../../config/model-routing.json`.
 
@@ -33,7 +33,7 @@ call support in the installed catalog.
 | `gpt-5.4-mini` | Small, fast, cost-efficient model for simpler coding | `medium` | Simple mechanical work when Luna is unavailable |
 
 Sol and Terra support `low`, `medium`, `high`, `xhigh`, `max`, and `ultra`.
-Luna supports through `max`. Brida must not choose `ultra` for workers because
+Luna supports through `max`. Brichan must not choose `ultra` for workers because
 the installed catalog describes it as enabling automatic task delegation.
 
 ## Claude Code
@@ -54,7 +54,7 @@ the installed catalog describes it as enabling automatic task delegation.
 | `sonnet` | `claude-sonnet-5` | `medium` | Routine implementation |
 | `opus` | `claude-opus-5` | `high` | Planning and independent review |
 
-Claude is routable. Brida pins canonical IDs in its routing files so a future
+Claude is routable. Brichan pins canonical IDs in its routing files so a future
 Claude alias update cannot silently change the model. The active `claude`
 coordinator uses `claude-fable-5` at `low`; implementation, planning, and
 review deliberately retain the canonical Sonnet or Opus IDs where their higher

@@ -1,4 +1,4 @@
-# Project-scoped guardrail: Brida delegates workers through Herdr only.
+# Project-scoped guardrail: Brichan delegates workers through Herdr only.
 [agents]
 enabled = false
 

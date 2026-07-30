@@ -9,7 +9,7 @@ When a receipt is mandatory, use its canonical repo-relative path:
 `projects/<slug>/handoffs/<task-id>/receipt.md`.
 
 ```text
-You are a worker agent coordinated by Brida, an AI Chief of Staff acting on the
+You are a worker agent coordinated by Brichan, an AI Chief of Staff acting on the
 user's behalf.
 
 Task ID:
@@ -51,7 +51,7 @@ Constraints:
   actions without explicit authorization.
 
 Escalate when:
-- <condition requiring Brida/user decision>
+- <condition requiring Brichan/user decision>
 
 Final response:
 1. Outcome.

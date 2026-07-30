@@ -99,10 +99,10 @@ class RepositoryReadmeTest(unittest.TestCase):
     def test_repository_readme_keeps_the_relative_hero_path(self):
         """README.md serves local preview and GitHub, which resolve it."""
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("](assets/brida-hero.png)", readme)
+        self.assertIn("](assets/brichan-hero.png)", readme)
 
     def test_hero_asset_exists_on_disk(self):
-        self.assertTrue((ROOT / "assets/brida-hero.png").is_file())
+        self.assertTrue((ROOT / "assets/brichan-hero.png").is_file())
 
     def test_pypi_source_is_separate_from_the_repository_readme(self):
         config = build_pypi_readme.load_config()
@@ -123,7 +123,7 @@ class RepositoryReadmeTest(unittest.TestCase):
         source = (ROOT / config["source"]).read_text(encoding="utf-8")
         rendered = build_pypi_readme.render(source, config)
         self.assertIn(
-            f"{config['asset_base_url']}/assets/brida-hero.png", rendered
+            f"{config['asset_base_url']}/assets/brichan-hero.png", rendered
         )
 
 

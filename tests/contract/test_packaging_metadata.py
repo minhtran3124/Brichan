@@ -19,17 +19,16 @@ class PackagingMetadataTest(unittest.TestCase):
     def test_console_scripts_are_unchanged(self):
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         for entry_point in (
-            'brida = "brida.cli.runtime:main"',
-            'brida-codex = "brida.cli.codex:main"',
-            'brida-claude = "brida.cli.claude:main"',
-            'brida-herdr-agent-start = "brida.orchestration.worker_launch:main"',
-            'brida-validate-receipts = "brida.contracts.receipts.validation:main"',
+            'brichan = "brichan.cli.runtime:main"',
+            'brichan-codex = "brichan.cli.codex:main"',
+            'brichan-claude = "brichan.cli.claude:main"',
+            'brichan-herdr-agent-start = "brichan.orchestration.worker_launch:main"',
+            'brichan-validate-receipts = "brichan.contracts.receipts.validation:main"',
         ):
             self.assertIn(entry_point, pyproject)
 
-    def test_import_package_remains_brida(self):
-        self.assertTrue((ROOT / "src/brida/__init__.py").is_file())
-        self.assertFalse((ROOT / "src/brichan").exists())
+    def test_import_package_remains_brichan(self):
+        self.assertTrue((ROOT / "src/brichan/__init__.py").is_file())
 
     def test_packaged_description_is_the_generated_one(self):
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
@@ -103,11 +102,11 @@ class SdistBuildTest(unittest.TestCase):
             raise AssertionError(f"expected one sdist, found: {archives}")
         cls.sdist = archives[0]
 
-    def test_sdist_is_named_brichan_and_contains_the_brida_package(self):
+    def test_sdist_is_named_brichan_and_contains_the_brichan_package(self):
         self.assertTrue(self.sdist.name.startswith("brichan-"), self.sdist.name)
         with tarfile.open(self.sdist) as archive:
             names = archive.getnames()
-        self.assertTrue(any(name.endswith("src/brida/__init__.py") for name in names))
+        self.assertTrue(any(name.endswith("src/brichan/__init__.py") for name in names))
         self.assertTrue(
             any(name.endswith("PKG-INFO") for name in names), "sdist has no PKG-INFO"
         )
@@ -124,7 +123,7 @@ class SdistBuildTest(unittest.TestCase):
             return handle.read().decode("utf-8")
 
     def test_published_description_carries_no_repository_relative_target(self):
-        """The 0.5.0 page shipped `assets/brida-hero.png` and rendered broken.
+        """The 0.5.0 page shipped `assets/brichan-hero.png` and rendered broken.
 
         PyPI resolves relative targets against pypi.org, so any that survive
         into PKG-INFO are a broken image or a dead link on the project page.

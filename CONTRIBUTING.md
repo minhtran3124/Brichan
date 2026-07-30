@@ -2,7 +2,7 @@
 
 ## Development setup
 
-Brida has no third-party Python runtime dependencies. Use Python 3.10 or newer:
+Brichan has no third-party Python runtime dependencies. Use Python 3.10 or newer:
 
 ```bash
 python3 --version

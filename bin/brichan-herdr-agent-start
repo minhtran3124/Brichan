@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Compatibility wrapper for Brichan's balanced Herdr worker launcher."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from brichan.orchestration.worker_launch import (
+    HerdrError,
+    LaunchResolution,
+    ResizeOp,
+    SpawnPlan,
+    _focus_pane,
+    _layout,
+    _members,
+    _opposite,
+    _pane_center,
+    _parse_args,
+    _perpendicular,
+    _resize,
+    _resize_first_side,
+    _resolve_launch,
+    _root_split,
+    _run_json,
+    _split_is_within_group,
+    main,
+    plan_spawn,
+)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

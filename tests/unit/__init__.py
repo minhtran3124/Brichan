@@ -1,1 +1,1 @@
-"""Unit tests for importable Brida modules."""
+"""Unit tests for importable Brichan modules."""

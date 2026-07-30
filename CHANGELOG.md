@@ -1,11 +1,19 @@
 # Changelog
 
-All notable changes to Brida are documented here.
+All notable changes to Brichan are documented here.
 
 The format follows Keep a Changelog principles. The project does not yet claim
 Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
+
+### Changed
+
+- Renamed the importable Python package, console commands, `.brida/` state
+  directory, and `BRIDA_*` environment variables to `brichan`, `brichan-*`,
+  `.brichan/`, and `BRICHAN_*` respectively, matching the `brichan` PyPI
+  distribution name. Entries below this point describe releases made under
+  the prior `brida` name.
 
 ## [0.6.0] - 2026-07-30
 

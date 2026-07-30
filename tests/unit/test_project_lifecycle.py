@@ -10,7 +10,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from brida.lifecycle import (
+from brichan.lifecycle import (
     MUTABLE_PATHS,
     StateKind,
     doctor_lines,
@@ -19,7 +19,7 @@ from brida.lifecycle import (
     inspect_project,
     status_lines,
 )
-from brida.project import ProjectError, find_git_root, project_paths
+from brichan.project import ProjectError, find_git_root, project_paths
 
 
 class ProjectLifecycleTest(unittest.TestCase):
@@ -109,10 +109,10 @@ class ProjectLifecycleTest(unittest.TestCase):
         self.paths.state_root.symlink_to(dangling, target_is_directory=True)
         inspection = inspect_project(self.paths)
         self.assertIs(StateKind.MALFORMED, inspection.kind)
-        self.assertEqual(".brida must not be a symlink", inspection.detail)
+        self.assertEqual(".brichan must not be a symlink", inspection.detail)
         code, lines = initialize_project(self.paths, apply=True)
         self.assertEqual(2, code)
-        self.assertIn(".brida must not be a symlink", lines[0])
+        self.assertIn(".brichan must not be a symlink", lines[0])
         self.assertFalse(dangling.exists())
 
         self.paths.state_root.unlink()
@@ -122,7 +122,7 @@ class ProjectLifecycleTest(unittest.TestCase):
         self.paths.state_root.symlink_to(real_state, target_is_directory=True)
         inspection = inspect_project(self.paths)
         self.assertIs(StateKind.MALFORMED, inspection.kind)
-        self.assertEqual(".brida must not be a symlink", inspection.detail)
+        self.assertEqual(".brichan must not be a symlink", inspection.detail)
 
     def test_symlinked_managed_mutable_and_parent_paths_are_malformed(self):
         initialize_project(self.paths, apply=True)
@@ -161,7 +161,7 @@ class ProjectLifecycleTest(unittest.TestCase):
 
     def test_apply_filesystem_failure_returns_exit_two(self):
         with patch(
-            "brida.lifecycle.tempfile.TemporaryDirectory",
+            "brichan.lifecycle.tempfile.TemporaryDirectory",
             side_effect=PermissionError("reviewer-denied"),
         ):
             code, lines = initialize_project(self.paths, apply=True)
@@ -182,7 +182,7 @@ class ProjectLifecycleTest(unittest.TestCase):
             "state access denied",
             str(self.paths.state_root),
         )
-        with patch("brida.lifecycle.Path.lstat", side_effect=denied):
+        with patch("brichan.lifecycle.Path.lstat", side_effect=denied):
             inspection = inspect_project(self.paths)
             status_code, status_output = status_lines(self.paths)
             doctor_code, doctor_output = doctor_lines(self.paths)
@@ -210,7 +210,7 @@ class ProjectLifecycleTest(unittest.TestCase):
             return original_lstat(path)
 
         with patch(
-            "brida.lifecycle.Path.lstat",
+            "brichan.lifecycle.Path.lstat",
             autospec=True,
             side_effect=inaccessible_manifest,
         ):
@@ -231,7 +231,7 @@ class ProjectLifecycleTest(unittest.TestCase):
 
     def test_doctor_has_deterministic_dependency_exit(self):
         initialize_project(self.paths, apply=True)
-        with patch("brida.lifecycle.shutil.which", return_value=None):
+        with patch("brichan.lifecycle.shutil.which", return_value=None):
             code, lines = doctor_lines(self.paths)
         self.assertEqual(4, code)
         self.assertEqual("codex: missing", lines[2])
@@ -240,7 +240,7 @@ class ProjectLifecycleTest(unittest.TestCase):
         def available(name):
             return f"/opt/fake/{name}"
 
-        with patch("brida.lifecycle.shutil.which", side_effect=available):
+        with patch("brichan.lifecycle.shutil.which", side_effect=available):
             code, lines = doctor_lines(self.paths)
         self.assertEqual(0, code)
         self.assertTrue(lines[2].startswith("codex: ok "))

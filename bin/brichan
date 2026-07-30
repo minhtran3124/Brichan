@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -eu
+
+BRICHAN_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+export BRICHAN_ROOT
+PYTHONPATH="$BRICHAN_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH
+
+exec python3 -m brichan.cli.runtime "$@"
