@@ -5,16 +5,16 @@ an existing top-level Git repository. It is intentionally limited to a
 POSIX-compatible environment, Python 3.10+, and Codex launched through `brida`.
 Herdr is required only when Brida coordinates worker sessions.
 
-The planned PyPI distribution name is `brichan`; it is not published yet. The
-importable Python package stays `brida`, and every console command keeps its
-existing `brida`/`brida-*` name, so a future release installs with:
+The PyPI distribution name is `brichan`. The importable Python package stays
+`brida`, and every console command keeps its existing `brida`/`brida-*` name,
+so a release installs with:
 
 ```bash
 pip install brichan
 ```
 
-Until `brichan` is published, use the package-owned installer or a manual
-wheel build from this checkout, both described below.
+To run a change that is not released yet, use the package-owned installer or a
+manual wheel build from this checkout, both described below.
 
 ## Install without activating an environment
 

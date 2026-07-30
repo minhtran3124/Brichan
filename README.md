@@ -15,12 +15,17 @@ inside an existing top-level Git repository. Installed-project mode currently
 supports Codex on POSIX-compatible systems with Python 3.10+. Herdr is needed
 only when Brida coordinates independent worker sessions.
 
-Brida is not published to a package registry yet; the planned PyPI
-distribution name is `brichan` (`pip install brichan`), while the importable
-package stays `brida` and every console command keeps its existing name.
-Until it is published, build the wheel locally from this repository with the
-installer. It can be invoked from any directory and does not activate or
-modify the target project's virtual environment:
+Brida is published to PyPI as `brichan`, while the importable package stays
+`brida` and every console command keeps its existing name:
+
+```bash
+pip install brichan
+```
+
+To install from this repository instead — for development, or to run a change
+that is not released yet — use the installer. It can be invoked from any
+directory and does not activate or modify the target project's virtual
+environment:
 
 ```bash
 /absolute/path/to/brida/scripts/install-brida

@@ -19,7 +19,7 @@ tasks, delegates those tasks to independent worker agent sessions, verifies
 their evidence, and records durable project state outside of chat history.
 
 - Importable Python package and console commands: `brida`, `brida-*`.
-- Planned distribution name on PyPI: `brichan` (not published yet).
+- Distribution name on PyPI: `brichan`.
 - Supported runtimes: Codex and Claude Code.
 - Worker control plane: Herdr.
 - Runtime dependencies: none beyond the Python standard library (3.10+).

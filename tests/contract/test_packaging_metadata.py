@@ -144,10 +144,15 @@ class SdistBuildTest(unittest.TestCase):
         for heading in ("## Installation", "## Usage", "## Contributing"):
             self.assertIn(heading, pkg_info, heading)
 
-    def test_published_description_states_the_package_is_installable(self):
-        """README.md still says Brida is unpublished; the PyPI page must not."""
+    def test_published_description_does_not_deny_being_published(self):
+        """A page that says it is unpublished contradicts the page it is on."""
         pkg_info = self._pkg_info()
-        self.assertNotIn("not published to a package registry", pkg_info)
+        for claim in (
+            "not published to a package registry",
+            "not published yet",
+            "not yet published",
+        ):
+            self.assertNotIn(claim, pkg_info, claim)
 
 
 if __name__ == "__main__":
