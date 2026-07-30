@@ -14,6 +14,8 @@
 
 | ID | Outcome | Evidence | Completed |
 |---|---|---|---|
+| COMPAT-001 | Audited coexistence with target `.claude`, `.agents`, `.codex`, instruction files, skills, hooks, and wrappers; filesystem-safe but runtime compatibility remains conditional pending live Codex probes | `brida-existing-instructions-compat` / `w27:p5`; `existing-instructions-compatibility-assessment.md`; focused tests and disposable coexistence probe | 2026-07-30 |
+| ARCH-001 | Rust performance migration assessed; recommendation is to retain Python and gate any future selective prototype on measured bottlenecks | `brida-rust-rewrite-research` / `w27:p3`; `rust-migration-assessment.md`; local benchmarks and official sources | 2026-07-30 |
 | INSTALL-001 | Comparable-product and adjacent-tool research | `brida-install-landscape` / `w1X:p34` / Codex Luna; six reverified official comparisons | 2026-07-29 |
 | INSTALL-002 | Current repository installability and coupling audit | `brida-install-repo-audit` / `w1X:p35` / Codex Luna; local capability/gap and path evidence | 2026-07-29 |
 | INSTALL-003 | Install/init/migrate/uninstall lifecycle options | `brida-install-lifecycle` / `w1X:p36` / Codex Luna; options, ownership, rollback, and prototype contract | 2026-07-29 |

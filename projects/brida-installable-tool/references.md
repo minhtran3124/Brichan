@@ -2,9 +2,13 @@
 
 - `projects/brida-installable-tool/handoffs/DOGFOOD-005/receipt.md` — bounded Claude implementation and review receipt for installer prerequisite hardening
 - `projects/brida-installable-tool/handoffs/PYPI-001/receipt.md` — Brichan PyPI-readiness implementation and review receipt
+- `projects/brida-installable-tool/existing-instructions-compatibility-assessment.md` — `.claude`/`.agents`/`.codex` coexistence matrix, controlled probe, risks, and official provider sources
+- `projects/brida-installable-tool/rust-migration-assessment.md` — local benchmarks, migration options, decision gates, and direct sources for the Rust assessment
 
 | Topic | Source | Verified date | Notes |
 |---|---|---|---|
+| Existing agent instructions/config compatibility | `projects/brida-installable-tool/existing-instructions-compatibility-assessment.md`; official provider docs linked there | 2026-07-30 | Filesystem coexistence verified; runtime coexistence remains conditional pending live Codex skill/precedence probes |
+| Rust performance migration | `projects/brida-installable-tool/rust-migration-assessment.md`; official sources linked there | 2026-07-30 | Current Brida-owned command overhead is approximately 50 ms and external agent work dominates |
 | Current package metadata | `pyproject.toml` | 2026-07-29 | Python package and five console entrypoints are declared |
 | Current public setup | `README.md` | 2026-07-29 | Getting started currently uses clone, `make check`, and `bin/brida` |
 | Module boundaries | `docs/architecture/repository-layout.md` | 2026-07-29 | Importable core is separated from repository-owned durable data |

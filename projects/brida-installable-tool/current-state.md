@@ -10,6 +10,15 @@ dogfood in a selected real repository, followed later by 3–5 trusted users.
 
 ## Completed recently
 
+- Audited coexistence with existing target `.claude`, `.agents`, `.codex`,
+  instruction files, skills, hooks, and wrappers. `init` is byte-preserving
+  outside `.brida/`, but runtime compatibility is conditional: `AGENTS.md` and
+  trusted `.codex/config.toml` can participate in Codex, while `.agents/skills`
+  discovery and `skills.config` array layering still need a live-provider probe.
+- Assessed a Rust migration for performance using local Python 3.10.11
+  benchmarks and an independent read-only worker. Current Brida commands are
+  approximately 48–54 ms median; retain Python unless a measured CPU gate is
+  crossed.
 - Compared six products/mechanisms using reverified official sources.
 - Audited current package readiness, repository coupling, lifecycle options,
   security/compatibility risks, positioning, advantages, and disadvantages.
