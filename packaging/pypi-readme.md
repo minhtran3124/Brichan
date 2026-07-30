@@ -135,15 +135,6 @@ Installing `brichan` also provides:
 development, not standalone installed-project launches. `--help` and `--version`
 work from any directory.
 
-## Contributing
-
-1. Fork it (https://github.com/minhtran3124/Brichan/fork)
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Run the validation suite (`make check`)
-4. Commit your changes (`git commit -am 'Add some feature'`)
-5. Push to the branch (`git push origin my-new-feature`)
-6. Create a new Pull Request
-
 ## License
 
 Brichan is available under the [MIT License](https://opensource.org/licenses/MIT).
