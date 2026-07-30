@@ -1,5 +1,10 @@
 # Project index
 
+## Brida installable repository tool
+- Status: active
+- Summary: Codex-first installed vertical slice passed disposable wheel tests and independent review; next validate in one real owner repository.
+- Memory: projects/brida-installable-tool/
+
 ## Brida system validation
 - Status: complete
 - Summary: Local smoke tests for Brida orchestration and Herdr worker lifecycle.

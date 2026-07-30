@@ -1,4 +1,4 @@
-.PHONY: help test test-unit test-contract test-integration metrics receipts path-check phase5-preflight package-check contract-check check
+.PHONY: help release-preview test test-unit test-contract test-integration metrics receipts path-check readme-check phase5-preflight package-check contract-check check
 
 PYTHON ?= python3
 
@@ -11,10 +11,12 @@ help:
 	@echo "  make metrics        Validate and summarize the metrics ledger"
 	@echo "  make receipts       Validate canonical handoff receipts"
 	@echo "  make path-check     Validate repository paths and local Markdown links"
+	@echo "  make readme-check   Rebuild and validate the PyPI long description"
 	@echo "  make phase5-preflight Report compatibility-pointer retirement eligibility"
 	@echo "  make package-check  Compile and import the source package"
 	@echo "  make contract-check Check launcher syntax and repository contracts"
 	@echo "  make check          Run the complete local validation"
+	@echo "  make release-preview Verify and build a PyPI release without uploading"
 
 test:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest metrics/test_validate_metrics.py -v
@@ -41,6 +43,12 @@ receipts:
 path-check:
 	$(PYTHON) scripts/check_repository_paths.py
 
+readme-check:
+	$(PYTHON) scripts/build_pypi_readme.py --check
+
+release-preview:
+	$(PYTHON) scripts/release_pypi.py
+
 phase5-preflight:
 	$(PYTHON) scripts/check_compatibility_retirement.py
 
@@ -52,5 +60,5 @@ package-check:
 contract-check: path-check test-contract
 	sh -n bin/brida
 
-check: test metrics receipts path-check phase5-preflight package-check
+check: test metrics receipts path-check readme-check phase5-preflight package-check
 	sh -n bin/brida

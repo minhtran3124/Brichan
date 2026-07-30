@@ -181,7 +181,13 @@ def settings_path(
         root = Path(env["BRIDA_ROOT"])
     else:
         root = Path(__file__).resolve().parents[3]
-    return root.resolve() / "config" / "model-routing.json"
+    resolved_root = root.resolve()
+    installed_project_settings = (
+        resolved_root / ".brida" / "config" / "model-routing.json"
+    )
+    if installed_project_settings.is_file():
+        return installed_project_settings
+    return resolved_root / "config" / "model-routing.json"
 
 
 def load_settings(

@@ -1,15 +1,31 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "brida-ai-chief-of-staff"
-version = "0.4.0"
+name = "brichan"
+version = "0.6.0"
 description = "Repository-native AI Chief of Staff orchestration"
-readme = "README.md"
+# Generated from README.md by scripts/build_pypi_readme.py; see that module
+# for why the published description cannot just be README.md.
+readme = "README_PYPI.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
 authors = [{name = "Minh Tran"}]
+keywords = ["ai", "orchestration", "codex", "claude-code", "chief-of-staff"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Build Tools",
+]
 dependencies = []
 
 [project.scripts]
@@ -24,3 +40,6 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"brida.resources.dogfood_v1" = ["**/*"]

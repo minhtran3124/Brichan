@@ -84,13 +84,21 @@ class ModelRoutingTest(unittest.TestCase):
             resolve_route(settings, "unknown")
         with self.assertRaisesRegex(RoutingError, "runtime override"):
             resolve_route(settings, "plan", runtime="unknown")
+        implement_runtime = settings.routes["implement"].runtime
+        opposite_runtime = "claude" if implement_runtime == "codex" else "codex"
         with self.assertRaisesRegex(RoutingError, "model override is required"):
-            resolve_route(settings, "implement", runtime="claude")
+            resolve_route(settings, "implement", runtime=opposite_runtime)
 
     def test_codex_ultra_and_unsupported_effort_are_rejected(self):
         settings = parse_settings(manifest_payload())
         with self.assertRaisesRegex(RoutingError, "automatic delegation"):
-            resolve_route(settings, "implement", effort="ultra")
+            resolve_route(
+                settings,
+                "implement",
+                runtime="codex",
+                model="test-codex",
+                effort="ultra",
+            )
         with self.assertRaisesRegex(RoutingError, "unsupported"):
             resolve_route(settings, "implement", effort="impossible")
 
@@ -142,12 +150,17 @@ class ModelRoutingTest(unittest.TestCase):
         self.assertNotEqual(original_plan, changed_plan)
         self.assertIn("changed-planner", changed_plan)
         self.assertNotEqual(original_implement, changed_implement)
-        self.assertIn("model_reasoning_effort=xhigh", changed_implement)
+        changed_route = resolve_route(changed_settings, "implement")
+        if changed_route.runtime == "codex":
+            self.assertIn("model_reasoning_effort=xhigh", changed_implement)
+        else:
+            self.assertIn("--effort", changed_implement)
+            self.assertIn("xhigh", changed_implement)
 
     def test_worker_commands_disable_native_delegation(self):
         settings = parse_settings(manifest_payload())
-        codex = worker_command(resolve_route(settings, "implement"))
-        claude = worker_command(resolve_route(settings, "review"))
+        codex = worker_command(resolve_coordinator(settings, "codex"))
+        claude = worker_command(resolve_coordinator(settings, "claude"))
 
         self.assertIn("agents.enabled=false", codex)
         self.assertEqual(2, codex.count("--disable"))

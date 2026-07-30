@@ -5,10 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from .model_routing import (
@@ -328,7 +330,24 @@ def _resolve_launch(args: argparse.Namespace) -> LaunchResolution:
         # CLI adapter is needed only after a named route has been resolved.
         from brida.cli.provider_commands import worker_command
 
-        settings = load_settings()
+        target_root = Path(args.cwd).expanduser().resolve()
+        target_state = target_root / ".brida"
+        if os.path.lexists(target_state):
+            from brida.lifecycle import StateKind, inspect_project
+            from brida.project import project_paths
+
+            paths = project_paths(explicit=target_root)
+            inspection = inspect_project(paths)
+            if inspection.kind is not StateKind.HEALTHY:
+                raise RoutingError(
+                    f"target project state is {inspection.kind.value}: "
+                    f"{inspection.detail}"
+                )
+            settings = load_settings(
+                paths.state_root / "config" / "model-routing.json"
+            )
+        else:
+            settings = load_settings(repository=target_root)
         route = resolve_route(
             settings,
             args.route,

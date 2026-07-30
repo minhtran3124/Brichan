@@ -1,0 +1,1 @@
+"""Packaged Brida runtime resources."""

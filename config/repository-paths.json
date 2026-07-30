@@ -1,7 +1,8 @@
 {
   "schema_version": 1,
   "ignored_root_files": [
-    ".DS_Store"
+    ".DS_Store",
+    ".env"
   ],
   "entries": [
     {
@@ -41,7 +42,25 @@
       "policy": "stable-root"
     },
     {
+      "path": "packaging/pypi-readme.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "canonical"
+    },
+    {
+      "path": "README_PYPI.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "generated"
+    },
+    {
       "path": "CHANGELOG.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "stable-root"
+    },
+    {
+      "path": "PRODUCT.md",
       "kind": "file",
       "category": "public-entrypoint",
       "policy": "stable-root"
@@ -173,10 +192,28 @@
       "policy": "stable-path"
     },
     {
+      "path": "scripts/build_pypi_readme.py",
+      "kind": "file",
+      "category": "structure-guard",
+      "policy": "stable-path"
+    },
+    {
+      "path": "scripts/release_pypi.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-path"
+    },
+    {
       "path": "scripts/check_compatibility_retirement.py",
       "kind": "file",
       "category": "structure-guard",
       "policy": "stable-path"
+    },
+    {
+      "path": "scripts/install-brida",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-wrapper"
     },
     {
       "path": "config/repository-paths.json",
@@ -197,6 +234,12 @@
       "policy": "canonical"
     },
     {
+      "path": "config/pypi-readme.json",
+      "kind": "file",
+      "category": "runtime-config",
+      "policy": "canonical"
+    },
+    {
       "path": ".codex/config.toml",
       "kind": "file",
       "category": "runtime-config",
@@ -210,6 +253,12 @@
     },
     {
       "path": ".github/workflows/ci.yml",
+      "kind": "file",
+      "category": "ci-entrypoint",
+      "policy": "stable-path"
+    },
+    {
+      "path": ".github/workflows/publish.yml",
       "kind": "file",
       "category": "ci-entrypoint",
       "policy": "stable-path"
@@ -258,6 +307,12 @@
     },
     {
       "path": "src/brida/cli/runtime.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brida/cli/render.py",
       "kind": "file",
       "category": "importable-core",
       "policy": "canonical"
@@ -344,6 +399,10 @@
     },
     {
       "source": "AGENTS.md",
+      "target": "PRODUCT.md"
+    },
+    {
+      "source": "AGENTS.md",
       "target": "projects/index.md"
     },
     {
@@ -367,6 +426,10 @@
     {
       "source": "CLAUDE.md",
       "target": "AGENTS.md"
+    },
+    {
+      "source": "CLAUDE.md",
+      "target": "PRODUCT.md"
     },
     {
       "source": "CLAUDE.md",
