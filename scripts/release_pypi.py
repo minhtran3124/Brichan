@@ -256,19 +256,45 @@ def build_distributions() -> list[Path]:
     return artifacts
 
 
+def isolated_environment() -> dict[str, str]:
+    """os.environ without the variables that leak the source tree in.
+
+    A developer shell often has PYTHONPATH pointing at src/. Inheriting it
+    makes pip treat the checkout's egg-info as an existing installation and
+    skip installing the wheel entirely, and makes the entry point import the
+    source tree instead of the artifact -- so the smoke test would report on
+    code that is not what was built.
+    """
+    environment = dict(os.environ)
+    for variable in ("PYTHONPATH", "PYTHONHOME", "PYTHONSTARTUP"):
+        environment.pop(variable, None)
+    return environment
+
+
 def smoke_install(wheel: Path, version: str) -> None:
     """Install the built wheel somewhere disposable and run its entry point."""
+    clean = isolated_environment()
     with tempfile.TemporaryDirectory(prefix="brichan-release-") as temporary:
         environment = Path(temporary) / "venv"
         venv.create(environment, with_pip=True, clear=True)
         binaries = environment / ("Scripts" if os.name == "nt" else "bin")
-        run([str(binaries / "python"), "-m", "pip", "install", "--quiet", str(wheel)])
+        run(
+            [str(binaries / "python"), "-m", "pip", "install", "--quiet", str(wheel)],
+            env=clean,
+        )
+        entry_point = binaries / "brida"
+        if not entry_point.exists():
+            raise ReleaseError(
+                f"the wheel installed without its console scripts: {entry_point} "
+                "is missing"
+            )
         result = subprocess.run(
-            [str(binaries / "brida"), "--version"],
+            [str(entry_point), "--version"],
             check=False,
             capture_output=True,
             text=True,
             cwd=temporary,
+            env=clean,
         )
         if result.returncode != 0 or version not in result.stdout:
             raise ReleaseError(

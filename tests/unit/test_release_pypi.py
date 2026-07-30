@@ -144,6 +144,29 @@ class GuardTest(unittest.TestCase):
         )
 
 
+class IsolationTest(unittest.TestCase):
+    """The smoke test must exercise the artifact, not the developer's tree."""
+
+    def test_source_tree_variables_are_dropped(self):
+        with mock.patch.dict(
+            "os.environ",
+            {"PYTHONPATH": "/repo/src", "PYTHONHOME": "/x", "PYTHONSTARTUP": "/y"},
+        ):
+            environment = release_pypi.isolated_environment()
+        for variable in ("PYTHONPATH", "PYTHONHOME", "PYTHONSTARTUP"):
+            self.assertNotIn(variable, environment, variable)
+
+    def test_the_rest_of_the_environment_survives(self):
+        with mock.patch.dict("os.environ", {"PATH": "/usr/bin", "HOME": "/home/x"}):
+            environment = release_pypi.isolated_environment()
+        self.assertEqual("/usr/bin", environment["PATH"])
+        self.assertEqual("/home/x", environment["HOME"])
+
+    def test_absent_variables_are_not_an_error(self):
+        with mock.patch.dict("os.environ", {}, clear=True):
+            self.assertEqual({}, release_pypi.isolated_environment())
+
+
 class DefaultsTest(unittest.TestCase):
     def test_preview_is_the_default_and_publishing_is_opt_in(self):
         self.assertFalse(release_pypi.parse_arguments([]).publish)
