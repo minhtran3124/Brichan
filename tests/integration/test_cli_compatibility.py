@@ -55,7 +55,7 @@ class CliCompatibilityTest(unittest.TestCase):
         return json.loads(result.stdout)
 
     def test_codex_wrapper_preserves_flags_and_arguments(self):
-        result = self.run_launcher("brida-codex", "--model", "test")
+        result = self.run_launcher("brichan-codex", "--model", "test")
         self.assertEqual(
             [
                 "-C",
@@ -76,9 +76,9 @@ class CliCompatibilityTest(unittest.TestCase):
 
     def test_claude_wrapper_preserves_model_control_and_root_cwd(self):
         result = self.run_launcher(
-            "brida-claude",
+            "brichan-claude",
             "--verbose",
-            environment={"BRIDA_CLAUDE_COORDINATOR_MODEL": "sonnet"},
+            environment={"BRICHAN_CLAUDE_COORDINATOR_MODEL": "sonnet"},
         )
         self.assertEqual(
             [
@@ -94,17 +94,17 @@ class CliCompatibilityTest(unittest.TestCase):
         self.assertEqual(str(ROOT), result["cwd"])
 
     def test_empty_environment_values_preserve_defaults(self):
-        # A bare prompt, not --help: from a checkout `brida --help` reports
-        # Brida and never reaches the runtime, so it cannot carry this probe.
+        # A bare prompt, not --help: from a checkout `brichan --help` reports
+        # Brichan and never reaches the runtime, so it cannot carry this probe.
         codex = self.run_launcher(
-            "brida",
+            "brichan",
             "probe",
-            environment={"BRIDA_RUNTIME": ""},
+            environment={"BRICHAN_RUNTIME": ""},
         )
         claude = self.run_launcher(
-            "brida-claude",
+            "brichan-claude",
             "--help",
-            environment={"BRIDA_CLAUDE_COORDINATOR_MODEL": ""},
+            environment={"BRICHAN_CLAUDE_COORDINATOR_MODEL": ""},
         )
         self.assertIn("agents.enabled=false", codex["argv"])
         self.assertEqual(
@@ -114,14 +114,14 @@ class CliCompatibilityTest(unittest.TestCase):
 
     def test_explicit_cli_model_and_effort_override_manifest_defaults(self):
         codex = self.run_launcher(
-            "brida-codex",
+            "brichan-codex",
             "--model",
             "explicit-codex",
             "-c",
             "model_reasoning_effort=xhigh",
         )
         claude = self.run_launcher(
-            "brida-claude",
+            "brichan-claude",
             "--model",
             "explicit-claude",
             "--effort",
@@ -142,10 +142,10 @@ class CliCompatibilityTest(unittest.TestCase):
 
     def test_claude_cli_model_beats_environment_and_manifest(self):
         claude = self.run_launcher(
-            "brida-claude",
+            "brichan-claude",
             "--model",
             "explicit-claude",
-            environment={"BRIDA_CLAUDE_COORDINATOR_MODEL": "environment-claude"},
+            environment={"BRICHAN_CLAUDE_COORDINATOR_MODEL": "environment-claude"},
         )
 
         self.assertEqual(1, claude["argv"].count("--model"))
@@ -166,8 +166,8 @@ class CliCompatibilityTest(unittest.TestCase):
             manifest.write_text(json.dumps(payload), encoding="utf-8")
 
             result = self.run_launcher(
-                "brida-codex",
-                environment={"BRIDA_MODEL_ROUTING_FILE": str(manifest)},
+                "brichan-codex",
+                environment={"BRICHAN_MODEL_ROUTING_FILE": str(manifest)},
             )
 
         self.assertIn("changed-coordinator", result["argv"])
@@ -175,9 +175,9 @@ class CliCompatibilityTest(unittest.TestCase):
 
     def test_invalid_coordinator_environment_override_fails(self):
         result = subprocess.run(
-            [str(ROOT / "bin" / "brida-codex"), "--help"],
+            [str(ROOT / "bin" / "brichan-codex"), "--help"],
             cwd=ROOT,
-            env={**os.environ, "BRIDA_MODEL_ROUTING_FILE": "/not/a/manifest.json"},
+            env={**os.environ, "BRICHAN_MODEL_ROUTING_FILE": "/not/a/manifest.json"},
             check=False,
             capture_output=True,
             text=True,
@@ -190,9 +190,9 @@ class CliCompatibilityTest(unittest.TestCase):
             manifest = Path(temporary) / "routing.json"
             manifest.write_text("{", encoding="utf-8")
             result = subprocess.run(
-                [str(ROOT / "bin" / "brida-claude"), "--help"],
+                [str(ROOT / "bin" / "brichan-claude"), "--help"],
                 cwd=ROOT,
-                env={**os.environ, "BRIDA_MODEL_ROUTING_FILE": str(manifest)},
+                env={**os.environ, "BRICHAN_MODEL_ROUTING_FILE": str(manifest)},
                 check=False,
                 capture_output=True,
                 text=True,
@@ -201,14 +201,14 @@ class CliCompatibilityTest(unittest.TestCase):
         self.assertIn("malformed JSON", result.stderr)
 
     def test_dispatcher_routes_both_supported_runtimes(self):
-        codex = self.run_launcher("brida", "--runtime", "codex", "--help")
-        claude = self.run_launcher("brida", "--runtime=claude", "--help")
+        codex = self.run_launcher("brichan", "--runtime", "codex", "--help")
+        claude = self.run_launcher("brichan", "--runtime=claude", "--help")
         self.assertIn("agents.enabled=false", codex["argv"])
         self.assertIn("--disallowed-tools=Task", claude["argv"])
 
     def test_checkout_dispatch_works_from_descendant_directory(self):
         result = self.run_launcher(
-            "brida",
+            "brichan",
             "--runtime",
             "codex",
             "--help",
@@ -217,37 +217,37 @@ class CliCompatibilityTest(unittest.TestCase):
         self.assertIn("agents.enabled=false", result["argv"])
         self.assertEqual(str(ROOT / "tests" / "integration"), result["cwd"])
 
-    def _brida(self, *arguments: str) -> subprocess.CompletedProcess:
+    def _brichan(self, *arguments: str) -> subprocess.CompletedProcess:
         return subprocess.run(
-            [str(ROOT / "bin" / "brida"), *arguments],
+            [str(ROOT / "bin" / "brichan"), *arguments],
             cwd=ROOT,
             check=False,
             capture_output=True,
             text=True,
         )
 
-    def test_checkout_help_reports_brida_not_the_runtime(self):
-        """A checkout has no project to launch into, so --help is about Brida."""
+    def test_checkout_help_reports_brichan_not_the_runtime(self):
+        """A checkout has no project to launch into, so --help is about Brichan."""
         for flag in ("--help", "-h"):
-            result = self._brida(flag)
+            result = self._brichan(flag)
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("usage: brida", result.stdout)
+            self.assertIn("usage: brichan", result.stdout)
             self.assertNotIn("Codex CLI", result.stdout)
 
-    def test_checkout_version_reports_brida_not_the_runtime(self):
+    def test_checkout_version_reports_brichan_not_the_runtime(self):
         for flag in ("--version", "-V"):
-            result = self._brida(flag)
+            result = self._brichan(flag)
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertTrue(result.stdout.startswith("brida "), result.stdout)
+            self.assertTrue(result.stdout.startswith("brichan "), result.stdout)
 
     def test_explicit_runtime_still_forwards_help_to_that_runtime(self):
         """`--runtime codex --help` names a runtime, so it wants its help."""
-        result = self.run_launcher("brida", "--runtime", "codex", "--help")
+        result = self.run_launcher("brichan", "--runtime", "codex", "--help")
         self.assertIn("--help", result["argv"])
 
     def test_dispatcher_rejects_unknown_runtime(self):
         result = subprocess.run(
-            [str(ROOT / "bin" / "brida"), "--runtime", "unknown"],
+            [str(ROOT / "bin" / "brichan"), "--runtime", "unknown"],
             cwd=ROOT,
             check=False,
             capture_output=True,

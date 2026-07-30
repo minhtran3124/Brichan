@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from brida.contracts.receipts import validation as validate_handoff_receipts
+from brichan.contracts.receipts import validation as validate_handoff_receipts
 
 
 class HandoffReceiptValidatorTest(unittest.TestCase):

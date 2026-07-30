@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-LAUNCHER = ROOT / "bin/brida-herdr-agent-start"
+LAUNCHER = ROOT / "bin/brichan-herdr-agent-start"
 
 
 class WorkerRoutingCliTest(unittest.TestCase):
@@ -54,7 +54,7 @@ class WorkerRoutingCliTest(unittest.TestCase):
             f"{self.temp_path}{os.pathsep}{environment['PATH']}"
         )
         environment["FAKE_HERDR_LOG"] = str(self.log_path)
-        environment["BRIDA_MODEL_ROUTING_FILE"] = str(self.manifest_path)
+        environment["BRICHAN_MODEL_ROUTING_FILE"] = str(self.manifest_path)
         return environment
 
     def run_launcher(self, *arguments):
@@ -77,7 +77,7 @@ class WorkerRoutingCliTest(unittest.TestCase):
 
     def common_arguments(self):
         return [
-            "brida-test-worker",
+            "brichan-test-worker",
             "--anchor-pane",
             "p1",
             "--cwd",
@@ -128,7 +128,7 @@ class WorkerRoutingCliTest(unittest.TestCase):
 
     def test_json_dry_run_has_no_herdr_mutation(self):
         result = self.run_launcher(
-            "brida-dry-run",
+            "brichan-dry-run",
             "--cwd",
             str(ROOT),
             "--route",
@@ -148,7 +148,7 @@ class WorkerRoutingCliTest(unittest.TestCase):
 
     def test_human_readable_dry_run_has_no_herdr_mutation(self):
         result = self.run_launcher(
-            "brida-dry-run",
+            "brichan-dry-run",
             "--cwd",
             str(ROOT),
             "--route",

@@ -50,7 +50,7 @@ REPOSITORIES = {
 VERSION_SOURCES = {
     "pyproject.toml": re.compile(r'^(version = ")([^"]+)(")$', re.MULTILINE),
     "VERSION": re.compile(r"\A()(\d[^\s]*)(\s*)\Z"),
-    "src/brida/__init__.py": re.compile(r'^(__version__ = ")([^"]+)(")$', re.MULTILINE),
+    "src/brichan/__init__.py": re.compile(r'^(__version__ = ")([^"]+)(")$', re.MULTILINE),
 }
 
 SEMVER = re.compile(r"\A\d+\.\d+\.\d+([.-]?[0-9A-Za-z.]+)?\Z")
@@ -282,7 +282,7 @@ def smoke_install(wheel: Path, version: str) -> None:
             [str(binaries / "python"), "-m", "pip", "install", "--quiet", str(wheel)],
             env=clean,
         )
-        entry_point = binaries / "brida"
+        entry_point = binaries / "brichan"
         if not entry_point.exists():
             raise ReleaseError(
                 f"the wheel installed without its console scripts: {entry_point} "
@@ -301,7 +301,7 @@ def smoke_install(wheel: Path, version: str) -> None:
                 "the built wheel does not report the released version: "
                 f"{result.stdout.strip() or result.stderr.strip()}"
             )
-    log(f"smoke test passed: brida --version reports {version}")
+    log(f"smoke test passed: brichan --version reports {version}")
 
 
 def upload(artifacts: list[Path], repository: str, token: str) -> None:

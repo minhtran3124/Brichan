@@ -156,25 +156,25 @@
       "policy": "canonical"
     },
     {
-      "path": "bin/brida",
+      "path": "bin/brichan",
       "kind": "file",
       "category": "runtime-entrypoint",
       "policy": "stable-wrapper"
     },
     {
-      "path": "bin/brida-codex",
+      "path": "bin/brichan-codex",
       "kind": "file",
       "category": "runtime-entrypoint",
       "policy": "stable-wrapper"
     },
     {
-      "path": "bin/brida-claude",
+      "path": "bin/brichan-claude",
       "kind": "file",
       "category": "runtime-entrypoint",
       "policy": "stable-wrapper"
     },
     {
-      "path": "bin/brida-herdr-agent-start",
+      "path": "bin/brichan-herdr-agent-start",
       "kind": "file",
       "category": "runtime-entrypoint",
       "policy": "stable-wrapper"
@@ -210,7 +210,7 @@
       "policy": "stable-path"
     },
     {
-      "path": "scripts/install-brida",
+      "path": "scripts/install-brichan",
       "kind": "file",
       "category": "automation-entrypoint",
       "policy": "stable-wrapper"
@@ -306,79 +306,79 @@
       "policy": "frozen"
     },
     {
-      "path": "src/brida/cli/runtime.py",
+      "path": "src/brichan/cli/runtime.py",
       "kind": "file",
       "category": "importable-core",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/cli/render.py",
+      "path": "src/brichan/cli/render.py",
       "kind": "file",
       "category": "importable-core",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/cli/codex.py",
+      "path": "src/brichan/cli/codex.py",
       "kind": "file",
       "category": "provider-adapter",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/cli/claude.py",
+      "path": "src/brichan/cli/claude.py",
       "kind": "file",
       "category": "provider-adapter",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/orchestration/worker_launch.py",
+      "path": "src/brichan/orchestration/worker_launch.py",
       "kind": "file",
       "category": "importable-core",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/orchestration/model_routing.py",
+      "path": "src/brichan/orchestration/model_routing.py",
       "kind": "file",
       "category": "importable-core",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/cli/provider_commands.py",
+      "path": "src/brichan/cli/provider_commands.py",
       "kind": "file",
       "category": "provider-adapter",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/orchestration/layout.py",
+      "path": "src/brichan/orchestration/layout.py",
       "kind": "file",
       "category": "importable-api",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/orchestration/herdr_client.py",
+      "path": "src/brichan/orchestration/herdr_client.py",
       "kind": "file",
       "category": "importable-api",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/contracts/receipts/validation.py",
+      "path": "src/brichan/contracts/receipts/validation.py",
       "kind": "file",
       "category": "importable-core",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/contracts/receipts/schema.py",
+      "path": "src/brichan/contracts/receipts/schema.py",
       "kind": "file",
       "category": "importable-api",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/contracts/receipts/parser.py",
+      "path": "src/brichan/contracts/receipts/parser.py",
       "kind": "file",
       "category": "importable-api",
       "policy": "canonical"
     },
     {
-      "path": "src/brida/contracts/receipts/discovery.py",
+      "path": "src/brichan/contracts/receipts/discovery.py",
       "kind": "file",
       "category": "importable-api",
       "policy": "canonical"
@@ -387,7 +387,7 @@
   "references": [
     {
       "source": "AGENTS.md",
-      "target": "bin/brida"
+      "target": "bin/brichan"
     },
     {
       "source": "AGENTS.md",
@@ -506,7 +506,7 @@
     },
     {
       "source": "Makefile",
-      "target": "bin/brida"
+      "target": "bin/brichan"
     },
     {
       "source": ".github/workflows/ci.yml",
@@ -514,54 +514,54 @@
       "needle": "make check"
     },
     {
-      "source": "bin/brida",
-      "target": "src/brida/cli/runtime.py",
-      "needle": "brida.cli.runtime"
+      "source": "bin/brichan",
+      "target": "src/brichan/cli/runtime.py",
+      "needle": "brichan.cli.runtime"
     },
     {
-      "source": "src/brida/cli/runtime.py",
-      "target": "bin/brida-codex",
-      "needle": "brida-{runtime}"
+      "source": "src/brichan/cli/runtime.py",
+      "target": "bin/brichan-codex",
+      "needle": "brichan-{runtime}"
     },
     {
-      "source": "src/brida/cli/runtime.py",
-      "target": "bin/brida-claude",
-      "needle": "brida-{runtime}"
+      "source": "src/brichan/cli/runtime.py",
+      "target": "bin/brichan-claude",
+      "needle": "brichan-{runtime}"
     },
     {
-      "source": "bin/brida-codex",
-      "target": "src/brida/cli/codex.py",
-      "needle": "brida.cli.codex"
+      "source": "bin/brichan-codex",
+      "target": "src/brichan/cli/codex.py",
+      "needle": "brichan.cli.codex"
     },
     {
-      "source": "bin/brida-claude",
-      "target": "src/brida/cli/claude.py",
-      "needle": "brida.cli.claude"
+      "source": "bin/brichan-claude",
+      "target": "src/brichan/cli/claude.py",
+      "needle": "brichan.cli.claude"
     },
     {
-      "source": "bin/brida-herdr-agent-start",
-      "target": "src/brida/orchestration/worker_launch.py",
-      "needle": "brida.orchestration.worker_launch"
+      "source": "bin/brichan-herdr-agent-start",
+      "target": "src/brichan/orchestration/worker_launch.py",
+      "needle": "brichan.orchestration.worker_launch"
     },
     {
-      "source": "src/brida/orchestration/model_routing.py",
+      "source": "src/brichan/orchestration/model_routing.py",
       "target": "config/model-routing.json",
       "needle": "model-routing.json"
     },
     {
-      "source": "src/brida/orchestration/worker_launch.py",
-      "target": "src/brida/orchestration/model_routing.py",
+      "source": "src/brichan/orchestration/worker_launch.py",
+      "target": "src/brichan/orchestration/model_routing.py",
       "needle": "model_routing"
     },
     {
-      "source": "src/brida/orchestration/worker_launch.py",
-      "target": "src/brida/cli/provider_commands.py",
+      "source": "src/brichan/orchestration/worker_launch.py",
+      "target": "src/brichan/cli/provider_commands.py",
       "needle": "provider_commands"
     },
     {
       "source": "scripts/validate_handoff_receipts.py",
-      "target": "src/brida/contracts/receipts/validation.py",
-      "needle": "brida.contracts.receipts.validation"
+      "target": "src/brichan/contracts/receipts/validation.py",
+      "needle": "brichan.contracts.receipts.validation"
     },
     {
       "source": "tests/contract/test_repository_contract.py",
@@ -581,19 +581,19 @@
     },
     {
       "source": "tests/contract/test_repository_contract.py",
-      "target": "bin/brida"
+      "target": "bin/brichan"
     },
     {
       "source": "tests/contract/test_repository_contract.py",
-      "target": "bin/brida-codex"
+      "target": "bin/brichan-codex"
     },
     {
       "source": "tests/contract/test_repository_contract.py",
-      "target": "bin/brida-claude"
+      "target": "bin/brichan-claude"
     },
     {
       "source": "tests/contract/test_repository_contract.py",
-      "target": "bin/brida-herdr-agent-start"
+      "target": "bin/brichan-herdr-agent-start"
     },
     {
       "source": "tests/contract/test_repository_contract.py",

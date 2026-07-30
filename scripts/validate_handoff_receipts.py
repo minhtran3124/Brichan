@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility wrapper for Brida's receipt validator."""
+"""Compatibility wrapper for Brichan's receipt validator."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from brida.contracts.receipts.validation import main
+from brichan.contracts.receipts.validation import main
 
 
 if __name__ == "__main__":

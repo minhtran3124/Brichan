@@ -3,7 +3,7 @@ import io
 import re
 import unittest
 
-from brida.cli.render import (
+from brichan.cli.render import (
     DOCTOR_DESCRIPTION,
     INIT_DESCRIPTION,
     INIT_SUBTITLE,
@@ -12,13 +12,13 @@ from brida.cli.render import (
     format_init,
     resolve_style,
 )
-from brida.cli import runtime
-from brida.lifecycle import documented_footprint
+from brichan.cli import runtime
+from brichan.lifecycle import documented_footprint
 
 
-FOOTPRINT = [f"create .brida/{path}" for path in documented_footprint()]
+FOOTPRINT = [f"create .brichan/{path}" for path in documented_footprint()]
 DRY_RUN = ["dry-run: zero writes", *FOOTPRINT]
-APPLIED = ["initialized: /repo/.brida", *FOOTPRINT]
+APPLIED = ["initialized: /repo/.brichan", *FOOTPRINT]
 
 FANCY = Style(color=True, unicode=True)
 PLAIN = Style(color=False, unicode=False)
@@ -84,8 +84,8 @@ class PlainOutputContractTest(unittest.TestCase):
 
     def test_results_without_create_lines_are_never_reformatted(self):
         for lines in (
-            ["no changes: /repo/.brida is already healthy"],
-            ["malformed: /repo/.brida: manifest contains malformed JSON"],
+            ["no changes: /repo/.brichan is already healthy"],
+            ["malformed: /repo/.brichan: manifest contains malformed JSON"],
         ):
             self.assertEqual(
                 lines,
@@ -147,7 +147,7 @@ class TreeRenderTest(unittest.TestCase):
         text = "\n".join(self.render())
         self.assertIn("15 files", text)
         self.assertIn("zero writes", text)
-        self.assertIn("brida init --apply", text)
+        self.assertIn("brichan init --apply", text)
 
     def test_apply_footer_reports_creation_and_drops_the_hint(self):
         text = "\n".join(self.render(APPLIED, apply=True))
@@ -156,7 +156,7 @@ class TreeRenderTest(unittest.TestCase):
 
     def test_single_file_is_not_pluralised(self):
         text = "\n".join(
-            self.render(["dry-run: zero writes", "create .brida/manifest.json"])
+            self.render(["dry-run: zero writes", "create .brichan/manifest.json"])
         )
         self.assertIn("1 file ", text + " ")
         self.assertNotIn("1 files", text)
@@ -225,7 +225,7 @@ class LifecycleHelpTest(unittest.TestCase):
             self.assertIn(code, STATUS_DESCRIPTION, code)
 
     def test_doctor_description_names_what_it_probes(self):
-        for probe in ("codex", "herdr", ".brida/"):
+        for probe in ("codex", "herdr", ".brichan/"):
             self.assertIn(probe, DOCTOR_DESCRIPTION, probe)
 
     def test_read_only_commands_promise_not_to_write(self):

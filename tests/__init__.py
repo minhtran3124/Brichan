@@ -1,1 +1,1 @@
-"""Brida test suites."""
+"""Brichan test suites."""

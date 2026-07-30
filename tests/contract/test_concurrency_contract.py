@@ -192,7 +192,7 @@ class ConcurrencyContractTest(unittest.TestCase):
             "Escalate after the one-replacement limit is exhausted.",
             "Preserve the original session and pane evidence before replacement.",
             "Do not rewrite or discard evidence from the original session.",
-            "Close only panes that Brida created and recorded.",
+            "Close only panes that Brichan created and recorded.",
         )
         for policy in policies:
             self.assert_policy(

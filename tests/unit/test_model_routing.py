@@ -9,14 +9,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from brida.orchestration.model_routing import (
+from brichan.orchestration.model_routing import (
     RoutingError,
     load_settings,
     parse_settings,
     resolve_coordinator,
     resolve_route,
 )
-from brida.cli.provider_commands import (
+from brichan.cli.provider_commands import (
     codex_command,
     claude_command,
     secure_legacy_command,

@@ -6,8 +6,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "bin" / "brida-herdr-agent-start"
-LOADER = SourceFileLoader("brida_herdr_layout", str(SCRIPT))
+SCRIPT = ROOT / "bin" / "brichan-herdr-agent-start"
+LOADER = SourceFileLoader("brichan_herdr_layout", str(SCRIPT))
 SPEC = importlib.util.spec_from_loader(LOADER.name, LOADER)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -36,7 +36,7 @@ class HerdrLayoutPlannerTest(unittest.TestCase):
     def test_cli_accepts_herdr_style_name_then_options(self):
         args = MODULE._parse_args(
             [
-                "brida-review",
+                "brichan-review",
                 "--anchor-pane",
                 "w1:p1",
                 "--cwd",
@@ -48,7 +48,7 @@ class HerdrLayoutPlannerTest(unittest.TestCase):
             ]
         )
 
-        self.assertEqual("brida-review", args.name)
+        self.assertEqual("brichan-review", args.name)
         self.assertEqual("w1:p1", args.anchor_pane)
         self.assertEqual("/tmp/project", args.cwd)
         self.assertEqual(["codex", "--disable", "multi_agent"], args.argv)

@@ -1,4 +1,4 @@
-# Brida documentation
+# Brichan documentation
 
 ## Policy
 

@@ -1,6 +1,6 @@
 ---
 name: herdr-orchestration
-description: Coordinate independent Codex or other coding-agent sessions through Herdr with bounded task packets, explicit model routing, status monitoring, evidence collection, and safe cleanup. Use whenever Brida delegates project research, implementation, testing, debugging, or review to a worker agent, or needs to inspect and manage a Brida-owned Herdr session.
+description: Coordinate independent Codex or other coding-agent sessions through Herdr with bounded task packets, explicit model routing, status monitoring, evidence collection, and safe cleanup. Use whenever Brichan delegates project research, implementation, testing, debugging, or review to a worker agent, or needs to inspect and manage a Brichan-owned Herdr session.
 ---
 
 # Herdr Orchestration
@@ -15,7 +15,7 @@ or automatic delegation as a substitute for Herdr.
 3. Read `references/commands.md`, select a named route from
    `../../../config/model-routing.json`, and use
    `../../../docs/policy/model-catalog.md` only as capability guidance.
-4. Start a uniquely named `brida-` worker with the balanced-layout wrapper in
+4. Start a uniquely named `brichan-` worker with the balanced-layout wrapper in
    the intended project directory.
 5. Record its agent name, pane ID, model, task, and status in project `tasks.md`.
 6. Send the task packet and monitor status without busy-polling.
@@ -23,7 +23,7 @@ or automatic delegation as a substitute for Herdr.
    escalate to the user.
 8. Collect the final output, diff, tests, and other required evidence.
 9. Check acceptance criteria; invoke an independent reviewer when required.
-10. Update project memory, then close only the pane Brida created.
+10. Update project memory, then close only the pane Brichan created.
 
 ## Preconditions
 
@@ -51,7 +51,7 @@ project's `references.md`.
 
 - Run `herdr agent list` before creating or closing anything.
 - Never reuse or close an unrelated existing pane.
-- Keep a record of Brida-owned pane IDs.
+- Keep a record of Brichan-owned pane IDs.
 - Do not place secrets in prompts, names, environment variables, or logs.
 - Do not use permission-bypass flags.
 - Do not let a worker spawn further agents.

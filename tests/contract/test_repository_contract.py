@@ -19,11 +19,11 @@ class RepositoryContractTest(unittest.TestCase):
             "LICENSE",
             "VERSION",
             "pyproject.toml",
-            "bin/brida",
-            "bin/brida-codex",
-            "bin/brida-claude",
-            "bin/brida-herdr-agent-start",
-            "scripts/install-brida",
+            "bin/brichan",
+            "bin/brichan-codex",
+            "bin/brichan-claude",
+            "bin/brichan-herdr-agent-start",
+            "scripts/install-brichan",
             "CLAUDE.md",
             "docs/index.md",
             "docs/policy/identity.md",
@@ -33,11 +33,11 @@ class RepositoryContractTest(unittest.TestCase):
             "docs/policy/reviewer.md",
             "docs/history/setup-status.md",
             "docs/architecture/repository-layout.md",
-            "src/brida/contracts/receipts/validation.py",
-            "src/brida/orchestration/worker_launch.py",
-            "src/brida/orchestration/model_routing.py",
-            "src/brida/cli/provider_commands.py",
-            "src/brida/cli/runtime.py",
+            "src/brichan/contracts/receipts/validation.py",
+            "src/brichan/orchestration/worker_launch.py",
+            "src/brichan/orchestration/model_routing.py",
+            "src/brichan/cli/provider_commands.py",
+            "src/brichan/cli/runtime.py",
             "config/model-routing.json",
             ".codex/config.toml",
             ".agents/skills/herdr-orchestration/references/handoff-receipt.md",
@@ -149,10 +149,10 @@ class RepositoryContractTest(unittest.TestCase):
 
     def test_launcher_is_executable_and_valid_shell(self):
         for name in (
-            "bin/brida",
-            "bin/brida-codex",
-            "bin/brida-claude",
-            "scripts/install-brida",
+            "bin/brichan",
+            "bin/brichan-codex",
+            "bin/brichan-claude",
+            "scripts/install-brichan",
         ):
             launcher = ROOT / name
             self.assertTrue(os.access(launcher, os.X_OK))
@@ -166,7 +166,7 @@ class RepositoryContractTest(unittest.TestCase):
             self.assertEqual(0, result.returncode)
 
     def test_balanced_herdr_launcher_is_executable_python(self):
-        launcher = ROOT / "bin/brida-herdr-agent-start"
+        launcher = ROOT / "bin/brichan-herdr-agent-start"
         self.assertTrue(os.access(launcher, os.X_OK))
         compile(
             launcher.read_text(encoding="utf-8"),
@@ -176,7 +176,7 @@ class RepositoryContractTest(unittest.TestCase):
 
     def test_launcher_disables_native_agents(self):
         providers = (
-            ROOT / "src/brida/cli/provider_commands.py"
+            ROOT / "src/brichan/cli/provider_commands.py"
         ).read_text(encoding="utf-8")
         self.assertIn('"agents.enabled=false"', providers)
         self.assertIn('"multi_agent"', providers)
@@ -185,22 +185,22 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertNotIn("agents.enabled=true", providers)
 
     def test_runtime_dispatcher_supports_only_approved_runtimes(self):
-        dispatcher = (ROOT / "src/brida/cli/runtime.py").read_text(
+        dispatcher = (ROOT / "src/brichan/cli/runtime.py").read_text(
             encoding="utf-8"
         )
         routing = (
-            ROOT / "src/brida/orchestration/model_routing.py"
+            ROOT / "src/brichan/orchestration/model_routing.py"
         ).read_text(encoding="utf-8")
-        self.assertIn('environment.get("BRIDA_RUNTIME") or default_runtime', dispatcher)
+        self.assertIn('environment.get("BRICHAN_RUNTIME") or default_runtime', dispatcher)
         self.assertIn('{"codex", "claude"}', routing)
         self.assertIn("settings.default_runtime", dispatcher)
-        self.assertIn('f"brida-{runtime}"', dispatcher)
+        self.assertIn('f"brichan-{runtime}"', dispatcher)
         self.assertIn("unsupported runtime", dispatcher)
 
     def test_claude_launcher_keeps_herdr_as_worker_control_plane(self):
-        adapter = (ROOT / "src/brida/cli/claude.py").read_text(encoding="utf-8")
+        adapter = (ROOT / "src/brichan/cli/claude.py").read_text(encoding="utf-8")
         self.assertIn(
-            'environment.get("BRIDA_CLAUDE_COORDINATOR_MODEL") or None',
+            'environment.get("BRICHAN_CLAUDE_COORDINATOR_MODEL") or None',
             adapter,
         )
         self.assertIn("claude_command", adapter)
@@ -251,7 +251,7 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("docs/policy/operating-principles.md", instructions)
         self.assertIn("docs/policy/memory-policy.md", instructions)
         self.assertIn("Herdr", instructions)
-        self.assertIn("brida-", instructions)
+        self.assertIn("brichan-", instructions)
 
     def test_retired_root_policy_pointers_are_absent(self):
         canonical_paths = {
@@ -277,7 +277,7 @@ class RepositoryContractTest(unittest.TestCase):
         version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-        package = (ROOT / "src/brida/__init__.py").read_text(encoding="utf-8")
+        package = (ROOT / "src/brichan/__init__.py").read_text(encoding="utf-8")
         self.assertRegex(version, r"^\d+\.\d+\.\d+$")
         self.assertIn(f"## [{version}]", changelog)
         self.assertIn(f'version = "{version}"', pyproject)

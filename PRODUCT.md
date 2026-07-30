@@ -1,7 +1,7 @@
 # Product definition
 
 This document exists so that any coding agent working in this repository can
-understand what Brida is, what it is for, and which properties must survive
+understand what Brichan is, what it is for, and which properties must survive
 every change. Read it before proposing architecture, adding features, or
 changing operating contracts.
 
@@ -11,14 +11,14 @@ runtime policy lives under `docs/policy/`; see
 
 Last verified: 2026-07-29 (package version 0.5.0).
 
-## 1. What Brida is
+## 1. What Brichan is
 
-Brida is an **AI Chief of Staff for coding agents**. The user states an
-outcome; Brida holds the project context, converts the outcome into bounded
+Brichan is an **AI Chief of Staff for coding agents**. The user states an
+outcome; Brichan holds the project context, converts the outcome into bounded
 tasks, delegates those tasks to independent worker agent sessions, verifies
 their evidence, and records durable project state outside of chat history.
 
-- Importable Python package and console commands: `brida`, `brida-*`.
+- Importable Python package and console commands: `brichan`, `brichan-*`.
 - Distribution name on PyPI: `brichan`.
 - Supported runtimes: Codex and Claude Code.
 - Worker control plane: Herdr.
@@ -30,7 +30,7 @@ A single coding-agent session degrades on long-horizon work: context is
 consumed by exploration, decisions disappear into chat scrollback, and claimed
 completion is not distinguishable from verified completion.
 
-Brida's answer is a coordinator role with three hard commitments:
+Brichan's answer is a coordinator role with three hard commitments:
 
 1. **Context economy** — the coordinator reads progressively and delegates work
    that would otherwise flood its own context.
@@ -58,7 +58,7 @@ Do not add these unless the user explicitly asks and authorizes them:
 - Windows support, broad multi-platform or broad repository-shape support.
 - Automatic mutation of a target repository's `AGENTS.md`, `CLAUDE.md`,
   `.codex/`, or provider configuration.
-- Automatic repair or migration of `.brida/` state (schema v1 is deliberately
+- Automatic repair or migration of `.brichan/` state (schema v1 is deliberately
   migration-free).
 - Publishing, deploying, remote-state changes, permission broadening, or secret
   access performed without explicit user authorization.
@@ -68,13 +68,13 @@ Do not add these unless the user explicitly asks and authorizes them:
 
 ```text
 User      vision, priorities, trade-offs, final authority
-  └── Brida     context, planning, routing, delegation, verification, memory
+  └── Brichan     context, planning, routing, delegation, verification, memory
         └── Workers   research, implementation, testing, debugging, review
 ```
 
-Brida is the delegated project coordinator. Brida is **not** the human user and
+Brichan is the delegated project coordinator. Brichan is **not** the human user and
 must never present itself as such to a worker. Workers are independent
-main-agent sessions with `brida-` name prefixes, bounded task packets, and
+main-agent sessions with `brichan-` name prefixes, bounded task packets, and
 required acceptance evidence.
 
 Success is the user's intent surviving delegation with a verified result — not
@@ -95,31 +95,31 @@ the number of agents that were running.
 6. Check acceptance criteria; use an independent reviewer for material changes.
 7. Update durable project memory.
 8. Report in the fixed order defined by the operating principles, then close
-   only Brida-owned panes.
+   only Brichan-owned panes.
 
 ### 6.2 Two operating modes
 
-**Checkout mode** — used for developing Brida itself and for Claude Code.
-Launch with `bin/brida` or `bin/brida --runtime claude`. Policy, project
+**Checkout mode** — used for developing Brichan itself and for Claude Code.
+Launch with `bin/brichan` or `bin/brichan --runtime claude`. Policy, project
 memory, and configuration are repository-owned.
 
-**Installed-project mode** — the current dogfood product shape. Brida is
+**Installed-project mode** — the current dogfood product shape. Brichan is
 installed as a package and initializes an existing top-level Git repository:
 
 ```bash
-/absolute/path/to/brida/scripts/install-brida
-brida init --project /absolute/path/to/repository          # dry-run, zero writes
-brida init --apply --project /absolute/path/to/repository  # creates .brida/
-brida status  --project /absolute/path/to/repository
-brida doctor  --project /absolute/path/to/repository
-brida run     --project /absolute/path/to/repository -- <codex arguments>
+/absolute/path/to/brichan/scripts/install-brichan
+brichan init --project /absolute/path/to/repository          # dry-run, zero writes
+brichan init --apply --project /absolute/path/to/repository  # creates .brichan/
+brichan status  --project /absolute/path/to/repository
+brichan doctor  --project /absolute/path/to/repository
+brichan run     --project /absolute/path/to/repository -- <codex arguments>
 ```
 
 Installed mode currently supports **Codex on POSIX with Python 3.10+**. It
-writes only a versioned `.brida/` directory (manifest, managed policy, model
+writes only a versioned `.brichan/` directory (manifest, managed policy, model
 routing, Herdr skill resources, mutable project memory) and leaves every
 pre-existing file untouched. It launches external `codex` directly and never
-executes target-owned `bin/brida-*` wrappers.
+executes target-owned `bin/brichan-*` wrappers.
 
 ### 6.3 Safety posture of the launcher
 
@@ -127,7 +127,7 @@ The installed entrypoint rejects, before launch: native delegation, permission
 bypasses, cwd/scope widening, profiles, remote execution, and arbitrary
 provider configuration ahead of `--`. Text after `--` is literal prompt
 content. State diagnostics refuse malformed, dangling, symlinked, inaccessible,
-or incompatible `.brida/` state instead of silently repairing it.
+or incompatible `.brichan/` state instead of silently repairing it.
 
 Any change that weakens one of these must be treated as a material change:
 independent review is required.
@@ -138,11 +138,11 @@ These are the load-bearing contracts. Changing one changes the product.
 
 | Contract | Where | What it guarantees |
 | --- | --- | --- |
-| Identity and authority | [`docs/policy/identity.md`](docs/policy/identity.md) | What Brida may do unattended vs. must ask about |
+| Identity and authority | [`docs/policy/identity.md`](docs/policy/identity.md) | What Brichan may do unattended vs. must ask about |
 | Operating principles | [`docs/policy/operating-principles.md`](docs/policy/operating-principles.md) | Clarify → delegate → route → verify → record → report |
 | Project memory | [`docs/policy/memory-policy.md`](docs/policy/memory-policy.md) | Progressive reads, selective writes, size targets |
 | Model routing | [`config/model-routing.json`](config/model-routing.json), [`docs/guides/model-routing.md`](docs/guides/model-routing.md) | Settings-driven coordinator defaults and `plan`/`implement`/`review`/`scan` routes |
-| Worker lifecycle | [`.agents/skills/herdr-orchestration/SKILL.md`](.agents/skills/herdr-orchestration/SKILL.md) | Task packets, `brida-` naming, pane ownership, cleanup |
+| Worker lifecycle | [`.agents/skills/herdr-orchestration/SKILL.md`](.agents/skills/herdr-orchestration/SKILL.md) | Task packets, `brichan-` naming, pane ownership, cleanup |
 | Handoff receipts | [`scripts/validate_handoff_receipts.py`](scripts/validate_handoff_receipts.py) | Machine-validated evidence for accepted plans and multi-writer work |
 | Independent review | [`docs/policy/reviewer.md`](docs/policy/reviewer.md) | Fresh session, preferably a different model family |
 | Repository structure | [`config/repository-paths.json`](config/repository-paths.json) | Inventoried paths and valid local Markdown links |
@@ -161,10 +161,10 @@ PRODUCT.md             this file: product intent and guardrails
 docs/policy/           normative runtime policy (canonical)
 docs/guides/           model routing, installed Codex dogfood
 docs/architecture/     module boundaries
-src/brida/cli/         runtime dispatch and Codex/Claude adapters
-src/brida/orchestration/  Herdr layout, launch, model routing
-src/brida/contracts/   receipt schema, parser, discovery, validation
-src/brida/resources/   packaged dogfood_v1 policy, skills, memory templates
+src/brichan/cli/         runtime dispatch and Codex/Claude adapters
+src/brichan/orchestration/  Herdr layout, launch, model routing
+src/brichan/contracts/   receipt schema, parser, discovery, validation
+src/brichan/resources/   packaged dogfood_v1 policy, skills, memory templates
 bin/, scripts/         stable wrappers; bootstrap only, delegate to src/
 config/                repository paths, model routing, retirement gates
 projects/, evals/, metrics/   durable data and evidence; never imported by src/
@@ -221,7 +221,7 @@ Before proposing or merging a change, confirm all of the following:
 - [ ] It does not widen permissions, scope, or provider configuration
       implicitly.
 - [ ] It does not mutate user-owned files in a target repository outside
-      `.brida/`.
+      `.brichan/`.
 - [ ] It does not silently repair or migrate state.
 - [ ] It does not report completion without evidence, or record unverified
       claims as durable memory.
@@ -246,14 +246,14 @@ user decide.
 
 ## Glossary
 
-- **Coordinator** — the Brida session that plans, routes, verifies, and records.
+- **Coordinator** — the Brichan session that plans, routes, verifies, and records.
 - **Worker** — an independent main-agent session created through Herdr, named
-  `brida-*`, given one bounded task packet.
+  `brichan-*`, given one bounded task packet.
 - **Task packet** — the complete assignment: objective, scope and exclusions,
   deliverables, acceptance criteria, permissions, escalation conditions, route.
 - **Receipt** — a validated Markdown record of a handoff, mandatory for
   accepted-plan and multi-writer tasks.
 - **Route** — a named settings entry (`plan`, `implement`, `review`, `scan`)
   resolving to a runtime, model, and reasoning effort.
-- **Checkout mode / installed-project mode** — the two ways Brida runs; see §6.2.
+- **Checkout mode / installed-project mode** — the two ways Brichan runs; see §6.2.
 - **Dogfood** — the current single-owner validation stage that gates expansion.

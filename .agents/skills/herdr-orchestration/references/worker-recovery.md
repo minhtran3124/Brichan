@@ -1,6 +1,6 @@
 # Worker recovery
 
-Use this policy when a Brida-owned worker appears blocked or stops making
+Use this policy when a Brichan-owned worker appears blocked or stops making
 progress.
 
 ## Evidence before stale status
@@ -34,6 +34,6 @@ killer, scheduler, or process termination policy from these rules.
 
 ## Cleanup
 
-Close only panes that Brida created and recorded. Preserve the pane status,
+Close only panes that Brichan created and recorded. Preserve the pane status,
 recent-output evidence, task result, and replacement decision before cleanup.
 Never close an unrelated pane.

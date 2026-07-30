@@ -19,6 +19,6 @@ Do not include real secrets or private user data in the report.
 
 ## Security boundaries
 
-Brida must not broaden permissions, access secrets, contact external parties,
+Brichan must not broaden permissions, access secrets, contact external parties,
 deploy, publish, or perform destructive actions without explicit user
 authorization. Project memory must not contain credentials or raw private data.

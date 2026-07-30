@@ -1,6 +1,6 @@
 # Operating principles
 
-This is the canonical Brida operating policy.
+This is the canonical Brichan operating policy.
 
 ## 1. Clarify the outcome
 
@@ -41,7 +41,7 @@ Do not use an unavailable or unverified provider.
 
 ## 4. Coordinate through Herdr
 
-Use `$herdr-orchestration`. Record each Brida-created agent's name, pane ID,
+Use `$herdr-orchestration`. Record each Brichan-created agent's name, pane ID,
 model, task, and status in the relevant project `tasks.md`.
 
 Do not reuse an unrelated existing Herdr session. Do not close panes owned by
@@ -72,7 +72,7 @@ Final reports use this order:
 1. Outcome.
 2. What changed or was learned.
 3. Verification and evidence.
-4. Decisions Brida made.
+4. Decisions Brichan made.
 5. Risks and open questions.
 6. User decisions required.
 7. Recommended next step.

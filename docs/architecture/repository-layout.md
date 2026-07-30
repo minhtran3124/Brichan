@@ -1,24 +1,24 @@
 # Repository layout
 
-Brida uses stable repository adapters around an importable Python core.
+Brichan uses stable repository adapters around an importable Python core.
 
 ```text
 AGENTS.md / CLAUDE.md ──> docs/policy/
-bin/ and scripts/ ──────> brida.cli / brida.contracts
-brida.cli ──────────────> provider adapters
-brida.orchestration ────> Herdr process and layout behavior
+bin/ and scripts/ ──────> brichan.cli / brichan.contracts
+brichan.cli ──────────────> provider adapters
+brichan.orchestration ────> Herdr process and layout behavior
 projects/evals/metrics    durable data; never imported by the core
 ```
 
 ## Boundaries
 
 - `bin/` and `scripts/` are compatibility paths. They contain only bootstrap
-  logic and delegate to `src/brida/`.
-- `src/brida/contracts/receipts/` exposes schema, parser, discovery, and
+  logic and delegate to `src/brichan/`.
+- `src/brichan/contracts/receipts/` exposes schema, parser, discovery, and
   validation APIs.
-- `src/brida/orchestration/` owns provider-neutral layout and Herdr launch
+- `src/brichan/orchestration/` owns provider-neutral layout and Herdr launch
   behavior.
-- `src/brida/cli/` owns runtime dispatch and the Codex/Claude adapters.
+- `src/brichan/cli/` owns runtime dispatch and the Codex/Claude adapters.
 - `projects/`, `evals/`, and `metrics/` are data and evidence. Importable
   modules must not depend on them.
 

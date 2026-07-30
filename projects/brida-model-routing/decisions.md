@@ -73,3 +73,39 @@
 - Evidence:
   `projects/brida-model-routing/handoffs/ROUTING-REVIEW-002/receipt.md`
 - Supersedes: null
+
+## 2026-07-30 — Review route may share the Codex coordinator model
+
+- Status: accepted
+- Context: The active manifest routes review to Codex `gpt-5.6-sol`, which is
+  also the Codex coordinator default, while reviewer policy prefers
+  cross-provider independence for review.
+- Decision: Accept this as a deliberate current routing choice. Reviewer
+  policy's fresh-session and no-implementation-context rules still apply to
+  every review worker.
+- Rationale: Review remains cross-provider relative to the Claude implement
+  route; sharing the coordinator's model is a capability choice, not a loss of
+  implementer independence.
+- Trade-offs: A coordinator-biased blind spot is possible when the coordinator
+  also authored the task packet under review.
+- Owner: Brida
+- Evidence: `config/model-routing.json`
+- Supersedes: null
+
+## 2026-07-30 — Model catalog must not restate active routing state
+
+- Status: accepted
+- Context: Every routing change previously required rewriting the
+  `docs/policy/model-catalog.md` "Routed use" column and routing narrative,
+  and forgetting caused silent drift between the catalog and the manifest.
+- Decision: `docs/policy/model-catalog.md` describes provider and model
+  capabilities only. Active route and coordinator assignments live only in
+  `config/model-routing.json`; route-state rationale is recorded here in
+  decisions, not in the catalog.
+- Rationale: Eliminating the duplication removes both the drift risk and the
+  maintenance burden instead of synchronizing them.
+- Trade-offs: Reading the current assignments requires opening the manifest or
+  a `--dry-run` launch instead of prose.
+- Owner: Brida
+- Evidence: `docs/policy/model-catalog.md`
+- Supersedes: null

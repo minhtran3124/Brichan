@@ -23,11 +23,11 @@ Resolve the coordinator pane once before starting a related worker group:
 herdr pane current --current
 ```
 
-Copy its `pane_id` as `<coordinator-pane-id>`. Start workers through Brida's
+Copy its `pane_id` as `<coordinator-pane-id>`. Start workers through Brichan's
 wrapper so the coordinator tab stays balanced:
 
 ```text
-bin/brida-herdr-agent-start <brida-name> \
+bin/brichan-herdr-agent-start <brichan-name> \
   --anchor-pane <coordinator-pane-id> \
   --cwd <absolute-project-path> \
   --route <plan|implement|review|scan>
@@ -39,7 +39,7 @@ manifest. Use `--dry-run` for a shell-readable command or `--json` for a
 machine-readable resolution; both paths validate without calling Herdr:
 
 ```text
-bin/brida-herdr-agent-start <brida-name> \
+bin/brichan-herdr-agent-start <brichan-name> \
   --cwd <absolute-project-path> \
   --route review \
   --runtime codex \
@@ -48,7 +48,7 @@ bin/brida-herdr-agent-start <brida-name> \
   --json
 ```
 
-Use a unique name beginning with `brida-`. The launcher rejects unsupported
+Use a unique name beginning with `brichan-`. The launcher rejects unsupported
 runtimes and efforts, Codex `ultra`, arbitrary settings, native-agent options,
 and permission-bypass controls before Herdr mutation.
 
@@ -57,7 +57,7 @@ and permission-bypass controls before Herdr mutation.
 The explicit provider command remains available during migration:
 
 ```text
-bin/brida-herdr-agent-start <brida-name> \
+bin/brichan-herdr-agent-start <brichan-name> \
   --anchor-pane <coordinator-pane-id> \
   --cwd <absolute-project-path> \
   -- codex --model <verified-model>
@@ -93,8 +93,8 @@ and accidentally spawning a duplicate.
 ## Resolve and instruct
 
 ```text
-herdr agent get <brida-name>
-herdr agent read <brida-name> --source recent-unwrapped --lines 200 --format text
+herdr agent get <brichan-name>
+herdr agent read <brichan-name> --source recent-unwrapped --lines 200 --format text
 ```
 
 Resolve the returned `pane_id`. To enter prompt text into the active agent UI
@@ -114,7 +114,7 @@ explicit key was sent. After `herdr pane run`, confirm the worker actually
 started:
 
 ```text
-herdr agent get <brida-name>
+herdr agent get <brichan-name>
 herdr pane send-keys <pane-id> Enter
 ```
 
@@ -125,14 +125,14 @@ packet was never submitted, not that the task finished.
 ## Monitor
 
 ```text
-herdr agent wait <brida-name> --status idle --timeout 30000
-herdr agent get <brida-name>
-herdr agent read <brida-name> --source recent-unwrapped --lines 200 --format text
+herdr agent wait <brichan-name> --status idle --timeout 30000
+herdr agent get <brichan-name>
+herdr agent read <brichan-name> --source recent-unwrapped --lines 200 --format text
 ```
 
 Wait in bounded intervals of at most 30 seconds so the user continues receiving
 progress updates. Treat `blocked` as a request to inspect output and decide
-whether Brida can respond within its authority.
+whether Brichan can respond within its authority.
 
 ## Follow up
 
@@ -148,7 +148,7 @@ history.
 ## Close
 
 ```text
-herdr pane close <brida-owned-pane-id>
+herdr pane close <brichan-owned-pane-id>
 ```
 
 Close only after:
@@ -156,6 +156,6 @@ Close only after:
 - Final output and evidence were collected.
 - Acceptance criteria were checked.
 - Project memory was updated.
-- The ID matches the Brida-owned record in `tasks.md`.
+- The ID matches the Brichan-owned record in `tasks.md`.
 
-Do not close an entire workspace when it contains any pane Brida did not create.
+Do not close an entire workspace when it contains any pane Brichan did not create.

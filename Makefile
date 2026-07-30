@@ -3,7 +3,7 @@
 PYTHON ?= python3
 
 help:
-	@echo "Brida repository commands:"
+	@echo "Brichan repository commands:"
 	@echo "  make test           Run all Python test layers"
 	@echo "  make test-unit      Run importable-core unit tests"
 	@echo "  make test-contract  Run repository and durable-contract tests"
@@ -53,12 +53,12 @@ phase5-preflight:
 	$(PYTHON) scripts/check_compatibility_retirement.py
 
 package-check:
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "import brida.cli.provider_commands"
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "import brida.orchestration; import sys; assert not any(name == 'brida.cli' or name.startswith('brida.cli.') for name in sys.modules)"
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "import brida; from brida.contracts.receipts import validation; from brida.orchestration import worker_launch"
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "import brichan.cli.provider_commands"
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "import brichan.orchestration; import sys; assert not any(name == 'brichan.cli' or name.startswith('brichan.cli.') for name in sys.modules)"
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "import brichan; from brichan.contracts.receipts import validation; from brichan.orchestration import worker_launch"
 
 contract-check: path-check test-contract
-	sh -n bin/brida
+	sh -n bin/brichan
 
 check: test metrics receipts path-check readme-check phase5-preflight package-check
-	sh -n bin/brida
+	sh -n bin/brichan

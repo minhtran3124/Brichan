@@ -84,8 +84,8 @@ class InstalledDogfoodTest(unittest.TestCase):
         if result.returncode != 0:
             raise AssertionError(f"venv creation failed: {result.stderr}")
         cls.python = cls.venv / "bin" / "python"
-        cls.brida = cls.venv / "bin" / "brida"
-        cls.herdr_launcher = cls.venv / "bin" / "brida-herdr-agent-start"
+        cls.brichan = cls.venv / "bin" / "brichan"
+        cls.herdr_launcher = cls.venv / "bin" / "brichan-herdr-agent-start"
         result = subprocess.run(
             [
                 str(cls.python),
@@ -145,7 +145,7 @@ class InstalledDogfoodTest(unittest.TestCase):
         hostile_bin = self.target / "bin"
         hostile_bin.mkdir()
         self.hostile_marker = self.temp_path / "hostile-ran"
-        hostile = hostile_bin / "brida-codex"
+        hostile = hostile_bin / "brichan-codex"
         hostile.write_text(
             f"#!/bin/sh\nprintf TARGET_WRAPPER_EXECUTED > "
             f"'{self.hostile_marker}'\nexit 91\n",
@@ -156,10 +156,10 @@ class InstalledDogfoodTest(unittest.TestCase):
     def environment(self):
         environment = os.environ.copy()
         for name in (
-            "BRIDA_ROOT",
-            "BRIDA_RUNTIME",
-            "BRIDA_MODEL_ROUTING_FILE",
-            "BRIDA_CLAUDE_COORDINATOR_MODEL",
+            "BRICHAN_ROOT",
+            "BRICHAN_RUNTIME",
+            "BRICHAN_MODEL_ROUTING_FILE",
+            "BRICHAN_CLAUDE_COORDINATOR_MODEL",
             "PYTHONPATH",
         ):
             environment.pop(name, None)
@@ -170,9 +170,9 @@ class InstalledDogfoodTest(unittest.TestCase):
         environment["FAKE_CODEX_CAPTURE"] = str(self.capture)
         return environment
 
-    def run_brida(self, *arguments):
+    def run_brichan(self, *arguments):
         return subprocess.run(
-            [str(self.brida), *arguments],
+            [str(self.brichan), *arguments],
             cwd=self.temp_path,
             env=self.environment(),
             check=False,
@@ -181,7 +181,7 @@ class InstalledDogfoodTest(unittest.TestCase):
         )
 
     def state_snapshot(self):
-        state = self.target / ".brida"
+        state = self.target / ".brichan"
         return {
             path.relative_to(state).as_posix(): hashlib.sha256(
                 path.read_bytes()
@@ -194,13 +194,13 @@ class InstalledDogfoodTest(unittest.TestCase):
         with zipfile.ZipFile(self.wheel) as archive:
             names = set(archive.namelist())
         required_suffixes = (
-            "brida/resources/dogfood_v1/config/model-routing.json",
-            "brida/resources/dogfood_v1/policy/bootstrap.md",
-            "brida/resources/dogfood_v1/policy/identity.md",
-            "brida/resources/dogfood_v1/policy/operating-principles.md",
-            "brida/resources/dogfood_v1/policy/memory-policy.md",
-            "brida/resources/dogfood_v1/skills/herdr-orchestration/SKILL.md",
-            "brida/resources/dogfood_v1/project-memory/main/overview.md",
+            "brichan/resources/dogfood_v1/config/model-routing.json",
+            "brichan/resources/dogfood_v1/policy/bootstrap.md",
+            "brichan/resources/dogfood_v1/policy/identity.md",
+            "brichan/resources/dogfood_v1/policy/operating-principles.md",
+            "brichan/resources/dogfood_v1/policy/memory-policy.md",
+            "brichan/resources/dogfood_v1/skills/herdr-orchestration/SKILL.md",
+            "brichan/resources/dogfood_v1/project-memory/main/overview.md",
         )
         for suffix in required_suffixes:
             self.assertTrue(any(name.endswith(suffix) for name in names), suffix)
@@ -217,7 +217,7 @@ class InstalledDogfoodTest(unittest.TestCase):
 
         result = subprocess.run(
             [
-                str(ROOT / "scripts/install-brida"),
+                str(ROOT / "scripts/install-brichan"),
                 "--install-root",
                 str(install_root),
                 "--bin-dir",
@@ -233,14 +233,14 @@ class InstalledDogfoodTest(unittest.TestCase):
         )
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("No virtualenv activation is required.", result.stdout)
-        self.assertFalse((self.target / ".brida").exists())
+        self.assertFalse((self.target / ".brichan").exists())
 
         commands = (
-            "brida",
-            "brida-codex",
-            "brida-claude",
-            "brida-herdr-agent-start",
-            "brida-validate-receipts",
+            "brichan",
+            "brichan-codex",
+            "brichan-claude",
+            "brichan-herdr-agent-start",
+            "brichan-validate-receipts",
         )
         for command_name in commands:
             command_link = command_dir / command_name
@@ -252,7 +252,7 @@ class InstalledDogfoodTest(unittest.TestCase):
 
         result = subprocess.run(
             [
-                "brida",
+                "brichan",
                 "init",
                 "--apply",
                 "--project",
@@ -265,7 +265,7 @@ class InstalledDogfoodTest(unittest.TestCase):
             text=True,
         )
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertTrue((self.target / ".brida/manifest.json").is_file())
+        self.assertTrue((self.target / ".brichan/manifest.json").is_file())
         self.assertNotIn("VIRTUAL_ENV", environment)
         self.assertFalse((ROOT / "build").exists())
         self.assertFalse(any((ROOT / "src").glob("*.egg-info")))
@@ -299,7 +299,7 @@ class InstalledDogfoodTest(unittest.TestCase):
 
         result = subprocess.run(
             [
-                str(ROOT / "scripts/install-brida"),
+                str(ROOT / "scripts/install-brichan"),
                 "--install-root",
                 str(install_root),
                 "--bin-dir",
@@ -333,7 +333,7 @@ class InstalledDogfoodTest(unittest.TestCase):
 
         result = subprocess.run(
             [
-                str(ROOT / "scripts/install-brida"),
+                str(ROOT / "scripts/install-brichan"),
                 "--install-root",
                 str(install_root),
                 "--bin-dir",
@@ -353,23 +353,23 @@ class InstalledDogfoodTest(unittest.TestCase):
         self.assertNotIn("Traceback", result.stderr)
 
     def test_installed_init_status_doctor_and_direct_launch(self):
-        result = self.run_brida("status", "--project", str(self.target))
+        result = self.run_brichan("status", "--project", str(self.target))
         self.assertEqual(1, result.returncode)
         self.assertTrue(result.stdout.startswith("uninitialized:"))
 
-        result = self.run_brida(
+        result = self.run_brichan(
             "init", "--dry-run", "--project", str(self.target)
         )
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("dry-run: zero writes", result.stdout)
-        self.assertFalse((self.target / ".brida").exists())
+        self.assertFalse((self.target / ".brichan").exists())
 
-        result = self.run_brida("init", "--apply", "--project", str(self.target))
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
         self.assertEqual(0, result.returncode, result.stderr)
         before = self.state_snapshot()
         self.assertTrue(before)
         manifest = json.loads(
-            (self.target / ".brida/manifest.json").read_text(encoding="utf-8")
+            (self.target / ".brichan/manifest.json").read_text(encoding="utf-8")
         )
         expected_footprint = {
             "manifest.json",
@@ -380,19 +380,19 @@ class InstalledDogfoodTest(unittest.TestCase):
         for name, content in self.original_root_files.items():
             self.assertEqual(content, (self.target / name).read_bytes())
 
-        result = self.run_brida("init", "--apply", "--project", str(self.target))
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("no changes:", result.stdout)
         self.assertEqual(before, self.state_snapshot())
 
-        result = self.run_brida("status", "--project", str(self.target))
+        result = self.run_brichan("status", "--project", str(self.target))
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertTrue(result.stdout.startswith("healthy:"))
-        result = self.run_brida("doctor", "--project", str(self.target))
+        result = self.run_brichan("doctor", "--project", str(self.target))
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("codex: ok", result.stdout)
 
-        result = self.run_brida(
+        result = self.run_brichan(
             "run", "--project", str(self.target), "--", "--help"
         )
         self.assertEqual(0, result.returncode, result.stderr)
@@ -405,7 +405,7 @@ class InstalledDogfoodTest(unittest.TestCase):
         self.assertTrue(
             any(
                 item.startswith("developer_instructions=")
-                and "You are Brida" in item
+                and "You are Brichan" in item
                 for item in capture["argv"]
             )
         )
@@ -413,7 +413,7 @@ class InstalledDogfoodTest(unittest.TestCase):
             any(
                 item.startswith("skills.config=")
                 and str(
-                    self.resolved_target / ".brida/skills/herdr-orchestration"
+                    self.resolved_target / ".brichan/skills/herdr-orchestration"
                 )
                 in item
                 for item in capture["argv"]
@@ -421,7 +421,7 @@ class InstalledDogfoodTest(unittest.TestCase):
         )
         self.assertFalse(self.hostile_marker.exists())
 
-        result = self.run_brida(
+        result = self.run_brichan(
             "run",
             "--project",
             str(self.target),
@@ -443,11 +443,11 @@ class InstalledDogfoodTest(unittest.TestCase):
         marker_config = self.target / "config"
         marker_config.mkdir()
         shutil.copy2(
-            self.target / ".brida/config/model-routing.json",
+            self.target / ".brichan/config/model-routing.json",
             marker_config / "model-routing.json",
         )
-        (self.target / "src/brida").mkdir(parents=True)
-        root_wrapper = self.target / "bin/brida"
+        (self.target / "src/brichan").mkdir(parents=True)
+        root_wrapper = self.target / "bin/brichan"
         root_wrapper.write_text(
             f"#!/bin/sh\nprintf TARGET_WRAPPER_EXECUTED > '{self.hostile_marker}'\n"
             "exit 92\n",
@@ -456,9 +456,9 @@ class InstalledDogfoodTest(unittest.TestCase):
         root_wrapper.chmod(root_wrapper.stat().st_mode | stat.S_IXUSR)
 
         spoof_environment = self.environment()
-        spoof_environment["BRIDA_ROOT"] = str(self.target)
+        spoof_environment["BRICHAN_ROOT"] = str(self.target)
         result = subprocess.run(
-            [str(self.brida), "--help"],
+            [str(self.brichan), "--help"],
             cwd=self.target,
             env=spoof_environment,
             check=False,
@@ -473,17 +473,17 @@ class InstalledDogfoodTest(unittest.TestCase):
         external_routing = self.temp_path / "external-routing.json"
         external_payload = json.loads(
             (
-                self.target / ".brida/config/model-routing.json"
+                self.target / ".brichan/config/model-routing.json"
             ).read_text(encoding="utf-8")
         )
         external_payload["routes"]["scan"]["model"] = "external-checkout-model"
         external_routing.write_text(json.dumps(external_payload), encoding="utf-8")
         herdr_environment = self.environment()
-        herdr_environment["BRIDA_MODEL_ROUTING_FILE"] = str(external_routing)
+        herdr_environment["BRICHAN_MODEL_ROUTING_FILE"] = str(external_routing)
         result = subprocess.run(
             [
                 str(self.herdr_launcher),
-                "brida-installed-dry-run",
+                "brichan-installed-dry-run",
                 "--cwd",
                 str(self.target),
                 "--route",
@@ -504,44 +504,44 @@ class InstalledDogfoodTest(unittest.TestCase):
         self.assertNotIn("external-checkout-model", route["command"])
 
     def test_installed_status_reports_malformed_and_incompatible(self):
-        result = self.run_brida("init", "--apply", "--project", str(self.target))
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
         self.assertEqual(0, result.returncode, result.stderr)
-        manifest_path = self.target / ".brida" / "manifest.json"
+        manifest_path = self.target / ".brichan" / "manifest.json"
         original = manifest_path.read_text(encoding="utf-8")
 
         manifest_path.write_text("{", encoding="utf-8")
-        result = self.run_brida("status", "--project", str(self.target))
+        result = self.run_brichan("status", "--project", str(self.target))
         self.assertEqual(2, result.returncode)
         self.assertTrue(result.stdout.startswith("malformed:"))
 
         payload = json.loads(original)
         payload["schema_version"] = 2
         manifest_path.write_text(json.dumps(payload), encoding="utf-8")
-        result = self.run_brida("doctor", "--project", str(self.target))
+        result = self.run_brichan("doctor", "--project", str(self.target))
         self.assertEqual(3, result.returncode)
         self.assertIn("state: incompatible schema_version 2", result.stdout)
 
     def test_installed_dangling_state_and_apply_failure_have_no_traceback(self):
         missing_state = self.temp_path / "missing-state"
-        (self.target / ".brida").symlink_to(
+        (self.target / ".brichan").symlink_to(
             missing_state, target_is_directory=True
         )
-        result = self.run_brida("status", "--project", str(self.target))
+        result = self.run_brichan("status", "--project", str(self.target))
         self.assertEqual(2, result.returncode)
-        self.assertIn(".brida must not be a symlink", result.stdout)
+        self.assertIn(".brichan must not be a symlink", result.stdout)
         self.assertNotIn("Traceback", result.stderr)
 
-        result = self.run_brida("init", "--apply", "--project", str(self.target))
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
         self.assertEqual(2, result.returncode)
-        self.assertIn(".brida must not be a symlink", result.stdout)
+        self.assertIn(".brichan must not be a symlink", result.stdout)
         self.assertNotIn("Traceback", result.stderr)
         self.assertFalse(missing_state.exists())
 
-        (self.target / ".brida").unlink()
+        (self.target / ".brichan").unlink()
         original_mode = stat.S_IMODE(self.target.stat().st_mode)
         self.target.chmod(0o500)
         try:
-            result = self.run_brida(
+            result = self.run_brichan(
                 "init", "--apply", "--project", str(self.target)
             )
         finally:
@@ -551,9 +551,9 @@ class InstalledDogfoodTest(unittest.TestCase):
         self.assertNotIn("Traceback", result.stderr)
 
     def test_installed_inaccessible_state_is_malformed_without_traceback(self):
-        result = self.run_brida("init", "--apply", "--project", str(self.target))
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
         self.assertEqual(0, result.returncode, result.stderr)
-        state = self.target / ".brida"
+        state = self.target / ".brichan"
         original_mode = stat.S_IMODE(state.stat().st_mode)
         state.chmod(0)
         try:
@@ -563,7 +563,7 @@ class InstalledDogfoodTest(unittest.TestCase):
                 ("init", "--apply"),
             )
             results = [
-                self.run_brida(*probe, "--project", str(self.target))
+                self.run_brichan(*probe, "--project", str(self.target))
                 for probe in probes
             ]
         finally:
