@@ -146,7 +146,12 @@ references.
 
 Coordinator defaults and worker routes are settings-driven, so the coordinator
 and the implementation, review, planning, or scan workers may each use a
-different runtime.
+different runtime. `init` writes the manifest to `.brichan/config/model-routing.json`
+in the target project — the single source of truth for active model
+selection, mapping a runtime, model, and reasoning effort to the coordinator
+and to each named route (`plan`, `implement`, `review`, `scan`). Edit that
+file to change defaults; this README intentionally doesn't restate the active
+values, so a routing change stays a one-file edit.
 
 ### Other console commands
 

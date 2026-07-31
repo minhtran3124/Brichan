@@ -125,8 +125,29 @@ reach its own help instead, with `brichan --runtime codex --help` or
 Checkout mode uses package-owned `bin/brichan-*` wrappers. Installed-project
 mode does not. Coordinator defaults and worker routes are settings-driven, so
 the coordinator and implementation, review, planning, or scan workers may use
-different runtimes. See the [model-routing guide](docs/guides/model-routing.md)
-to change defaults, select a named route, or use a one-off override.
+different runtimes.
+
+[`config/model-routing.json`](config/model-routing.json) is the single source
+of truth for active model selection in a checkout. It maps a runtime, model,
+and reasoning effort to the coordinator and to each named worker route
+(`plan`, `implement`, `review`, `scan`):
+
+```json
+{
+  "coordinator": {
+    "default_runtime": "<runtime>",
+    "runtimes": { "<runtime>": { "model": "<model-id>", "effort": "<effort>" } }
+  },
+  "routes": {
+    "<route>": { "runtime": "<runtime>", "model": "<model-id>", "effort": "<effort>" }
+  }
+}
+```
+
+Docs deliberately don't restate the active values, so a routing change stays a
+one-file edit instead of also rewriting prose. See the
+[model-routing guide](docs/guides/model-routing.md) to change defaults, select
+a named route, or use a one-off override.
 
 The `brichan-codex` and `brichan-claude` console commands installed by
 `brichan` remain checkout-oriented: `brichan-codex` resolves coordinator
