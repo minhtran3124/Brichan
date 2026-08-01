@@ -18,7 +18,7 @@
 | Release v0.4.0 | https://github.com/minhtran3124/brida/releases/tag/v0.4.0 | 2026-07-29 | Settings-driven routing release |
 | Codex configuration | https://developers.openai.com/codex/config-advanced | 2026-07-29 | Profiles, project config, and CLI overrides |
 | Claude model configuration | https://code.claude.com/docs/en/model-config | 2026-07-29 | Model, effort, settings, and `opusplan` behavior |
-| Claude default-runtime research | `projects/brida-model-routing/claude-default-runtime-research.md` | 2026-07-31 | Evidence supports a reversible checkout-only dogfood default, not a provider-wide ranking |
+| Claude default-runtime research | `projects/brida-model-routing/claude-default-runtime-research.md` | 2026-08-01 | Evidence supports a reversible checkout-only dogfood experiment with safety preflight, not a provider-wide ranking |
 | Claude authentication | https://code.claude.com/docs/en/iam | 2026-07-31 | Authentication methods, credential precedence, and expiry behavior |
 | Claude security | https://code.claude.com/docs/en/security | 2026-07-31 | Permission architecture, directory boundaries, and network approvals |
 | Claude OpenTelemetry | https://code.claude.com/docs/en/monitoring-usage | 2026-07-31 | Opt-in duration, token, tool, and approximate cost telemetry |
