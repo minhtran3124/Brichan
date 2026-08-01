@@ -14,7 +14,7 @@
 
 | ID | Outcome | Evidence | Completed |
 |---|---|---|---|
-| CLAUDE-DEFAULT-RESEARCH-001 | Evidence supports a reversible checkout-only Claude dogfood default, while installed mode and review remain Codex | `claude-default-runtime-research.md`; 71 targeted tests passed; pane `w29:p4`; session `019fb60e-3b86-73a0-a212-fc787193c75b` | 2026-07-31 |
+| CLAUDE-DEFAULT-RESEARCH-001 | Evidence supports a reversible checkout-only Claude dogfood experiment, while installed mode and review remain Codex; worker safety preflight is required | `claude-default-runtime-research.md`; `claude-default-runtime-verification.md`; worker-reported 71 targeted tests in pane `w29:p4`, session `019fb60e-3b86-73a0-a212-fc787193c75b` (no durable command log) | 2026-08-01 |
 | ROUTING-SMOKE-001 | Real settings-driven Herdr route smoke test passed | `handoffs/ROUTING-SMOKE-001/receipt.md`; pane `w1X:p2W`; session `019fac78-beb2-74d2-b175-e83949385819` | 2026-07-29 |
 | ROUTING-REVIEW-001 | Independent review found required guard and contract fixes | `handoffs/ROUTING-REVIEW-001/receipt.md`; pane `w1X:p2X`; session `902bdb91-7cee-4296-b8ae-c5f248336c55` | 2026-07-29 |
 | ROUTING-001 | Initial settings-driven routing implementation completed | `handoffs/ROUTING-001/receipt.md`; session `019fac63-cc79-78f0-ba10-f7977d3365eb` | 2026-07-29 |

@@ -53,12 +53,18 @@ with a `PASS` verdict. Pull request #12 merged to `main` at `6a55c97`; release
 - Raw-command compatibility can bypass new validation unless clearly treated as
   a legacy escape hatch.
 - Real runtime smoke tests must not create nested agents or remote changes.
+- Claude worker `auto` mode can allow pushes and pull-request creation unless
+  durable ask or deny rules establish the required human checkpoint.
+- A Max subscription can stop long-lived coordinator work at usage limits, and
+  its consumer-account data-use setting requires explicit user review.
 
 ## Next actions
 
-1. Decide whether to adopt the proposed checkout-only Claude dogfood default.
-2. If adopted, run matched coordinator evaluations before making it permanent.
-3. Monitor post-release feedback and address only evidence-backed findings.
+1. Resolve the Claude worker remote-action checkpoint and complete the account
+   privacy, authentication, model-access, and rollback preflight.
+2. Decide whether to adopt the proposed checkout-only Claude dogfood default.
+3. If adopted, run matched coordinator evaluations before making it permanent.
+4. Monitor post-release feedback and address only evidence-backed findings.
 
 ## Unverified assumptions
 

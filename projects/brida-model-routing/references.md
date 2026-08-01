@@ -22,5 +22,10 @@
 | Claude authentication | https://code.claude.com/docs/en/iam | 2026-07-31 | Authentication methods, credential precedence, and expiry behavior |
 | Claude security | https://code.claude.com/docs/en/security | 2026-07-31 | Permission architecture, directory boundaries, and network approvals |
 | Claude OpenTelemetry | https://code.claude.com/docs/en/monitoring-usage | 2026-07-31 | Opt-in duration, token, tool, and approximate cost telemetry |
+| Claude permission modes | https://code.claude.com/docs/en/permission-modes | 2026-08-01 | `auto` capabilities, default blocks and allowed repository pushes |
+| Claude auto-mode configuration | https://code.claude.com/docs/en/auto-mode-config | 2026-08-01 | Durable ask/deny checkpoints and effective classifier configuration |
+| Claude usage and length limits | https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work | 2026-08-01 | Subscription usage is bounded and shared across Claude surfaces |
+| Claude data usage | https://code.claude.com/docs/en/data-usage | 2026-08-01 | Consumer-account model-improvement choice includes Claude Code data |
+| Claude default-runtime verification | `projects/brida-model-routing/claude-default-runtime-verification.md` | 2026-08-01 | Coordinator-owned validation of the revised research PR |
 
 Link to sources and local evidence. Do not paste full documents into this file.
