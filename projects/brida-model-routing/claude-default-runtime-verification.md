@@ -20,8 +20,23 @@ or live model result is stored here.
 
 ## Repository validation
 
-The substantive revision commit and exact command results are recorded after
-the revised research content is committed and validated.
+Substantive revision commit: `e83b8c9`.
+
+Command: `make check`
+
+Observed result: exit `0`.
+
+- Metrics validator tests: 10 passed.
+- Unit tests: 171 passed.
+- Contract tests: 46 passed.
+- Integration tests: 35 passed.
+- Metrics ledger: 16 valid rows.
+- Handoff receipts: 35 canonical receipts validated.
+- Repository paths: 63 entries and 52 references valid.
+- PyPI README sync, compatibility retirement, import boundaries, and shell
+  parsing passed.
+
+Total automated tests observed: 262 passed.
 
 ## Evidence limits
 
