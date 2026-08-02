@@ -191,3 +191,80 @@ repairs it.
 every task, and every applicable review to carry a `PASS` verdict. A review
 recorded as `passed` while its verdict is `CHANGES REQUIRED` is not a complete
 task.
+
+### Generating a dossier from one structured record
+
+Hand-authoring stays first-class and nothing is migrated. When the repetitive
+half of a dossier is not where the judgment is, one structured JSON record can
+render all eleven artifacts instead:
+
+```bash
+python3 scripts/generate_task_dossier.py TDW-005 --level 1 --project example \
+    --record records/TDW-005.record.json --projects-root projects
+python3 scripts/generate_task_dossier.py TDW-005 --level 1 --project example \
+    --record records/TDW-005.record.json --projects-root projects --apply
+```
+
+Generation is a dry run without `--apply`. The record is loaded and every
+artifact rendered in memory before the filesystem is touched at all, so a
+refused record leaves the tree untouched. Exit `2` means the record file or the
+projects root could not be read; exit `1` means the record, the namespace, or a
+publication step was refused; exit `0` means every planned artifact was
+published and the canonical path still holds the dossier that was written.
+
+The generator derives only what the dossier path and the record already imply:
+`Task ID`, `Task level`, `Artifact`, `Owner`, the index `Task identity` triple,
+the canonical receipt path, the artifact status table, and the document title.
+It derives no judgment-bearing value. A claim, an evidence item, an uncertainty
+statement, a review verdict, a reviewing session, and every effective route,
+model, and effort are copied from the record or refused — never inferred. A
+placeholder in a position the contract requires to be concrete is a refusal, as
+is any value that would inject Markdown structure into a rendered position. A
+record that supplies one of the four derived index identity fields is refused,
+so it cannot become a second authority for them.
+
+Publication never overwrites. Each artifact is written to a private temporary,
+`fsync`-ed, size-checked and identity-checked, then hard-linked into place
+without following links; a collision preserves the existing file and makes the
+run nonzero. Every directory in the chain is opened relative to its parent with
+`O_NOFOLLOW`, so no write follows a symlink or escapes the projects root, and
+the dossier directory is locked exclusively before any temporary or artifact is
+created. A run that cannot publish every artifact reports partial adoption and
+exits nonzero; the artifacts it did publish are complete and are left in place.
+
+**Limit, stated rather than implied.** The post-publication check is a
+point-in-time observation, not a compare-and-swap. A non-cooperating process
+running under the same OS identity is outside this tooling's threat model:
+neither prevention nor detection is claimed against it.
+
+### Summarizing dossier state
+
+```bash
+python3 scripts/summarize_task_dossier.py projects
+python3 scripts/summarize_task_dossier.py projects --task TDW-005 --json
+```
+
+The summary is read-only and deterministic. It reports per-artifact
+applicability and phase state, evidence depth against the rule that actually
+applies, effective model provenance read from the artifacts, plan and review
+identity with disagreements flagged, authority-link health, review
+independence, and any unreadable artifact.
+
+It is not a second validity authority. The verdict is always
+`validate_projects(root, require_complete=True)`, the complete gate is the
+default and only exit semantics, and selecting one task never suppresses a
+root-level diagnostic. Authority-link rows report health; whether an
+ancestor-symlinked receipt or memory path makes a dossier invalid is the
+validator's diagnostic, shown beside the health detail and never decided by the
+summary. Exit `2` means the requested scope could not be evaluated at all — an
+absent projects root, an absent or unlistable requested dossier, or a `--task`
+matching no dossier or more than one. Exit `1` means the scope was evaluated
+and the validator produced a diagnostic.
+
+Review independence is reported as two separate arms per review, each
+`independent`, `not-independent`, or `unknown`. Every rendered form carries the
+same caveat: identifier inequality is a deterministic consistency signal, not
+proof that two independent sessions existed.
+
+Neither command reads `config/model-routing.json`. The workflow stays
+routing-neutral and records only the effective route a session actually used.

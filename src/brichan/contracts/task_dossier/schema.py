@@ -165,6 +165,52 @@ INDEX_PROJECTION_SECTIONS = (
     INDEX_STATUS_SECTION,
 ) + BODY_SECTIONS
 
+# Structured-record schema version. The record format is new and has no
+# predecessor, so this constant records identity rather than a migration path.
+RECORD_SCHEMA_VERSION = 1
+
+# The document title an artifact declares. Mechanically derivable, so a record
+# never states it.
+ARTIFACT_TITLES = {
+    "index": "Task dossier index",
+    "request": "Request provenance",
+    "requirements": "Requirements",
+    "brief": "Brief",
+    "options": "Options",
+    "design": "Design",
+    "client-follow-up-questions": "Client follow-up questions",
+    "plan": "Plan",
+    "plan-review": "Plan review",
+    "code-review": "Code review",
+    "pr-desc": "Pull request description",
+}
+
+# Ownership follows the artifact, never the session that happened to write it.
+ARTIFACT_OWNERS = {
+    "index": "coordinator",
+    "request": "coordinator",
+    "requirements": "planner",
+    "brief": "planner",
+    "options": "planner",
+    "design": "planner",
+    "client-follow-up-questions": "coordinator",
+    "plan": "planner",
+    "plan-review": "reviewer",
+    "code-review": "reviewer",
+    "pr-desc": "generator",
+}
+
+# Sections an artifact declares in addition to the metadata and body sections.
+# Value-identical to the literal validation.EXTRA_SECTION_FIELDS it replaces.
+ARTIFACT_EXTRA_SECTIONS = {
+    "index": ((INDEX_IDENTITY_SECTION, INDEX_IDENTITY_FIELDS),),
+    "request": ((REQUEST_PROVENANCE_SECTION, REQUEST_PROVENANCE_FIELDS),),
+    "plan": ((PLAN_STATUS_SECTION, PLAN_STATUS_FIELDS),),
+    "plan-review": ((REVIEW_TARGET_SECTION, REVIEW_TARGET_FIELDS),),
+    "code-review": ((REVIEW_TARGET_SECTION, REVIEW_TARGET_FIELDS),),
+    "pr-desc": ((REMOTE_ACTION_SECTION, REMOTE_ACTION_FIELDS),),
+}
+
 PLACEHOLDER_VALUES = {
     "",
     "n/a",
@@ -224,6 +270,9 @@ class ParsedArtifact:
 __all__ = [
     "APPLICABILITY_STATES",
     "ARTIFACTS",
+    "ARTIFACT_EXTRA_SECTIONS",
+    "ARTIFACT_OWNERS",
+    "ARTIFACT_TITLES",
     "AUTHORSHIP_KINDS",
     "BODY_SECTIONS",
     "CANONICAL_MEMORY_FILES",
@@ -246,6 +295,7 @@ __all__ = [
     "PLAN_STATUS_SECTION",
     "PROJECT_SLUG_PATTERN",
     "ParsedArtifact",
+    "RECORD_SCHEMA_VERSION",
     "RECEIPT_OWNED_FIELD_LABELS",
     "RECEIPT_OWNED_SECTIONS",
     "REMOTE_ACTION_FIELDS",

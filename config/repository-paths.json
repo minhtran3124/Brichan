@@ -430,6 +430,36 @@
       "kind": "file",
       "category": "importable-api",
       "policy": "canonical"
+    },
+    {
+      "path": "scripts/generate_task_dossier.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "scripts/summarize_task_dossier.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/record.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/generate.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/summary.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
     }
   ],
   "references": [

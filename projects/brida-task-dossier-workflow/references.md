@@ -23,3 +23,12 @@
 | Pilot routine reviewer | `brichan-dossier-pilot-routine-review` / `w2D:p8` / `019fc0e5-9de0-7811-8bf1-c3bacd28eee9` | 2026-08-02 | Codex Luna medium; Level 0/1 plan and code reviews PASS |
 | Pilot stronger reviewer | `brichan-dossier-pilot-strong-review` / `w2D:p9` / `019fc0e5-9e45-75d1-b92e-d8f4fe4fd44a` | 2026-08-02 | Codex Sol high override; Level 2 plan and code reviews PASS |
 | Three-lane pilot evaluation | `evals/task-dossier-pilots/results.md` | 2026-08-02 | Evidence-depth, routing, review, verification, and ceremony findings |
+| TDW-009 parent receipt | `projects/brida-task-dossier-workflow/handoffs/TDW-009/receipt.md` | 2026-08-02 | Canonical multi-writer lifecycle for concise generation and summary tooling |
+| TDW-009 planner child receipt | `projects/brida-task-dossier-workflow/handoffs/TDWPLAN-009/receipt.md` | 2026-08-02 | Exclusive planning-writer lifecycle |
+| TDW-009 implementer child receipt | `projects/brida-task-dossier-workflow/handoffs/TDWIMP-009/receipt.md` | 2026-08-02 | Exclusive implementation-writer lifecycle |
+| TDW-009 reviewer child receipt | `projects/brida-task-dossier-workflow/handoffs/TDWREV-009/receipt.md` | 2026-08-02 | Independent stronger review lifecycle |
+| TDW-009 accepted plan review | `projects/brida-task-dossier-workflow/handoffs/TDW-009/plan-review.md` | 2026-08-02 | P7 PASS after seven reviewed planning versions and the Python 3.10 adversarial manifest matrix |
+| TDW-009 final code review | `projects/brida-task-dossier-workflow/handoffs/TDW-009/code-review.md` | 2026-08-02 | Integrated review v2 PASS after cleanup and genuine-race remediation |
+| TDW-009 first code review archive | `projects/brida-task-dossier-workflow/handoffs/TDW-009/versions/v7/code-review-v1.md` | 2026-08-02 | Byte-identical CHANGES REQUIRED evidence preserved before remediation |
+| Concise Level 0/1 evaluation | `evals/task-dossier-pilots/concise/results.md` | 2026-08-02 | Synthetic records, 11-artifact outputs, deterministic summaries, line budgets, and non-authoritative declaration |
+| TDW-009 implementation capture | `projects/brida-task-dossier-workflow/handoffs/TDW-009/capture/capture-manifest.json` | 2026-08-02 | Canonical 333-row point-in-time manifest and eight authenticated opaque snapshots |

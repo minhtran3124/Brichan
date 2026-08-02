@@ -4,9 +4,9 @@ Last updated: 2026-08-02
 
 ## Summary
 
-Status: implementation and Level 0/1/2 dogfood pilots reviewed and passed. The
-checkout-only full-document dossier contract is operational, with measured
-evidence depth and ceremony.
+Status: checkout full-document dossiers, concise Level 0/1 generation, and
+deterministic summaries are implemented, independently reviewed, and passing.
+Every lane retains the same eleven-artifact evidence contract.
 
 ## Completed recently
 
@@ -40,6 +40,21 @@ evidence depth and ceremony.
 - Confirmed the current routing manifest remains effective without workflow
   keys: plan resolved to Claude Opus high, implement to Claude Opus medium,
   routine review to Codex Luna medium, and Level 2 used a one-off override.
+- Added strict structured JSON records that generate all eleven artifacts
+  without reading model routing or replacing existing evidence.
+- Added deterministic text/JSON summaries whose validity and exit status come
+  solely from the existing complete dossier validator.
+- Added descriptor-relative no-follow/no-replace publication, identity-checked
+  cleanup, genuine first-creation race coverage, and the accepted fault matrix.
+- Added synthetic concise Level 0/1 samples: 410 and 422 artifact lines,
+  reducing the 639 and 716 baselines by 35.8% and 41.1%.
+- Independent Sol high review passed after remediation; fresh verification
+  passed 340 unit, 70 contract, and 79 integration tests plus all repository
+  gates.
+- Preserved later user-owned routing drift without including it in the
+  implementation: current checkout routes plan to Claude Opus high, implement
+  to Claude Fable medium, review to Codex Sol medium, and scan to Claude Sonnet
+  medium.
 
 ## Blockers
 
@@ -47,24 +62,26 @@ evidence depth and ceremony.
 
 ## Risks
 
-- Full docs create substantial ceremony: the Level 0 dossier is 639 lines for a
-  one-line fixture. Concise generation is needed without removing artifacts or
-  weakening evidence.
+- Concise generation reduces repeated ceremony but does not judge evidence
+  quality; independent review remains necessary.
 - Evidence depth is mechanically countable but evidence quality still requires
   reviewer judgment.
 - The closed index projection and single-table rule may create pilot friction.
+- The exact TDW-009 opaque-snapshot exception must remain task-specific and
+  coupled to authenticated capture evidence.
 
 ## Next actions
 
-1. Design a concise Level 0/1 generator for repetitive metadata, links, and
-   status while retaining all eleven artifacts.
-2. Add a dossier summary command for evidence depth, provenance, stale links,
-   and review independence.
-3. Gather more pilot samples before considering installed-mode support.
+1. Use the concise record generator on more real Level 0/1 tasks and compare
+   authoring effort, review quality, and resumability.
+2. Gather summary-output feedback before changing its stable fields or adding
+   installed-mode support.
+3. Revisit the exact snapshot-retention mechanism before another task needs
+   opaque pre-task bytes inside durable project evidence.
 
 ## Unverified assumptions
 
-- One three-lane run is directional evidence, not enough to establish long-term
-  throughput or resumability.
-- Routine Luna medium review passed these bounded Level 0/1 samples, but broader
-  product or compatibility changes may expose different review needs.
+- The original three-lane run plus two synthetic concise samples remain
+  directional evidence, not proof of long-term throughput or resumability.
+- Current routing changes alter future worker selection but do not affect
+  generator or summary behavior because both are routing-neutral by contract.

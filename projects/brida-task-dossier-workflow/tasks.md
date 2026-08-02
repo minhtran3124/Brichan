@@ -22,3 +22,4 @@
 | TDW-006 | Completed Level 0 full-doc pilot and exact 35-byte fixture | complete dossier; Luna plan/code PASS; exact-byte check | 2026-08-02 |
 | TDW-007 | Completed Level 1 full-doc pilot and dependency-free slug utility | complete dossier; Luna plan/code PASS; 7 focused tests | 2026-08-02 |
 | TDW-008 | Completed Level 2 full-doc fail-closed policy simulation | complete dossier; Sol high plan/code PASS; 10 focused tests plus supplemental matrix | 2026-08-02 |
+| TDW-009 | Added strict concise generation and deterministic summaries while retaining all eleven artifacts | exact 44-path implementation checkpoint; code-review v2 PASS; 76 generator tests; 2 concise evaluations; `make check` | 2026-08-02 |

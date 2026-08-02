@@ -168,10 +168,15 @@ class TaskDossierDocumentationContractTest(unittest.TestCase):
             "docs/workflows/task-dossier/templates",
             "scripts/validate_task_dossiers.py",
             "scripts/scaffold_task_dossier.py",
+            "scripts/generate_task_dossier.py",
+            "scripts/summarize_task_dossier.py",
             "src/brichan/contracts/task_dossier/validation.py",
             "src/brichan/contracts/task_dossier/schema.py",
             "src/brichan/contracts/task_dossier/parser.py",
             "src/brichan/contracts/task_dossier/scaffold.py",
+            "src/brichan/contracts/task_dossier/record.py",
+            "src/brichan/contracts/task_dossier/generate.py",
+            "src/brichan/contracts/task_dossier/summary.py",
         ):
             self.assertIn(path, entries)
 
@@ -217,6 +222,166 @@ class TaskDossierRoutingNeutralityTest(unittest.TestCase):
             re.search(r"handoffs/\*/index\.md", validation),
             "dossier discovery must key on index.md",
         )
+
+
+DESIGN = (
+    ROOT / "projects/brida-task-dossier-workflow/handoffs/TDW-009/design.md"
+)
+CONCISE = ROOT / "evals/task-dossier-pilots/concise"
+
+# The fixed declaration the evaluation must carry verbatim, on one line.
+NON_AUTHORITATIVE_DECLARATION = (
+    "These samples prove contract validity only; no verdict, session "
+    "identifier, or identifier inequality anywhere under `concise/` is "
+    "evidence of any real independent review."
+)
+
+# The exact ten frozen exclusions of the implementation-start capture map.
+CAPTURE_EXCLUSIONS = (
+    (".git", "directory prefix"),
+    (".venv", "directory prefix"),
+    (".pytest_cache", "directory prefix"),
+    ("projects/brida-task-dossier-workflow/handoffs/TDW-009", "directory prefix"),
+    ("projects/brida-task-dossier-workflow/handoffs/TDWPLAN-009", "directory prefix"),
+    ("projects/brida-task-dossier-workflow/handoffs/TDWIMP-009", "directory prefix"),
+    ("projects/brida-task-dossier-workflow/handoffs/TDWREV-009", "directory prefix"),
+    ("__pycache__", "any path component"),
+    (".DS_Store", "file name"),
+    (".env", "file name"),
+)
+
+
+class TaskDossierRecordContractTest(unittest.TestCase):
+    """The accepted design carries the fixture the generator is tested against."""
+
+    def setUp(self):
+        self.design = DESIGN.read_text(encoding="utf-8")
+
+    def test_design_holds_exactly_one_fenced_record_with_eleven_artifacts(self):
+        blocks = re.findall(
+            r"^```json\n(.*?)^```$", self.design, re.MULTILINE | re.DOTALL
+        )
+        self.assertEqual(1, len(blocks))
+        payload = json.loads(blocks[0])
+        self.assertEqual(list(ARTIFACTS), list(payload["artifacts"]))
+        for name, artifact in payload["artifacts"].items():
+            with self.subTest(artifact=name):
+                self.assertEqual(17, len(artifact))
+
+    def test_design_holds_exactly_one_fenced_capture_block(self):
+        blocks = re.findall(
+            r"^```python\n(.*?)^```$", self.design, re.MULTILINE | re.DOTALL
+        )
+        capture = [block for block in blocks if "capture_map_version" in block]
+        self.assertEqual(1, len(capture), "exactly one block defines the capture map")
+        self.assertIn("CAPTURE_MAP_VERSION = 1", capture[0])
+        self.assertIn("ALLOWLIST_MODIFIED", capture[0])
+        self.assertIn("ALLOWLIST_NEW", capture[0])
+
+    def test_the_capture_exclusion_set_is_exactly_the_documented_ten(self):
+        table = re.findall(
+            r"^\| `([^`]+)` \| ([a-z ]+) \|", self.design, re.MULTILINE
+        )
+        documented = [
+            (value, kind.strip())
+            for value, kind in table
+            if kind.strip() in {"directory prefix", "any path component", "file name"}
+        ]
+        self.assertEqual(list(CAPTURE_EXCLUSIONS), documented)
+        self.assertEqual(10, len(documented))
+
+    def test_the_schema_constants_back_the_validator_literal(self):
+        from brichan.contracts.task_dossier import validation
+        from brichan.contracts.task_dossier.schema import (
+            ARTIFACT_EXTRA_SECTIONS,
+            ARTIFACT_OWNERS,
+            ARTIFACT_TITLES,
+            RECORD_SCHEMA_VERSION,
+        )
+
+        self.assertIs(validation.EXTRA_SECTION_FIELDS, ARTIFACT_EXTRA_SECTIONS)
+        self.assertEqual(1, RECORD_SCHEMA_VERSION)
+        self.assertEqual(set(ARTIFACTS), set(ARTIFACT_TITLES))
+        self.assertEqual(set(ARTIFACTS), set(ARTIFACT_OWNERS))
+        for artifact in ARTIFACTS:
+            with self.subTest(artifact=artifact):
+                template = (TEMPLATES / f"{artifact}.md").read_text(encoding="utf-8")
+                self.assertTrue(
+                    template.startswith(f"# {ARTIFACT_TITLES[artifact]}\n"),
+                    f"{artifact} title drifted from its template",
+                )
+                self.assertIn(f"- Owner: `{ARTIFACT_OWNERS[artifact]}`", template)
+
+
+class ConciseEvaluationContractTest(unittest.TestCase):
+    """The evaluation samples must stay unmistakably synthetic."""
+
+    def test_every_record_session_identity_is_marked_synthetic(self):
+        for name in ("SYNTH-010", "SYNTH-011"):
+            with self.subTest(record=name):
+                payload = json.loads(
+                    (CONCISE / "records" / f"{name}.record.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                sessions = []
+                for artifact in payload["artifacts"].values():
+                    sessions.extend(
+                        artifact[key]
+                        for key in ("authoring_session", "reviewing_session")
+                        if artifact[key] is not None
+                    )
+                self.assertTrue(sessions)
+                for session in sessions:
+                    self.assertTrue(
+                        session.startswith("synthetic-fixture-"), session
+                    )
+
+    def test_every_sample_artifact_claims_it_is_non_authoritative(self):
+        for name in ("SYNTH-010", "SYNTH-011"):
+            payload = json.loads(
+                (CONCISE / "records" / f"{name}.record.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            for artifact_name, artifact in payload["artifacts"].items():
+                with self.subTest(record=name, artifact=artifact_name):
+                    self.assertIn(
+                        "Synthetic non-authoritative fixture data",
+                        artifact["claim"],
+                    )
+
+    def test_results_carry_the_fixed_non_authoritative_declaration(self):
+        text = (CONCISE / "results.md").read_text(encoding="utf-8")
+        self.assertIn(NON_AUTHORITATIVE_DECLARATION, text)
+        for needle in (
+            "prove contract validity only",
+            "point-in-time observations",
+            "None is estimated.",
+        ):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, text)
+
+    def test_every_sample_carries_eleven_artifacts_and_a_receipt(self):
+        for project, task in (
+            ("synthetic-level0", "SYNTH-010"),
+            ("synthetic-level1", "SYNTH-011"),
+        ):
+            with self.subTest(task=task):
+                dossier = CONCISE / "projects" / project / "handoffs" / task
+                for artifact in ARTIFACTS:
+                    self.assertTrue((dossier / f"{artifact}.md").is_file(), artifact)
+                self.assertTrue((dossier / "receipt.md").is_file())
+                self.assertTrue(
+                    (CONCISE / "projects" / project / "current-state.md").is_file()
+                )
+
+    def test_the_recorded_pilot_results_are_not_modified(self):
+        text = (ROOT / "evals/task-dossier-pilots/results.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("| Level 0 | 639 | 1 |", text)
+        self.assertIn("| Level 1 | 716 | 86 |", text)
 
 
 if __name__ == "__main__":

@@ -315,10 +315,24 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertEqual([], offenders)
 
     def test_durable_artifacts_do_not_embed_home_paths(self):
+        # TDW-009 snapshots are authenticated byte-for-byte pre-task evidence,
+        # not authored durable text.  Keep this exception exact so it cannot
+        # become a general-purpose place to hide personal paths.
+        opaque_capture_evidence = (
+            ROOT
+            / "projects"
+            / "brida-task-dossier-workflow"
+            / "handoffs"
+            / "TDW-009"
+            / "capture"
+            / "snapshot"
+        )
         offenders = []
         for directory in ("evals", "metrics", "projects"):
             for path in (ROOT / directory).rglob("*"):
                 if not path.is_file() or "__pycache__" in path.parts:
+                    continue
+                if path.parent == opaque_capture_evidence:
                     continue
                 content = path.read_text(encoding="utf-8")
                 if "/Users/" in content or "/home/" in content:

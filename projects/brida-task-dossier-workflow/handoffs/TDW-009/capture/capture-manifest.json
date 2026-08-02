@@ -1,0 +1,2070 @@
+{
+  "allowlist_modified": [
+    "config/repository-paths.json",
+    "docs/workflows/task-dossier.md",
+    "src/brichan/contracts/task_dossier/__init__.py",
+    "src/brichan/contracts/task_dossier/schema.py",
+    "src/brichan/contracts/task_dossier/validation.py",
+    "tests/contract/test_task_dossier_contract.py",
+    "tests/integration/test_task_dossier_workflow.py",
+    "tests/unit/test_task_dossier_validator.py"
+  ],
+  "allowlist_new": [
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/current-state.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/brief.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/client-follow-up-questions.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/code-review.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/design.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/index.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/options.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/plan-review.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/plan.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/pr-desc.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/receipt.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/request.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level0/handoffs/SYNTH-010/requirements.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/current-state.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/brief.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/client-follow-up-questions.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/code-review.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/design.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/index.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/options.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/plan-review.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/plan.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/pr-desc.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/receipt.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/request.md",
+    "evals/task-dossier-pilots/concise/projects/synthetic-level1/handoffs/SYNTH-011/requirements.md",
+    "evals/task-dossier-pilots/concise/records/SYNTH-010.record.json",
+    "evals/task-dossier-pilots/concise/records/SYNTH-011.record.json",
+    "evals/task-dossier-pilots/concise/results.md",
+    "scripts/generate_task_dossier.py",
+    "scripts/summarize_task_dossier.py",
+    "src/brichan/contracts/task_dossier/generate.py",
+    "src/brichan/contracts/task_dossier/record.py",
+    "src/brichan/contracts/task_dossier/summary.py",
+    "tests/unit/test_task_dossier_generator.py",
+    "tests/unit/test_task_dossier_summary.py"
+  ],
+  "capture_map_version": 1,
+  "exclusions": {
+    "any_component": [
+      "__pycache__"
+    ],
+    "dir_prefixes": [
+      ".git",
+      ".venv",
+      ".pytest_cache",
+      "projects/brida-task-dossier-workflow/handoffs/TDW-009",
+      "projects/brida-task-dossier-workflow/handoffs/TDWPLAN-009",
+      "projects/brida-task-dossier-workflow/handoffs/TDWIMP-009",
+      "projects/brida-task-dossier-workflow/handoffs/TDWREV-009"
+    ],
+    "names": [
+      ".DS_Store",
+      ".env"
+    ]
+  },
+  "rows": [
+    {
+      "length": 3632,
+      "path": ".agents/skills/herdr-orchestration/SKILL.md",
+      "sha256": "85c1ff86762e349986a5ae172067fb8e4deb85bedfa2913f9de1ce0feb83c848",
+      "type": "f"
+    },
+    {
+      "length": 242,
+      "path": ".agents/skills/herdr-orchestration/agents/openai.yaml",
+      "sha256": "faf3a1667847da4f2a8d1b1cddd3e9562b7789843955a93d699bd58f52248332",
+      "type": "f"
+    },
+    {
+      "length": 4923,
+      "path": ".agents/skills/herdr-orchestration/references/commands.md",
+      "sha256": "7fd06d92fb8d2db2f19a41106b36f63513077c2a30c5f435d3fb4bf9d5a6850e",
+      "type": "f"
+    },
+    {
+      "length": 777,
+      "path": ".agents/skills/herdr-orchestration/references/concurrent-writers.md",
+      "sha256": "d48be82aebfd99142a66311ef99f777b3176ad29e9b4c4ead989a631923175cf",
+      "type": "f"
+    },
+    {
+      "length": 4255,
+      "path": ".agents/skills/herdr-orchestration/references/handoff-receipt.md",
+      "sha256": "547c308d9fec0eb07c74fd5ab393773201540ade41d092f5dd9cf75079090d0b",
+      "type": "f"
+    },
+    {
+      "length": 2898,
+      "path": ".agents/skills/herdr-orchestration/references/task-dossier.md",
+      "sha256": "cfeb6ede7785821dddba297cde1c10283be37628b28ae348f5f0df9f20eb2cdc",
+      "type": "f"
+    },
+    {
+      "length": 1560,
+      "path": ".agents/skills/herdr-orchestration/references/task-packet.md",
+      "sha256": "27b143bcaaff9331e8e240532028ce914e549f1126c5cc861f06756aae0b25da",
+      "type": "f"
+    },
+    {
+      "length": 1737,
+      "path": ".agents/skills/herdr-orchestration/references/worker-recovery.md",
+      "sha256": "71b4e8d782d7a4bcbc794e28e74475bb3d5a36b3944a67596661620b5459a08c",
+      "type": "f"
+    },
+    {
+      "length": 2709,
+      "path": ".claude/settings.local.json",
+      "sha256": "d6d02e04b533ad16605719838504af5c4cb613b586413a2a6d5e77c280a0fa93",
+      "type": "f"
+    },
+    {
+      "length": 154,
+      "path": ".codex/config.toml",
+      "sha256": "b3cb87c6d2a022fb3c0b747056d736fcf9d100740388baa5d3b1a05b53b6ef4a",
+      "type": "f"
+    },
+    {
+      "length": 238,
+      "path": ".editorconfig",
+      "sha256": "0537380fe1f9bc9c5d837e61aeea04ac3c6ecddcec77ebb53220e35860855290",
+      "type": "f"
+    },
+    {
+      "length": 67,
+      "path": ".gitattributes",
+      "sha256": "a84d135fbef87fe3bfc708a79f90ad306e916fcc1a08a6832cc6df51851cb775",
+      "type": "f"
+    },
+    {
+      "length": 114,
+      "path": ".github/dependabot.yml",
+      "sha256": "1ba5b8de8aedaae0bd9c9ca041f8c90f20dee8e7a84b606f94221fbfd30d5936",
+      "type": "f"
+    },
+    {
+      "length": 313,
+      "path": ".github/pull_request_template.md",
+      "sha256": "46b32fc9fcd1af60bca1dc67b05a4406dcd475a01d2f310f9d270a820d616e47",
+      "type": "f"
+    },
+    {
+      "length": 2954,
+      "path": ".github/workflows/ci.yml",
+      "sha256": "f7f7f71680fb77bd2c27d373130ef5e87820904d300ae482f65cabf3126deb66",
+      "type": "f"
+    },
+    {
+      "length": 1937,
+      "path": ".github/workflows/publish.yml",
+      "sha256": "b2875b4ddb895d88571311e884167cbe66e64fa7447d1a69458dfe52510cd876",
+      "type": "f"
+    },
+    {
+      "length": 647,
+      "path": ".gitignore",
+      "sha256": "22c93524cea801683474b7b8185c070b80ac88c66e253e27a396f5b1f25bd727",
+      "type": "f"
+    },
+    {
+      "length": 2533,
+      "path": "AGENTS.md",
+      "sha256": "95925f1570c880011ba2d2cbddde10a027347d7700c700643e0a9390fa32159a",
+      "type": "f"
+    },
+    {
+      "length": 8078,
+      "path": "CHANGELOG.md",
+      "sha256": "b4203003be7259622e731c87c7c6536778d5e6bd0731014e9ea8354874f94641",
+      "type": "f"
+    },
+    {
+      "length": 1386,
+      "path": "CLAUDE.md",
+      "sha256": "f8741409febcbffa4ba67b1bc7cde200f74545bbc3ac2884e469ee824ca1f0c9",
+      "type": "f"
+    },
+    {
+      "length": 1483,
+      "path": "CONTRIBUTING.md",
+      "sha256": "ea930891d5e7bd4197a7ca41d44ad4bb22101cf0ea22f5eb179aeca0986a2e7c",
+      "type": "f"
+    },
+    {
+      "length": 1066,
+      "path": "LICENSE",
+      "sha256": "f577572bf20d9ca797e37c7c588eac201927bda10b3c117ae088c5dfd1e469ab",
+      "type": "f"
+    },
+    {
+      "length": 2876,
+      "path": "Makefile",
+      "sha256": "da24ea66ac0876c85565cd8bce9f7a7ee995e3a50e4da5468dc04403a1aad5cc",
+      "type": "f"
+    },
+    {
+      "length": 12662,
+      "path": "PRODUCT.md",
+      "sha256": "a97f93ab1af507a30a1a711387bd8b96e6338b0ab650a0be865dbe07b9174125",
+      "type": "f"
+    },
+    {
+      "length": 7460,
+      "path": "README.md",
+      "sha256": "8a99e5471221c1f18d5e850d8d03b18d96d83fd96efb0c02f6d3dc23b194153a",
+      "type": "f"
+    },
+    {
+      "length": 5987,
+      "path": "README_PYPI.md",
+      "sha256": "16b85b7a075b090445cd5782e7cfa6c2b137796e9de0764cabd08ee0744b203d",
+      "type": "f"
+    },
+    {
+      "length": 812,
+      "path": "SECURITY.md",
+      "sha256": "5d20c2c9ab8d06490e835c84c055165fccd94a490d9cb5d8362b476aa5a2f5c9",
+      "type": "f"
+    },
+    {
+      "length": 6,
+      "path": "VERSION",
+      "sha256": "967d9afb101346667166f2e76e81910bc190488d7d41d50ca0072e9d92f00e32",
+      "type": "f"
+    },
+    {
+      "length": 328426,
+      "path": "assets/brichan-hero.png",
+      "sha256": "beb086284c6187ae8a45db0349a2682ada70628f2d3ef5b65abb4598abf6a135",
+      "type": "f"
+    },
+    {
+      "length": 219,
+      "path": "bin/brichan",
+      "sha256": "d8f07cb46c5324fd2193291dcb18e06c9877daf88e4c80421bd1095689cc4688",
+      "type": "f"
+    },
+    {
+      "length": 218,
+      "path": "bin/brichan-claude",
+      "sha256": "b321f2657ad66e066a8e3ad8654da248d6d756bd5977dbafa374956722fc1caf",
+      "type": "f"
+    },
+    {
+      "length": 217,
+      "path": "bin/brichan-codex",
+      "sha256": "efca39925f690a621bea1ddf400155f878298cb60331b387637c82f6a3a9f815",
+      "type": "f"
+    },
+    {
+      "length": 732,
+      "path": "bin/brichan-herdr-agent-start",
+      "sha256": "290e4ec7f49076d60d1635746672610cfc2af0631b99703173374debc3bf5a4e",
+      "type": "f"
+    },
+    {
+      "length": 1983,
+      "path": "config/compatibility-retirement.json",
+      "sha256": "7e3f8be3c7399e20f913000c4a60f6164b83560f943f9451c14dc0269b6aefc1",
+      "type": "f"
+    },
+    {
+      "length": 721,
+      "path": "config/model-routing.json",
+      "sha256": "dc9344c63da2bf65c45d62a3fb20b99efc752a5cfa84bb25e45dc99b119d436d",
+      "type": "f"
+    },
+    {
+      "length": 281,
+      "path": "config/pypi-readme.json",
+      "sha256": "b2265ad2b6d4383149158154c55dac75126a625dae4a630b6ad1cbb078cb2cca",
+      "type": "f"
+    },
+    {
+      "length": 18009,
+      "path": "config/repository-paths.json",
+      "sha256": "e3d45eeca4483f26e5ddba60800a1e8dac775937a250a2eb316aa3d52b2033ab",
+      "type": "f"
+    },
+    {
+      "length": 1986,
+      "path": "docs/architecture/repository-layout.md",
+      "sha256": "fe90bb1027149cf4c3e86b4b1fe91effd760f4024f8c67d5b550cff985fab486",
+      "type": "f"
+    },
+    {
+      "length": 7732,
+      "path": "docs/guides/installable-dogfood.md",
+      "sha256": "7e5fee14e3f28ef9443d0a8ea18a02b85db06872ff74b2092416df59b626556c",
+      "type": "f"
+    },
+    {
+      "length": 2421,
+      "path": "docs/guides/model-routing.md",
+      "sha256": "23a057e16f089cf53847fa6c9be62c35de11d17228e1e6047e7b7a861b150871",
+      "type": "f"
+    },
+    {
+      "length": 1554,
+      "path": "docs/history/setup-status.md",
+      "sha256": "dfad789c67997b6cc7be6e41d2dbebc540c23a066d81544e9061a0ce97bd32cd",
+      "type": "f"
+    },
+    {
+      "length": 809,
+      "path": "docs/index.md",
+      "sha256": "6c7334da61182f116e1b064ee2d47d7f9a1f36a5b0c86d84aa2841018de1ab7d",
+      "type": "f"
+    },
+    {
+      "length": 1845,
+      "path": "docs/policy/identity.md",
+      "sha256": "dd79e2da0cbaf6b9083c56a83ce22dc0d64d3447f8659d7cf9ec36595ec78f78",
+      "type": "f"
+    },
+    {
+      "length": 1488,
+      "path": "docs/policy/memory-policy.md",
+      "sha256": "f4468b7805712f73eb91cc39f832984c656486f0e76cc3e077a861a9b890145f",
+      "type": "f"
+    },
+    {
+      "length": 4431,
+      "path": "docs/policy/model-catalog.md",
+      "sha256": "fc4081a4a9e20c18cebd00082b32f14b37a63a0eb45fab18d8edafba538383a4",
+      "type": "f"
+    },
+    {
+      "length": 3201,
+      "path": "docs/policy/operating-principles.md",
+      "sha256": "97152409cf2352ae26091e6c2b78ce44dbddceaf237773f637dc88c7c34e4eea",
+      "type": "f"
+    },
+    {
+      "length": 2637,
+      "path": "docs/policy/reviewer.md",
+      "sha256": "87cad3d9d600ccc471955cfc6933f83677109de4a50089bd7309dcbd0489db94",
+      "type": "f"
+    },
+    {
+      "length": 456,
+      "path": "docs/workflows/README.md",
+      "sha256": "5b05054e4bf8c0ee9e2139afa95e112ad5862210463d91d26624663f3ea67849",
+      "type": "f"
+    },
+    {
+      "length": 9108,
+      "path": "docs/workflows/task-dossier.md",
+      "sha256": "ffe701a19f4c9860cb7ad9464ec010e03f143940720bf76026844a96da45d4f2",
+      "type": "f"
+    },
+    {
+      "length": 958,
+      "path": "docs/workflows/task-dossier/templates/brief.md",
+      "sha256": "681b0c28744f4f2426620d943cfca28c6adb087431d3e616c4b0400e3b2eb716",
+      "type": "f"
+    },
+    {
+      "length": 1054,
+      "path": "docs/workflows/task-dossier/templates/client-follow-up-questions.md",
+      "sha256": "5d5be629c73197785be3e1cc9f85f987afddacca539568165a38adc6a5f569b5",
+      "type": "f"
+    },
+    {
+      "length": 1112,
+      "path": "docs/workflows/task-dossier/templates/code-review.md",
+      "sha256": "0360bab8a9441c08bebbe00155f88525f8e0fda95623b76ceb44ad21fc526752",
+      "type": "f"
+    },
+    {
+      "length": 995,
+      "path": "docs/workflows/task-dossier/templates/design.md",
+      "sha256": "4553ceb29b2f3995130566b05736a20cef88615bba2666c5faeeef42ae1ab436",
+      "type": "f"
+    },
+    {
+      "length": 2570,
+      "path": "docs/workflows/task-dossier/templates/index.md",
+      "sha256": "fa0f0a71ec9f1651fad8e0d704d26cbbdc9c4897d0c23ea166711bfbdc8231ec",
+      "type": "f"
+    },
+    {
+      "length": 1007,
+      "path": "docs/workflows/task-dossier/templates/options.md",
+      "sha256": "99168970f8e9b2ddcee027cdfee1fe7530c8f1b44adb7bad812004cc60cb6849",
+      "type": "f"
+    },
+    {
+      "length": 1102,
+      "path": "docs/workflows/task-dossier/templates/plan-review.md",
+      "sha256": "958aec961a3f2ead19fa0e643f36355d24287cf89dda2f1d9b6420c7feea044e",
+      "type": "f"
+    },
+    {
+      "length": 1071,
+      "path": "docs/workflows/task-dossier/templates/plan.md",
+      "sha256": "e3e55294d49d160a27815e5bc2d47e64ff61b77a57686ef71249ed7aa58a4e11",
+      "type": "f"
+    },
+    {
+      "length": 1075,
+      "path": "docs/workflows/task-dossier/templates/pr-desc.md",
+      "sha256": "905520e370a988422c74880290341f2ad2179a0eff94a9fee577e6337bac50c0",
+      "type": "f"
+    },
+    {
+      "length": 1123,
+      "path": "docs/workflows/task-dossier/templates/request.md",
+      "sha256": "3f49e6a631b9c497a996cd97b3faa7e1cad640f3e1c8aafced29bba11f16132a",
+      "type": "f"
+    },
+    {
+      "length": 990,
+      "path": "docs/workflows/task-dossier/templates/requirements.md",
+      "sha256": "d523269d80b1d5313f24de846811bba9256427807c0c656a4951a43ad0a2828a",
+      "type": "f"
+    },
+    {
+      "length": 3610,
+      "path": "evals/2026-07-27-workflow-evaluation/FINAL-AUDIT.md",
+      "sha256": "d746f2a6323c1244d1e2cfc00027d441005dfc2486204a36f602bc9368a7ae6a",
+      "type": "f"
+    },
+    {
+      "length": 2665,
+      "path": "evals/2026-07-27-workflow-evaluation/README.md",
+      "sha256": "059a2d10c3fecde266c8507e6f6c1403e8596c5817ef29cb30b277af941ffd74",
+      "type": "f"
+    },
+    {
+      "length": 3518,
+      "path": "evals/2026-07-27-workflow-evaluation/RESULTS.md",
+      "sha256": "26ee611983cf42ca0961269dd9ce9715d2198ad7f4bdf25a71d4a6a490829348",
+      "type": "f"
+    },
+    {
+      "length": 479,
+      "path": "evals/2026-07-27-workflow-evaluation/reviewer-input/intent.md",
+      "sha256": "fc41350d47b246eb51998e3f732a58aafaf9b01517d17c3c6f30ed2dc165fc0d",
+      "type": "f"
+    },
+    {
+      "length": 649,
+      "path": "evals/2026-07-27-workflow-evaluation/reviewer-input/transfer_service.py",
+      "sha256": "71942d033b491cf013c8b4b4d6739aa66855db38da3fa207fd5af5e58cd1ccb5",
+      "type": "f"
+    },
+    {
+      "length": 837,
+      "path": "evals/2026-07-27-workflow-evaluation/scoring/reviewer-output-v2.md",
+      "sha256": "a3f8994324c514f6fe34611f1f19e86f2a70926e3d78340e2529ca64bf443da5",
+      "type": "f"
+    },
+    {
+      "length": 1008,
+      "path": "evals/2026-07-27-workflow-evaluation/scoring/reviewer-output.md",
+      "sha256": "22110eb7a2fd7fe72571fb2fbd651552ae8c4cdf4148a810376fb5e6d6cbd276",
+      "type": "f"
+    },
+    {
+      "length": 541,
+      "path": "evals/2026-07-27-workflow-evaluation/scoring/reviewer-score-v2.md",
+      "sha256": "4a48dec4366a9845fc6106f042424ff8b069acac5d43cd7aab43d5ce4bb6bf47",
+      "type": "f"
+    },
+    {
+      "length": 920,
+      "path": "evals/2026-07-27-workflow-evaluation/scoring/reviewer-truth.md",
+      "sha256": "10455d4c05ce48aa6962547707193b446a3cab70a86db53d97c9580da851eae2",
+      "type": "f"
+    },
+    {
+      "length": 7351,
+      "path": "evals/2026-07-27-workflow-evaluation/token-evidence.md",
+      "sha256": "b8750e5f15598ab24f425cbc84a9ff7c97306cc2ed78f2b91a430e788d83c829",
+      "type": "f"
+    },
+    {
+      "length": 1469,
+      "path": "evals/mixed-provider-coding/BENCHMARK-001/claude-report.md",
+      "sha256": "67b46f1e935109ac5d3876a592a450b42a0e27ee657b5b46d5b171a14a99b512",
+      "type": "f"
+    },
+    {
+      "length": 2153,
+      "path": "evals/mixed-provider-coding/BENCHMARK-001/codex-report.md",
+      "sha256": "fafa3b4b3759d17c8e636b24545a9f15edf942ed72ff013296055151a60a6135",
+      "type": "f"
+    },
+    {
+      "length": 2321,
+      "path": "evals/mixed-provider-coding/BENCHMARK-001/protocol.md",
+      "sha256": "be2251e94af8e7d62e3c2d783b55e9f1df4f6a8fb99daecd98063dad935d515c",
+      "type": "f"
+    },
+    {
+      "length": 2156,
+      "path": "evals/mixed-provider-coding/BENCHMARK-001/results.md",
+      "sha256": "4e49e38b544f6d8009253156ea2b708785595dffd6046beaf3291354aedeeac7",
+      "type": "f"
+    },
+    {
+      "length": 426,
+      "path": "evals/mixed-provider-coding/BENCHMARK-002/claude-report.md",
+      "sha256": "3d97b2be2e367e8453f817d554343e3c0a7a80cdc4e26c6dedb301582f20bf33",
+      "type": "f"
+    },
+    {
+      "length": 383,
+      "path": "evals/mixed-provider-coding/BENCHMARK-002/codex-report.md",
+      "sha256": "7be116cb4f8af1a1505cf911b0ccd82abe94a25b32185806c33544bf8bd91e3a",
+      "type": "f"
+    },
+    {
+      "length": 1799,
+      "path": "evals/mixed-provider-coding/BENCHMARK-002/protocol.md",
+      "sha256": "535a5e9e6c534fb6035cd5049e066b4860228a4eb164dfe988602f0547355a49",
+      "type": "f"
+    },
+    {
+      "length": 879,
+      "path": "evals/mixed-provider-coding/BENCHMARK-002/results.md",
+      "sha256": "965f157e771ccc5ae1408448d74d1ab69e53b2aa33e319674d774ec470ee29d8",
+      "type": "f"
+    },
+    {
+      "length": 680,
+      "path": "evals/mixed-provider-coding/BENCHMARK-002/target.py",
+      "sha256": "070551bce3e58fd41f31e66ee74a348da3cb01cfe1633e9a1f3355befc73de36",
+      "type": "f"
+    },
+    {
+      "length": 581,
+      "path": "evals/mixed-provider-coding/BENCHMARK-002/test_target.py",
+      "sha256": "5cc4566f720162dc1ee22210676dfdc6d42b2448fcac1d1747d1d5bbe00229b2",
+      "type": "f"
+    },
+    {
+      "length": 3671,
+      "path": "evals/mixed-provider-coding/CONCURRENT-001/handoff-receipt.md",
+      "sha256": "0e1b4180c765043f2cee0ca6bbe8856a6600d5887014dee21ce284051e26fa7b",
+      "type": "f"
+    },
+    {
+      "length": 1780,
+      "path": "evals/mixed-provider-coding/CONCURRENT-001/plan.md",
+      "sha256": "4b66f3310374a0474155d669b1ac7a1363f13b8a6102253d8b5b012a30e322ce",
+      "type": "f"
+    },
+    {
+      "length": 2933,
+      "path": "evals/mixed-provider-coding/CONCURRENT-001/receipts/writer-a.md",
+      "sha256": "2fdfc395f0054af2173cc23be786d0c257bbfc0207d57aa0ce4ccfbd7472521a",
+      "type": "f"
+    },
+    {
+      "length": 2702,
+      "path": "evals/mixed-provider-coding/CONCURRENT-001/receipts/writer-b.md",
+      "sha256": "04a5b52b6170cf2c7a0986d68aa060ecfb88f31cab1e02a1639ede848ae15b97",
+      "type": "f"
+    },
+    {
+      "length": 3301,
+      "path": "evals/mixed-provider-coding/PILOT-002/handoff-receipt.md",
+      "sha256": "4ed91aeeb4413b5802a45123708afd2a334d1f1c9815222bffe60635ccb1904a",
+      "type": "f"
+    },
+    {
+      "length": 2513,
+      "path": "evals/mixed-provider-coding/PILOT-003/observations.md",
+      "sha256": "1bf2e7c7e5b75bc2c74ea64bda206d31bbcb6fe3b98df2c8029b976fa476f426",
+      "type": "f"
+    },
+    {
+      "length": 1177,
+      "path": "evals/mixed-provider-coding/PILOT-003/treatment-rerun-worker-output.md",
+      "sha256": "1be8f699c9d06689b9981b86f2c49d78bb54ef596e921f3642a11fc83c27dccb",
+      "type": "f"
+    },
+    {
+      "length": 713,
+      "path": "evals/mixed-provider-coding/PILOT-003/treatment-rerun-wrapper-provenance.md",
+      "sha256": "d8e907177bcff4cb93b178821fa7294270f04cab8ec12ab3e159b9eff5c944e0",
+      "type": "f"
+    },
+    {
+      "length": 88,
+      "path": "evals/mixed-provider-coding/PILOT-003/treatment-rerun-wrapper.log",
+      "sha256": "da7c2e2727bd8ccbc5ae509e7ccd6e2040f54330b682293583d4670891d201b0",
+      "type": "f"
+    },
+    {
+      "length": 1854,
+      "path": "evals/mixed-provider-coding/RECOVERY-002/observations.md",
+      "sha256": "0fa0f77c29e55589ae13badcb3a3abea2e4591746f9f1abbb86129683c5e359c",
+      "type": "f"
+    },
+    {
+      "length": 2392,
+      "path": "evals/task-dossier-pilots/high-risk/release_policy.py",
+      "sha256": "08a56bcdbefb16c7587a9467ed44995af549a06f9d5e901fb5ebc86eae98cb36",
+      "type": "f"
+    },
+    {
+      "length": 2961,
+      "path": "evals/task-dossier-pilots/high-risk/test_release_policy.py",
+      "sha256": "9c62b1480c4527ba6c6f073b910420e2e061ca9d9e30d231f41f71374952c72a",
+      "type": "f"
+    },
+    {
+      "length": 1359,
+      "path": "evals/task-dossier-pilots/normal/normalize_project_slug.py",
+      "sha256": "a6f54973d2c2b05f923ce951c273d72e2ad64757bfccce8cf8daa06aecfaadb1",
+      "type": "f"
+    },
+    {
+      "length": 1949,
+      "path": "evals/task-dossier-pilots/normal/test_normalize_project_slug.py",
+      "sha256": "00d659df505bd2921c714ca2d8eff95df105fa11773c84077eeb65eeca1e87c5",
+      "type": "f"
+    },
+    {
+      "length": 5269,
+      "path": "evals/task-dossier-pilots/results.md",
+      "sha256": "7be4f4b42d62a119ca5f52daa0e7b3287c9742b48e06842fe5332cb133b1e36b",
+      "type": "f"
+    },
+    {
+      "length": 35,
+      "path": "evals/task-dossier-pilots/simple/greeting.txt",
+      "sha256": "20f531a7e7ca046087520ed7feca02b7090b0e33f282490f91b58ec36fe32cc0",
+      "type": "f"
+    },
+    {
+      "length": 2213,
+      "path": "internal-docs/ai-chief-of-staff-workflow/01-xac-dinh-nhu-cau.md",
+      "sha256": "5f733309f61cab821eb6c3ff1b85d25e4ce08e3c8221efe2de2abefcf615fc08",
+      "type": "f"
+    },
+    {
+      "length": 1956,
+      "path": "internal-docs/ai-chief-of-staff-workflow/02-khoi-tao-identity.md",
+      "sha256": "ac76b7af772904542c6b1c89cab5ed00b96d623dc049ad2c8120d49f3753badc",
+      "type": "f"
+    },
+    {
+      "length": 2252,
+      "path": "internal-docs/ai-chief-of-staff-workflow/03-bo-nho-progressive-disclosure.md",
+      "sha256": "e0c79a3df62f0cc48e9dacb3a6fe00ca0bfb59558bca6ffc79effdde9587c281",
+      "type": "f"
+    },
+    {
+      "length": 1964,
+      "path": "internal-docs/ai-chief-of-staff-workflow/04-tich-hop-herder.md",
+      "sha256": "187160c4c11074257e6720fb4952dc8e9adc39893f508b66ee81714a77b8cd31",
+      "type": "f"
+    },
+    {
+      "length": 1809,
+      "path": "internal-docs/ai-chief-of-staff-workflow/05-danh-muc-va-dieu-phoi-model.md",
+      "sha256": "a4970b4d00b650a1647b71b24e5926c83de8e385c713415b33b33179b469e9bd",
+      "type": "f"
+    },
+    {
+      "length": 1928,
+      "path": "internal-docs/ai-chief-of-staff-workflow/06-spawn-main-agent-qua-herder.md",
+      "sha256": "7bca0a84383cb92e04116852e347e0322d7309f3cdbef99cbe1921250becc5e1",
+      "type": "f"
+    },
+    {
+      "length": 2148,
+      "path": "internal-docs/ai-chief-of-staff-workflow/07-bo-sung-model-va-reviewer.md",
+      "sha256": "8e969620e9904196bed93afbc4ea7474816599dd69c5356be5ecabfa0a7ba208",
+      "type": "f"
+    },
+    {
+      "length": 1959,
+      "path": "internal-docs/ai-chief-of-staff-workflow/08-chay-thu-voi-du-an.md",
+      "sha256": "004a38950b9afc9dc99798fbedd09f6f40520c9f15a4ad19cc48a9724e020cde",
+      "type": "f"
+    },
+    {
+      "length": 1659,
+      "path": "internal-docs/ai-chief-of-staff-workflow/09-cau-hinh-project-scope.md",
+      "sha256": "a36884abf0c227180e4e9bf6be1a2bc625f964c5fc9823d155007e097a6162b0",
+      "type": "f"
+    },
+    {
+      "length": 4108,
+      "path": "internal-docs/ai-chief-of-staff-workflow/10-van-hanh-va-toi-uu.md",
+      "sha256": "0784e588afe2ca884f6235329f38d3ae6016ff26c8d406cb31559e395bd79a91",
+      "type": "f"
+    },
+    {
+      "length": 2483,
+      "path": "internal-docs/ai-chief-of-staff-workflow/README.md",
+      "sha256": "fed058e07de171cd38538c69cdb43d99ec506e8ac657d2a0c8e092b2ba20f092",
+      "type": "f"
+    },
+    {
+      "length": 1804,
+      "path": "internal-docs/samples/ex1.txt",
+      "sha256": "29bf498bcb6a419c99739da3a8b695830bb72be95dfa9ac4cefe99d3f3c045ea",
+      "type": "f"
+    },
+    {
+      "length": 2008,
+      "path": "metrics/README.md",
+      "sha256": "4aeefa656e3802a2842d1fbcac61ae41e1014f69cf32c86b27592bc1a5b098a4",
+      "type": "f"
+    },
+    {
+      "length": 29052,
+      "path": "metrics/runs.jsonl",
+      "sha256": "13d637c0fcf29264d857d41a33057278f5f31458393db570295b50e561471f1f",
+      "type": "f"
+    },
+    {
+      "length": 4509,
+      "path": "metrics/test_validate_metrics.py",
+      "sha256": "ea122647b67ed1e4b2a3a91430c04ea55a0a796b64c4f7cfbbfdc9838f056312",
+      "type": "f"
+    },
+    {
+      "length": 8052,
+      "path": "metrics/validate_metrics.py",
+      "sha256": "1107ded761b7d07cf08b6924ee9b840dec0f5bab03ca2fa00645ed568b550a14",
+      "type": "f"
+    },
+    {
+      "length": 6059,
+      "path": "packaging/pypi-readme.md",
+      "sha256": "5c7e02dd58694c282cda7bb83dd25301542a6bee3a3227c9bb7c71a63a62a7e5",
+      "type": "f"
+    },
+    {
+      "length": 149,
+      "path": "projects/_template/current-state.md",
+      "sha256": "3f7c19d3cbde51ea44e28e5d440a5b5a664a8d69cd7b7fdf1975ac4417d8db76",
+      "type": "f"
+    },
+    {
+      "length": 203,
+      "path": "projects/_template/decisions.md",
+      "sha256": "315d6655922ea0539b67c1f2f9cd99a93a1ddb5fad369528ce72f7c0e9477336",
+      "type": "f"
+    },
+    {
+      "length": 204,
+      "path": "projects/_template/overview.md",
+      "sha256": "340d0b9a43a3ea0d78c652d546b44bd3ec106b83442e53220b52e7c31b2de597",
+      "type": "f"
+    },
+    {
+      "length": 156,
+      "path": "projects/_template/references.md",
+      "sha256": "c1575eb5866c54f0e9d60b339d34d6b84cbb2204de179af5b19a591b953f711c",
+      "type": "f"
+    },
+    {
+      "length": 280,
+      "path": "projects/_template/tasks.md",
+      "sha256": "a0d7243662ca795037e8d327a288f1501acddbb7a02fc0d17fd1bc8827ab0128",
+      "type": "f"
+    },
+    {
+      "length": 3774,
+      "path": "projects/brida-claude-code-support/current-state.md",
+      "sha256": "6b5e5ca96a73c6a27e4cbee46b48a952bfeba979ba9d972803f06d94171307fd",
+      "type": "f"
+    },
+    {
+      "length": 4402,
+      "path": "projects/brida-claude-code-support/decisions.md",
+      "sha256": "abc323737010f8802e0ef4e2d477964c378a231751819198b3d7f1b972a73ea8",
+      "type": "f"
+    },
+    {
+      "length": 832,
+      "path": "projects/brida-claude-code-support/handoffs/BENCHMARK-002/plan.md",
+      "sha256": "19edb149316dea839359d4c358f78f1d34e4ec5b97e44318d5b800bc012fc79c",
+      "type": "f"
+    },
+    {
+      "length": 3007,
+      "path": "projects/brida-claude-code-support/handoffs/BENCHMARK-002/receipt.md",
+      "sha256": "2486baf0446e106e4e4a2e14cc716a5546c8e438f86979f83db77f353bcc1cc0",
+      "type": "f"
+    },
+    {
+      "length": 2969,
+      "path": "projects/brida-claude-code-support/handoffs/CONCURRENT-002/plan.md",
+      "sha256": "b2268ce5120c93e1a8eb736ac6d1f7ebde180e6fa3177081f89b470e4119eb4b",
+      "type": "f"
+    },
+    {
+      "length": 3432,
+      "path": "projects/brida-claude-code-support/handoffs/CONCURRENT-002/receipt.md",
+      "sha256": "8d43adbe8cf9db8c62cee33ee2194f89a9cb89b5d925e7ac64a18fab22813f42",
+      "type": "f"
+    },
+    {
+      "length": 2363,
+      "path": "projects/brida-claude-code-support/handoffs/PILOT-003-C/receipt.md",
+      "sha256": "7a88cd5691f96f289344ab863ba86589e7a44dd9dad806b9fc2256610f752c2d",
+      "type": "f"
+    },
+    {
+      "length": 776,
+      "path": "projects/brida-claude-code-support/handoffs/PILOT-003-E/plan.md",
+      "sha256": "f3141e1dd4dc2cf37eb9fb1c90edd2bc43d656a05053d8d151ac7bfe95fe795d",
+      "type": "f"
+    },
+    {
+      "length": 3009,
+      "path": "projects/brida-claude-code-support/handoffs/PILOT-003-E/receipt.md",
+      "sha256": "ff2ac475726511d0ea0cede49dd29a9c63a14f6a57cfe3b8d26c629a2d323f3d",
+      "type": "f"
+    },
+    {
+      "length": 763,
+      "path": "projects/brida-claude-code-support/handoffs/PILOT-003-T-R1/plan.md",
+      "sha256": "9720a879db9e6d8753c6825cc6e2fa7172ba85b3a0bde01dfe4e6178c5cd8183",
+      "type": "f"
+    },
+    {
+      "length": 3588,
+      "path": "projects/brida-claude-code-support/handoffs/PILOT-003-T-R1/receipt.md",
+      "sha256": "7eb8707bccd90d31d36ce6c7731b5b3d246345e3771a9b631f9fc86c6627494e",
+      "type": "f"
+    },
+    {
+      "length": 2760,
+      "path": "projects/brida-claude-code-support/handoffs/PILOT-003-T/receipt.md",
+      "sha256": "179712f5a8339e55f7fcb325297764087994e800625411b77d9e64f2e3ba2df0",
+      "type": "f"
+    },
+    {
+      "length": 4111,
+      "path": "projects/brida-claude-code-support/handoffs/PILOT-003/design.md",
+      "sha256": "849f4728ed3aad5e357d1c9a1dc256a58b901d0de34f2e1c0d5f6632dda40513",
+      "type": "f"
+    },
+    {
+      "length": 574,
+      "path": "projects/brida-claude-code-support/handoffs/PILOT-003/plan.md",
+      "sha256": "b59df78450319ea5e8cec437cac31a252f53a0d923725ae3a6a7300b0ce91a0e",
+      "type": "f"
+    },
+    {
+      "length": 2914,
+      "path": "projects/brida-claude-code-support/handoffs/PILOT-003/receipt.md",
+      "sha256": "03bbfbeb945ba8227cd9fcf9dee4a854e47981da288be7f7f7c04aa8a50405fb",
+      "type": "f"
+    },
+    {
+      "length": 4845,
+      "path": "projects/brida-claude-code-support/handoffs/RECEIPT-V2-001/plan.md",
+      "sha256": "6ab44f75b987ef6aa661c2567a3138010b87a46628aaf5f682eb1a1529a1a9cd",
+      "type": "f"
+    },
+    {
+      "length": 3973,
+      "path": "projects/brida-claude-code-support/handoffs/RECEIPT-V2-001/receipt.md",
+      "sha256": "3b72cbbfce625398094a844aeb7a28397b2910a2f6300b529e5f39719b505da7",
+      "type": "f"
+    },
+    {
+      "length": 1205,
+      "path": "projects/brida-claude-code-support/handoffs/RECOVERY-001/plan.md",
+      "sha256": "1fda975280a17c4a8664738156b505d4299482a5a717c3b7b1502532873813ce",
+      "type": "f"
+    },
+    {
+      "length": 2910,
+      "path": "projects/brida-claude-code-support/handoffs/RECOVERY-001/receipt.md",
+      "sha256": "48b26e8136d964003a41e062650540cd132a6d59fe95351f5beebeb5617416f8",
+      "type": "f"
+    },
+    {
+      "length": 1598,
+      "path": "projects/brida-claude-code-support/handoffs/RECOVERY-002/plan.md",
+      "sha256": "3ad7356b30712cb58819f1952cda1f28a255d970357a87aaa762c21364292ce9",
+      "type": "f"
+    },
+    {
+      "length": 3414,
+      "path": "projects/brida-claude-code-support/handoffs/RECOVERY-002/receipt.md",
+      "sha256": "7adbb4175270b3a460cd78df8626ae1757b2fc919b5bfef06ef2419af6493779",
+      "type": "f"
+    },
+    {
+      "length": 2523,
+      "path": "projects/brida-claude-code-support/overview.md",
+      "sha256": "d7b20ac7ea863b600f888cfa09df6071c2ce92e48d80dcf715c53555820f0158",
+      "type": "f"
+    },
+    {
+      "length": 5189,
+      "path": "projects/brida-claude-code-support/references.md",
+      "sha256": "e66cae91f6545814aad446e3f9fa2774256f98b352a66b04eac1f5ffcb169a1c",
+      "type": "f"
+    },
+    {
+      "length": 8780,
+      "path": "projects/brida-claude-code-support/tasks.md",
+      "sha256": "283fcde0e1d5edb585ad6902bd218628c851805286d0cef7adb1fba00cee5f77",
+      "type": "f"
+    },
+    {
+      "length": 16919,
+      "path": "projects/brida-installable-tool/assessment.md",
+      "sha256": "e42a515ffb8846b4321dcf9e2f34b4524a934c9dd21b97add1ce8df040750580",
+      "type": "f"
+    },
+    {
+      "length": 6615,
+      "path": "projects/brida-installable-tool/current-state.md",
+      "sha256": "e4239afaca354cf287615eb05e93d0cdd94778373e278d61ad98b588eef9107a",
+      "type": "f"
+    },
+    {
+      "length": 4761,
+      "path": "projects/brida-installable-tool/decisions.md",
+      "sha256": "5602b0c5cb57e0e06973d7a8e1166a84d5e345b8acb5ea6ad6d0482a7100e78e",
+      "type": "f"
+    },
+    {
+      "length": 6033,
+      "path": "projects/brida-installable-tool/existing-instructions-compatibility-assessment.md",
+      "sha256": "e73cc933a6783eef6781f81adc139fb5fc34d6dc27916a13f48b1a5ff232fd06",
+      "type": "f"
+    },
+    {
+      "length": 3367,
+      "path": "projects/brida-installable-tool/handoffs/DOGFOOD-005/receipt.md",
+      "sha256": "ca8644c5d108803b38a6a2eb75057e6dca8e3196ec42516889b1bea05f9c5221",
+      "type": "f"
+    },
+    {
+      "length": 4278,
+      "path": "projects/brida-installable-tool/handoffs/PYPI-001/receipt.md",
+      "sha256": "f09f131d957de71d86968950e6fc9f425fefb04d6e051bca9b9042170017e102",
+      "type": "f"
+    },
+    {
+      "length": 2942,
+      "path": "projects/brida-installable-tool/handoffs/PYPI-001/release-checklist.md",
+      "sha256": "efc75622bb85cea07831ab7590cb663f9584fa7d3db38633284ab13b04fe0599",
+      "type": "f"
+    },
+    {
+      "length": 3954,
+      "path": "projects/brida-installable-tool/overview.md",
+      "sha256": "0e6b1f6ae9c47c004fa10135f4b86c95c140d0b35b9b3dbd14146aa5b1ce5733",
+      "type": "f"
+    },
+    {
+      "length": 6879,
+      "path": "projects/brida-installable-tool/references.md",
+      "sha256": "4bacd8b1f537abcdb0d4e3d27fa4ea24153b6ee292ba55972e19c64e55df866f",
+      "type": "f"
+    },
+    {
+      "length": 1863,
+      "path": "projects/brida-installable-tool/review.md",
+      "sha256": "286d8ae954c8f945589fee6dd4f7dc860a87c64e8bc8f92a002a7a37224dc38f",
+      "type": "f"
+    },
+    {
+      "length": 5111,
+      "path": "projects/brida-installable-tool/rust-migration-assessment.md",
+      "sha256": "ed2fc54088b527e5c10b304945014f2b90c11160938cc5c550e49a380416b35f",
+      "type": "f"
+    },
+    {
+      "length": 3511,
+      "path": "projects/brida-installable-tool/tasks.md",
+      "sha256": "b15f0c66a232cad0933845f0f1b613916defa85ba7bdbb168bbf82842f13faa1",
+      "type": "f"
+    },
+    {
+      "length": 2352,
+      "path": "projects/brida-model-routing/current-state.md",
+      "sha256": "32b2fe322e67b00aaa3fbb06c1fe44aaef4e117ca1bf423d40918414b2302c7e",
+      "type": "f"
+    },
+    {
+      "length": 5158,
+      "path": "projects/brida-model-routing/decisions.md",
+      "sha256": "0465656fa4fc73785e8c61f03b3df3849fd3e6487e33d58bf921fa9f3754ece3",
+      "type": "f"
+    },
+    {
+      "length": 995,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-001/attempt-1-recovery.md",
+      "sha256": "d00e61105cc6e4707ec02b92d2a5395fab9f57fd4029425fa86fbfbf2e31f9d9",
+      "type": "f"
+    },
+    {
+      "length": 3401,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-001/receipt.md",
+      "sha256": "64c7f6c515216f57f6319b4e781b788446c6769baa1478653be9cebf0e202a2d",
+      "type": "f"
+    },
+    {
+      "length": 3654,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-001/task-packet.md",
+      "sha256": "8db97c6204d7e060469665acb8492d1f3dfad4b447970a43fc3dae4e30a70577",
+      "type": "f"
+    },
+    {
+      "length": 3242,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-FIX-001/receipt.md",
+      "sha256": "86fae6d2ac299d2976cfe84164ea8d247bc963b4f8ffd5f7434809743e2bdde9",
+      "type": "f"
+    },
+    {
+      "length": 3427,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-FIX-001/task-packet.md",
+      "sha256": "55fb70d8ec46df30ac25239bc0ab7172865ae8af1a013f44ac4959e50cc06ae8",
+      "type": "f"
+    },
+    {
+      "length": 3105,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-FIX-002/receipt.md",
+      "sha256": "341cf4eb4bfaae1bf2c9453372616ecaf092b8835e319be55633045164bd3274",
+      "type": "f"
+    },
+    {
+      "length": 2721,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-FIX-002/task-packet.md",
+      "sha256": "c1050870ecdb68ed014a2c28cf330b95d4a0f3e745b3a0e1d7748ece222fdcd6",
+      "type": "f"
+    },
+    {
+      "length": 3274,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-REVIEW-001/receipt.md",
+      "sha256": "7faffe437b87f3c5301ca0857fdd2b699723e4af5787cc09c1c469f18855bd68",
+      "type": "f"
+    },
+    {
+      "length": 3388,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-REVIEW-001/task-packet.md",
+      "sha256": "8c1cf94d49bd01f2598d89915a869a513d0095e55544f687f89cc1f774de934a",
+      "type": "f"
+    },
+    {
+      "length": 3154,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-REVIEW-002/receipt.md",
+      "sha256": "46f4f7c9adc10ea54b68dde9fa5315af64c3348fc1372e8cfc6a8400a2e7de62",
+      "type": "f"
+    },
+    {
+      "length": 2748,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-REVIEW-002/task-packet.md",
+      "sha256": "db9624a1e452466f07d9b6540f9820b968bab0a0cf5d01a4671b386de2f57c32",
+      "type": "f"
+    },
+    {
+      "length": 3395,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-REVIEW-003/receipt.md",
+      "sha256": "4dabe94ba826e790e7a147ae2624f54669c81656c425574eeb8a8462f158352e",
+      "type": "f"
+    },
+    {
+      "length": 2172,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-REVIEW-003/task-packet.md",
+      "sha256": "763e37634a3b5dfb6abe4689c36aed0686e1553c43aa202844f918c5a50367f4",
+      "type": "f"
+    },
+    {
+      "length": 2578,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-SMOKE-001/receipt.md",
+      "sha256": "c9053322c92bef8b910867e187d02c0a0cf3855d8aa18ebff89ba84f03e8e14c",
+      "type": "f"
+    },
+    {
+      "length": 2210,
+      "path": "projects/brida-model-routing/handoffs/ROUTING-SMOKE-001/task-packet.md",
+      "sha256": "d68b7c6fb68b53f4764e836e77e6e9f7f1159553c57b55b7b3a8d8167418ae1c",
+      "type": "f"
+    },
+    {
+      "length": 2043,
+      "path": "projects/brida-model-routing/overview.md",
+      "sha256": "d482e1b3f5f083cef6bc184475b790115544b414b197fae6d72b2a124c33a657",
+      "type": "f"
+    },
+    {
+      "length": 5474,
+      "path": "projects/brida-model-routing/plan.md",
+      "sha256": "33a44105e11534d4e6b0f7ae955ef6ce3bb63cdd17a78da3dd71e083488d418c",
+      "type": "f"
+    },
+    {
+      "length": 2469,
+      "path": "projects/brida-model-routing/references.md",
+      "sha256": "08653bf08432441bfc5e51da79628b87c67774b20a2b06377bf889bb4ba001bc",
+      "type": "f"
+    },
+    {
+      "length": 1570,
+      "path": "projects/brida-model-routing/tasks.md",
+      "sha256": "d3dbad3a219812b10eb43ec156b0df41d0c6683cb2ed05751915960386265412",
+      "type": "f"
+    },
+    {
+      "length": 3393,
+      "path": "projects/brida-repository-structure-refactor/current-state.md",
+      "sha256": "ba3e41e4a00e5cb3b575224c3f90be7b0789b0b1a3384f28e23feca4debd7df1",
+      "type": "f"
+    },
+    {
+      "length": 2936,
+      "path": "projects/brida-repository-structure-refactor/decisions.md",
+      "sha256": "19d1172eb5f3e12304c6826adf7309829cfa5a3ce160280447d06ea07ccc0831",
+      "type": "f"
+    },
+    {
+      "length": 2980,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-002-R/receipt.md",
+      "sha256": "0eb4265364195adcc292a6ea7f036a67c188b8cc39d4a55319dc25963eca6611",
+      "type": "f"
+    },
+    {
+      "length": 2567,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-003-A/receipt.md",
+      "sha256": "2c8a6ebb2092e8e98ce376f3c7760c3942e98c0516f928a1759955e4e25e5e4e",
+      "type": "f"
+    },
+    {
+      "length": 2716,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-004-A/receipt.md",
+      "sha256": "1ce1088a7a192279492641c3b6e32986a91a63a5bd007e4355db36d9f341adc5",
+      "type": "f"
+    },
+    {
+      "length": 2754,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-008-G/receipt.md",
+      "sha256": "385da8a5801041dc8230487cbb6365ebd0073f43414a98b8a5869bfee94f1588",
+      "type": "f"
+    },
+    {
+      "length": 3171,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-008-P/receipt.md",
+      "sha256": "bf6b68eafaae0970c7b684a67a94e589ab8491f84dd52bdbc8803b20da2a9422",
+      "type": "f"
+    },
+    {
+      "length": 3337,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-009/receipt.md",
+      "sha256": "d7119430113cd0bb65b2325fca0bec024c96ec82d2f21404f1dd4891e0826ac3",
+      "type": "f"
+    },
+    {
+      "length": 3596,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-010/receipt.md",
+      "sha256": "235600ab546001113dbb542fbf4b0a974a9cdacfe4d338ba56d616d2b2358bba",
+      "type": "f"
+    },
+    {
+      "length": 3167,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-011-C/receipt.md",
+      "sha256": "df010b25fd6fc6d44560889a866ff00bdd4a188788a9f3c82245f052362655c3",
+      "type": "f"
+    },
+    {
+      "length": 3229,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-011-L/receipt.md",
+      "sha256": "37629441e3112c6595dd771f7d0ed00c25fca4676df0b8c23de7b72f0347b9f1",
+      "type": "f"
+    },
+    {
+      "length": 2641,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-012-C/receipt.md",
+      "sha256": "94c387774cb2bcb529fd4ada8f51821965f6f2b446c5fb5cddbcf99c47940604",
+      "type": "f"
+    },
+    {
+      "length": 2733,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-012-L/receipt.md",
+      "sha256": "78eaec7cd4b72c1e1e38d44e5d381d58aeced53ac77271301ccb6e13e838946a",
+      "type": "f"
+    },
+    {
+      "length": 2842,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-012-R/receipt.md",
+      "sha256": "4f5ce1859e4d1cce95e951042fc5437f84d52cff2cfa64ce36d5961bea5f2754",
+      "type": "f"
+    },
+    {
+      "length": 2582,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-013-C/receipt.md",
+      "sha256": "603c0a2e82335ca3a84b2e525161268043afe7e18d0e521aca1bd739475fd357",
+      "type": "f"
+    },
+    {
+      "length": 2599,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-013-L/receipt.md",
+      "sha256": "528d99fa55b776079339b7d64ad001b504555a0bf1ef5ec0aef4fbbe11bd3a18",
+      "type": "f"
+    },
+    {
+      "length": 2586,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-013-R/receipt.md",
+      "sha256": "48754a3f84d620c72c3637c4614ba247b5120048ac356c0a8d9f8f3c6ac4ed3b",
+      "type": "f"
+    },
+    {
+      "length": 3038,
+      "path": "projects/brida-repository-structure-refactor/handoffs/RSR-014-R/receipt.md",
+      "sha256": "7f6446fa317c3925ff030608bd31272001e2f172a2c3a9b5a3d0d9db880b7021",
+      "type": "f"
+    },
+    {
+      "length": 1002,
+      "path": "projects/brida-repository-structure-refactor/overview.md",
+      "sha256": "302afb6c95d6c8dd5f4bbea2bb66d88851b0883443d7102f72c5601007b66d72",
+      "type": "f"
+    },
+    {
+      "length": 13092,
+      "path": "projects/brida-repository-structure-refactor/refactor-plan.md",
+      "sha256": "133fad2b694fbc1d65ce20832297ea14924ebb130100cde5f4a8ca8786a6a75c",
+      "type": "f"
+    },
+    {
+      "length": 10793,
+      "path": "projects/brida-repository-structure-refactor/references.md",
+      "sha256": "628fc6aaf717bc6b001cc0fefc39d26c78dc0128e09f023fff1569c238f6b7d5",
+      "type": "f"
+    },
+    {
+      "length": 6006,
+      "path": "projects/brida-repository-structure-refactor/tasks.md",
+      "sha256": "a77143acadc8f511c28761891c0bb9c20b970f67fa467b5744ea1fdce50911f9",
+      "type": "f"
+    },
+    {
+      "length": 1189,
+      "path": "projects/brida-system-validation/current-state.md",
+      "sha256": "1ae1dbf15de455d324cfc8000b0f769c0a5809af4f7bda022a1704e3f610d99e",
+      "type": "f"
+    },
+    {
+      "length": 47,
+      "path": "projects/brida-system-validation/decisions.md",
+      "sha256": "5ae4c14244635b362961cb8df56a0d7729155e3e101e8f956bce2397ce0df0b0",
+      "type": "f"
+    },
+    {
+      "length": 1103,
+      "path": "projects/brida-system-validation/overview.md",
+      "sha256": "4040ffb9785a99f0c9220b57b27f675ef1d3f6ef574d6a7ea0d33cbcf90c22ca",
+      "type": "f"
+    },
+    {
+      "length": 873,
+      "path": "projects/brida-system-validation/references.md",
+      "sha256": "b4263fdbe38fa976a795c18145159372bebd4e06796a22e6562b97094b495acf",
+      "type": "f"
+    },
+    {
+      "length": 1025,
+      "path": "projects/brida-system-validation/tasks.md",
+      "sha256": "8fb30dc1daf0d9b1b647c806d091644e473d5e382a447f8ec455003b99af90c8",
+      "type": "f"
+    },
+    {
+      "length": 3277,
+      "path": "projects/brida-task-dossier-workflow/current-state.md",
+      "sha256": "1a81c2e4ad29027bbe9cdb7a77e031c791f833ac9ef894c460264c71df56b18b",
+      "type": "f"
+    },
+    {
+      "length": 701,
+      "path": "projects/brida-task-dossier-workflow/decisions.md",
+      "sha256": "17675f6ee05476cfa63f7408ba097fd839f9815f52540fe4561d62300ba935ef",
+      "type": "f"
+    },
+    {
+      "length": 4532,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-005/receipt.md",
+      "sha256": "b9d40fcf4a9fac11966e86d101772506f88b4d616e6501b86dcd285e31467928",
+      "type": "f"
+    },
+    {
+      "length": 5392,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-005/task-packet.md",
+      "sha256": "777126e31a798a720f4cc74d79f4bfd59e7c63b618f907997250bbc17cc2e789",
+      "type": "f"
+    },
+    {
+      "length": 2537,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/brief.md",
+      "sha256": "fc3731b2bc66bd0d357afc41422a062b2e436ca7e0d2f9bfcb5548f19fa8b934",
+      "type": "f"
+    },
+    {
+      "length": 1165,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/client-follow-up-questions.md",
+      "sha256": "3a6ec8b9314bcccddaa7ae5a37770a330b5264b75350acb77b1961f6d504165f",
+      "type": "f"
+    },
+    {
+      "length": 2428,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/code-review.md",
+      "sha256": "0042c543f2adaae5b8a29cc93ea6ccb730a48ef8c0f313f6111b3d7cf94d5288",
+      "type": "f"
+    },
+    {
+      "length": 2541,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/design.md",
+      "sha256": "fdef467f72841e09a93e40078ae1d57e4b5d2e85ae8e1254d1daa86674cdd38b",
+      "type": "f"
+    },
+    {
+      "length": 2229,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/index.md",
+      "sha256": "3ff0f84b27bfdfc023efaaa1859d635303765b57ad480a5660760bda75ea8298",
+      "type": "f"
+    },
+    {
+      "length": 2665,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/options.md",
+      "sha256": "1510770d643e9398c729efd96f3b06fa6a046065d5663b2ebacea2459fff2e96",
+      "type": "f"
+    },
+    {
+      "length": 1873,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/plan-review.md",
+      "sha256": "8ea2f9717e23f734d291ca0d50bb47090705390deebb24fb1818918b23cefdc3",
+      "type": "f"
+    },
+    {
+      "length": 3131,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/plan.md",
+      "sha256": "498fe62f2d818db9d826307bb5532b147c0a798e97a7ea405130e25c4dd37f5b",
+      "type": "f"
+    },
+    {
+      "length": 1092,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/pr-desc.md",
+      "sha256": "84ad1c1189a7ceb9bdc26653920637e7045f6769fc9d48efe7bca4dfa1e331c0",
+      "type": "f"
+    },
+    {
+      "length": 2962,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/receipt.md",
+      "sha256": "a8e020abe3e893aa3d9f7bda2148ec1ca3da5f500cdf095fec4f669d296b7c1e",
+      "type": "f"
+    },
+    {
+      "length": 1154,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/request.md",
+      "sha256": "fb34c2ad591a9cc0ed01bae4047b9e0fe61c9e72a577daa3c8bb9ab85179ed62",
+      "type": "f"
+    },
+    {
+      "length": 2726,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/requirements.md",
+      "sha256": "566fa2805a7d6a13ba361ee53ac0bc46a20890f84209ad06f48bacf4c6791ab7",
+      "type": "f"
+    },
+    {
+      "length": 1065,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-006/task-packet.md",
+      "sha256": "ba179b26ca074ec3803b5b9c4d8d38fe9f3bd0521e8f9570292901b8c73ff1ff",
+      "type": "f"
+    },
+    {
+      "length": 3088,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/brief.md",
+      "sha256": "a853e191d77d9e009507471ae9681828253340c95301df7f05818e8a440ef787",
+      "type": "f"
+    },
+    {
+      "length": 1261,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/client-follow-up-questions.md",
+      "sha256": "be3adea7801badaec1d3712f3154820d3980cb026e9352f96193ffa5f182a492",
+      "type": "f"
+    },
+    {
+      "length": 2758,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/code-review.md",
+      "sha256": "6e2cb2800bd66b5ff01ced3bd7edc79f4625e516483739e4f90f6c106a03756a",
+      "type": "f"
+    },
+    {
+      "length": 3917,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/design.md",
+      "sha256": "4ed4792f2d24c53003a2b2fc73fa343ebdb7b39190f397b39ff154eaa561c42a",
+      "type": "f"
+    },
+    {
+      "length": 2321,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/index.md",
+      "sha256": "a2adfe8646e292aca5b00ecaf599dbf54b3ef623c244a791571fec4abff158ba",
+      "type": "f"
+    },
+    {
+      "length": 3471,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/options.md",
+      "sha256": "eae5d1a6a0e214a25d8afc357f63a8416f8e4a1be6cb15218f5095925ebe0c1b",
+      "type": "f"
+    },
+    {
+      "length": 2304,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/plan-review.md",
+      "sha256": "8344ae07d330dff75de1256acfc8944216a33cc656db431f771163fe8b0d0752",
+      "type": "f"
+    },
+    {
+      "length": 3790,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/plan.md",
+      "sha256": "208ddb85d7455a27f24686377b0034ae4c8055e9cae284712db471093048708f",
+      "type": "f"
+    },
+    {
+      "length": 1158,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/pr-desc.md",
+      "sha256": "1683466e6f747190b073a60bd2671421a1e05d8b5d82fe62396c121a02095d4d",
+      "type": "f"
+    },
+    {
+      "length": 3086,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/receipt.md",
+      "sha256": "2c4311c0dce5930bf0cb37349b8061f1464ec65c4d7e5d57f6b30ad4fd93ed2a",
+      "type": "f"
+    },
+    {
+      "length": 1286,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/request.md",
+      "sha256": "fcbf01b6c8a3650fc6dc914ddf7f7b9524552a9fffdac08b5d3f6ce40675e0e8",
+      "type": "f"
+    },
+    {
+      "length": 3371,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/requirements.md",
+      "sha256": "9943db40b353400522ef827346a26751fbee25aaeffb9ddfcbb0a0f6e6ab3d1c",
+      "type": "f"
+    },
+    {
+      "length": 1305,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-007/task-packet.md",
+      "sha256": "fcd75f07dfbd556b520104d45c3f75930af856ed6b46c67fdfbbdae3dd9c9287",
+      "type": "f"
+    },
+    {
+      "length": 3927,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/brief.md",
+      "sha256": "e553d28bc4b5b251438ba9bdfb67c6ce3f6892b63d9a4644fa74699684a1f1ad",
+      "type": "f"
+    },
+    {
+      "length": 1533,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/client-follow-up-questions.md",
+      "sha256": "22e7442bbccd329aeac44c56ad743d3093386b549e9d094b187b5c9242552869",
+      "type": "f"
+    },
+    {
+      "length": 8110,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/code-review.md",
+      "sha256": "081fedf42e5750f6034837f0ec62134cf1141a145263acedf96b8678b6dca8ac",
+      "type": "f"
+    },
+    {
+      "length": 9036,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/design.md",
+      "sha256": "200aa12ef354dc273b698349821cea276676d90499fbedd9ea9b82c92b08baec",
+      "type": "f"
+    },
+    {
+      "length": 2549,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/index.md",
+      "sha256": "dcaf204d9ee9f093dfc12a01f7ef87e6b4157e95e688dede7d46216d30590344",
+      "type": "f"
+    },
+    {
+      "length": 4746,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/options.md",
+      "sha256": "198bc15e2be3265ec559a1a439aa25f1bf04b5b41ad8e4b2e62c7135c6a07d83",
+      "type": "f"
+    },
+    {
+      "length": 5870,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/plan-review.md",
+      "sha256": "dabad7970319f2989251eb040a84f52efa6981057bec917918cca9b6c47ecdc2",
+      "type": "f"
+    },
+    {
+      "length": 5292,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/plan.md",
+      "sha256": "c5ee1e4154f2935d65e96c2f46657619e443501a162800025e125620eaade279",
+      "type": "f"
+    },
+    {
+      "length": 1332,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/pr-desc.md",
+      "sha256": "3017719551cfeca96e517b762869950a604c8e66cf181530d8309c787afb433e",
+      "type": "f"
+    },
+    {
+      "length": 3388,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/receipt.md",
+      "sha256": "34bb44b89946a0eedde668c16b3d3d01f57e10ceb7ade71e0002f7a88fdf8a05",
+      "type": "f"
+    },
+    {
+      "length": 1445,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/request.md",
+      "sha256": "9887421dc69af160a81af0341bbcc61ddc31c30ac32a96d521366ce53b62cac2",
+      "type": "f"
+    },
+    {
+      "length": 4309,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/requirements.md",
+      "sha256": "2d0b3e87b52a3e1b5abb5bf2a55f2554e5aea7a36bb8b6d01c04fea6fd4bfe95",
+      "type": "f"
+    },
+    {
+      "length": 1603,
+      "path": "projects/brida-task-dossier-workflow/handoffs/TDW-008/task-packet.md",
+      "sha256": "423c1a0707cd6d9e92463b083a6f9112251e018d496161989cd84631f50d5142",
+      "type": "f"
+    },
+    {
+      "length": 1591,
+      "path": "projects/brida-task-dossier-workflow/overview.md",
+      "sha256": "e8387b47e7d3b1d473005dee762636389331bfec120e1ecdffb496259c885a78",
+      "type": "f"
+    },
+    {
+      "length": 8821,
+      "path": "projects/brida-task-dossier-workflow/plan.md",
+      "sha256": "5bcd2f72729f289ad348ee85db00fec44e979870067c41f19c2046885aba075a",
+      "type": "f"
+    },
+    {
+      "length": 3930,
+      "path": "projects/brida-task-dossier-workflow/references.md",
+      "sha256": "6c5524f3a14f5204e11897a4581ddc763a2b64e5e6888133ac490ff2f1d7f470",
+      "type": "f"
+    },
+    {
+      "length": 12129,
+      "path": "projects/brida-task-dossier-workflow/research.md",
+      "sha256": "d8a25baadbf2f2e977b11b1c4a1a7211ea14c60f298c62321ec1ab4c6a08d34b",
+      "type": "f"
+    },
+    {
+      "length": 9662,
+      "path": "projects/brida-task-dossier-workflow/routing-impact.md",
+      "sha256": "57c3f4d3e1cedbb524a9c6d42afabf6d9379e69c506968d9429608889209e8c8",
+      "type": "f"
+    },
+    {
+      "length": 2343,
+      "path": "projects/brida-task-dossier-workflow/tasks.md",
+      "sha256": "8ac5043faec295156fe475605bf3c16b8ea1bc0b762b2f00ddd4aa82a6ee1906",
+      "type": "f"
+    },
+    {
+      "length": 1185,
+      "path": "projects/brida-workflow-evaluation/current-state.md",
+      "sha256": "c4331c7ff2cbd99306afbe9945e9306f5ebe242da27e31170ac0d96ed6847776",
+      "type": "f"
+    },
+    {
+      "length": 513,
+      "path": "projects/brida-workflow-evaluation/decisions.md",
+      "sha256": "821f23e9401fd681aeb16225eaa01814c121c01bf40aaa92df2fb4952e762f90",
+      "type": "f"
+    },
+    {
+      "length": 1159,
+      "path": "projects/brida-workflow-evaluation/overview.md",
+      "sha256": "62d95ac4eedcc3c7b44b6f0b97ace3cd3a57698682426f5984880783a8792cb4",
+      "type": "f"
+    },
+    {
+      "length": 661,
+      "path": "projects/brida-workflow-evaluation/references.md",
+      "sha256": "6a3eab958de29c23fbd1129d99e09c1edb77922f51b14f672687844d2be3fe23",
+      "type": "f"
+    },
+    {
+      "length": 1841,
+      "path": "projects/brida-workflow-evaluation/tasks.md",
+      "sha256": "e6709348e3ea746cf24e3f5dd31d6d3c2e61e8cbdee27ed4270c9f2f4ac7a052",
+      "type": "f"
+    },
+    {
+      "length": 1722,
+      "path": "projects/index.md",
+      "sha256": "3326203b0cb9a3d66872cf02d3895a170b7715fc12ceeb06d0f76ac6eb30d8f5",
+      "type": "f"
+    },
+    {
+      "length": 1491,
+      "path": "pyproject.toml",
+      "sha256": "1c19d1368d85d0ff46804a5bb85e05c4640cf05a0b181970cc99cdfc7a118ada",
+      "type": "f"
+    },
+    {
+      "length": 6814,
+      "path": "scripts/build_pypi_readme.py",
+      "sha256": "e9ef79ee8ab552d5ca26d71980670648594fce267ea25ca465aba12507201a65",
+      "type": "f"
+    },
+    {
+      "length": 9722,
+      "path": "scripts/check_compatibility_retirement.py",
+      "sha256": "b204ea67ff7f6ea2357284faa78013011ad8c6a72a93bd1d9518100e77168e34",
+      "type": "f"
+    },
+    {
+      "length": 6521,
+      "path": "scripts/check_repository_paths.py",
+      "sha256": "367e9d7f07535ae0e8978a879a411af96854d2f81d1cfcc6a8a5f905f8931d91",
+      "type": "f"
+    },
+    {
+      "length": 7138,
+      "path": "scripts/install-brichan",
+      "sha256": "ec1fb7a26e7a80d8030e7f69dc933f3cc3f4477f4981b6685a12a64df3fb87fa",
+      "type": "f"
+    },
+    {
+      "length": 15935,
+      "path": "scripts/release_pypi.py",
+      "sha256": "46eaa7726066a341d4a17fbac5515aaec9f241934705c25c04208a087cdeccd3",
+      "type": "f"
+    },
+    {
+      "length": 417,
+      "path": "scripts/scaffold_task_dossier.py",
+      "sha256": "0242670e6ddc0961b7d893ca71241aaf490751bb468147ee46a5036636dffe80",
+      "type": "f"
+    },
+    {
+      "length": 397,
+      "path": "scripts/validate_handoff_receipts.py",
+      "sha256": "e07f7b5872d1d38399beca15f685fad3398996be92413cfc34a25ddad9b95001",
+      "type": "f"
+    },
+    {
+      "length": 406,
+      "path": "scripts/validate_task_dossiers.py",
+      "sha256": "bd986ec238c17260fcbba16ebdbd70d80268db2283ea4cb9adac47ab934f6c1a",
+      "type": "f"
+    },
+    {
+      "length": 70,
+      "path": "src/brichan/__init__.py",
+      "sha256": "0b7fe4c9406b95d37e9768cc798a508b94b164fb352ef3b9d8a9e0104c882e42",
+      "type": "f"
+    },
+    {
+      "length": 47,
+      "path": "src/brichan/cli/__init__.py",
+      "sha256": "4271569170d5395c6be4f8cc3ba2122a55c4e257694fcb878172f37fdf0e9f77",
+      "type": "f"
+    },
+    {
+      "length": 1535,
+      "path": "src/brichan/cli/_root.py",
+      "sha256": "336375e073fe96dfa92f5a1ca31e38e4746ffa602d685134a6de5c8ab666a727",
+      "type": "f"
+    },
+    {
+      "length": 1841,
+      "path": "src/brichan/cli/claude.py",
+      "sha256": "ba5eadc86b231e828402db95e8f638f0be7369890d724931173b355ee1e0a6f6",
+      "type": "f"
+    },
+    {
+      "length": 3985,
+      "path": "src/brichan/cli/codex.py",
+      "sha256": "7fe9233c5693949d96134cef794435be8e77a77a617c8eaf07552ff16d798944",
+      "type": "f"
+    },
+    {
+      "length": 14071,
+      "path": "src/brichan/cli/provider_commands.py",
+      "sha256": "5a4607a05b34f2fda8cad8d26899ee21423a96885d3749dc85c460ca521a565a",
+      "type": "f"
+    },
+    {
+      "length": 6089,
+      "path": "src/brichan/cli/render.py",
+      "sha256": "0d7ab500391e062595fd38cefd1c82fde9529315d71511220009a0488b217f94",
+      "type": "f"
+    },
+    {
+      "length": 7667,
+      "path": "src/brichan/cli/runtime.py",
+      "sha256": "12bbd55d789602a9765837d8d73519167cf375cbb2eaa28b9b0693dd68b4d295",
+      "type": "f"
+    },
+    {
+      "length": 33,
+      "path": "src/brichan/contracts/__init__.py",
+      "sha256": "f43c99992980aa5078d2d2365f046509b7b0e37b91813fb70fca4a619c311071",
+      "type": "f"
+    },
+    {
+      "length": 340,
+      "path": "src/brichan/contracts/receipts/__init__.py",
+      "sha256": "5cb5f71bd8f65d2ca8d78b452c2c66fede81d3316a099c879111e50681491fc3",
+      "type": "f"
+    },
+    {
+      "length": 115,
+      "path": "src/brichan/contracts/receipts/discovery.py",
+      "sha256": "2cebef1f0bfb245dc046952d296ce47734513a557c6da94d79db07a80aec1706",
+      "type": "f"
+    },
+    {
+      "length": 127,
+      "path": "src/brichan/contracts/receipts/parser.py",
+      "sha256": "79ff260a33e1c86a67ec16333f0848087a77b0f74a6da90391fc1b708b0894eb",
+      "type": "f"
+    },
+    {
+      "length": 807,
+      "path": "src/brichan/contracts/receipts/schema.py",
+      "sha256": "3974811e6c6f75dbd5667d27b952911d2fd643744431b2567f0cd88faf5149ff",
+      "type": "f"
+    },
+    {
+      "length": 35492,
+      "path": "src/brichan/contracts/receipts/validation.py",
+      "sha256": "56ddc03353b030327e054db95e28719dfdd7a79e50303e0026877d85dec188d3",
+      "type": "f"
+    },
+    {
+      "length": 622,
+      "path": "src/brichan/contracts/task_dossier/__init__.py",
+      "sha256": "0d033467c1491faf1ddd567e5c66b08611c04e6f644cd8ee21c748406385b7b6",
+      "type": "f"
+    },
+    {
+      "length": 4363,
+      "path": "src/brichan/contracts/task_dossier/parser.py",
+      "sha256": "b95f9f759a0884f80aed3529d46c95d09e94445140167d204fccf7568984951b",
+      "type": "f"
+    },
+    {
+      "length": 8958,
+      "path": "src/brichan/contracts/task_dossier/scaffold.py",
+      "sha256": "41e1cebc4580b2b106629904d85cc4612fc7b75a326f23e6590d857cfd446012",
+      "type": "f"
+    },
+    {
+      "length": 6723,
+      "path": "src/brichan/contracts/task_dossier/schema.py",
+      "sha256": "c1965f10ad5f66cabf8ee60c6a9e20a0abefc51c7b8d6fa32c2d88f46e2ded1e",
+      "type": "f"
+    },
+    {
+      "length": 40759,
+      "path": "src/brichan/contracts/task_dossier/validation.py",
+      "sha256": "95bc06c44c33794aa70ec1a2f4d44060e5b1d5f6f8f2db0761cb05755adbd25b",
+      "type": "f"
+    },
+    {
+      "length": 10952,
+      "path": "src/brichan/lifecycle.py",
+      "sha256": "807127add1b57693f00a0069069e2eea45b57dd17312066f9ce934136378e32b",
+      "type": "f"
+    },
+    {
+      "length": 453,
+      "path": "src/brichan/orchestration/__init__.py",
+      "sha256": "cc9dbdbdd368a14d2f76c9b7f5e9b6d6d68002a757bc06bf6f86e6bb0ff0a44b",
+      "type": "f"
+    },
+    {
+      "length": 207,
+      "path": "src/brichan/orchestration/herdr_client.py",
+      "sha256": "c7468e48e677599b71887d5b79c8b3b5c621e4f2baec5efde555c98f17786893",
+      "type": "f"
+    },
+    {
+      "length": 154,
+      "path": "src/brichan/orchestration/layout.py",
+      "sha256": "40917ab1d7e3e8fe2932d7421ab743d001f9da512bc655550bae8aa890045311",
+      "type": "f"
+    },
+    {
+      "length": 9102,
+      "path": "src/brichan/orchestration/model_routing.py",
+      "sha256": "591ce2499396f6648acbd473a0fea8ea5cd0e7d0c582b2def2ab2f32f25b05f1",
+      "type": "f"
+    },
+    {
+      "length": 15638,
+      "path": "src/brichan/orchestration/worker_launch.py",
+      "sha256": "7e48b5ffb2d13649d3b6ebfcf911d77b020cdab32e2279848e519d2978a350a4",
+      "type": "f"
+    },
+    {
+      "length": 1820,
+      "path": "src/brichan/project.py",
+      "sha256": "60ffd4b9fcc1aa6aeac40d1816afb831c87c3edd5d9ddd6f376b8284d30837b1",
+      "type": "f"
+    },
+    {
+      "length": 42,
+      "path": "src/brichan/resources/__init__.py",
+      "sha256": "ca1b3b1a2bebe87cfbf0786442cbc29fe8adde6cac79fed3eaa298357249bdda",
+      "type": "f"
+    },
+    {
+      "length": 45,
+      "path": "src/brichan/resources/dogfood_v1/__init__.py",
+      "sha256": "2fbf1b52326bb386abab52c3a0ee7d51d895638c50e634db7a4ada54116cd00e",
+      "type": "f"
+    },
+    {
+      "length": 710,
+      "path": "src/brichan/resources/dogfood_v1/config/model-routing.json",
+      "sha256": "16258975e9a7299544bbcdd6378a97d01fb0d88d019499b5ef326548f89139a8",
+      "type": "f"
+    },
+    {
+      "length": 1112,
+      "path": "src/brichan/resources/dogfood_v1/policy/bootstrap.md",
+      "sha256": "a456213dd41c4c5a22f88c26ed06ec1dc2aff081e246e43444ca3114cfaf9633",
+      "type": "f"
+    },
+    {
+      "length": 860,
+      "path": "src/brichan/resources/dogfood_v1/policy/identity.md",
+      "sha256": "84c8348ad7647222add77a12132465e7c7356b10af3025ee2fa89819239663aa",
+      "type": "f"
+    },
+    {
+      "length": 649,
+      "path": "src/brichan/resources/dogfood_v1/policy/memory-policy.md",
+      "sha256": "3c3618d5005d03e2ff5c5e7a7f9f88a804b0582bb4fe7158a0e03e8e06404d8d",
+      "type": "f"
+    },
+    {
+      "length": 783,
+      "path": "src/brichan/resources/dogfood_v1/policy/operating-principles.md",
+      "sha256": "bd1adc05c182b474dc9625bd5b640708d0289a5ec38487a00e38f48113da65e5",
+      "type": "f"
+    },
+    {
+      "length": 151,
+      "path": "src/brichan/resources/dogfood_v1/project-memory/index.md",
+      "sha256": "ad1d5c9f798b21c3ed94ef24f49cab37ae139c3314a821d95650799e8872027b",
+      "type": "f"
+    },
+    {
+      "length": 163,
+      "path": "src/brichan/resources/dogfood_v1/project-memory/main/current-state.md",
+      "sha256": "79db0b50ac65a0e144b179b1c755cdf0794cc293eda3b4ce4b805488ebe2d474",
+      "type": "f"
+    },
+    {
+      "length": 91,
+      "path": "src/brichan/resources/dogfood_v1/project-memory/main/decisions.md",
+      "sha256": "ed8141e1712b452aad9fc1bf0e460bbc34553044f5d8f5b20d9256a248ed26f2",
+      "type": "f"
+    },
+    {
+      "length": 182,
+      "path": "src/brichan/resources/dogfood_v1/project-memory/main/overview.md",
+      "sha256": "d19499beb0578b142e72086d9cf207173ad45c1010f2619ee9da271c60eab520",
+      "type": "f"
+    },
+    {
+      "length": 68,
+      "path": "src/brichan/resources/dogfood_v1/project-memory/main/references.md",
+      "sha256": "40af902da8dc002b219441c6843b001ffec1297d8f7934397a80014383dde0b1",
+      "type": "f"
+    },
+    {
+      "length": 196,
+      "path": "src/brichan/resources/dogfood_v1/project-memory/main/tasks.md",
+      "sha256": "6d39c57febe439bea17dbaad68d7985b09f4ca12f9810133ec3547e3c7dc0c59",
+      "type": "f"
+    },
+    {
+      "length": 1070,
+      "path": "src/brichan/resources/dogfood_v1/skills/herdr-orchestration/SKILL.md",
+      "sha256": "bdf83282fb567e3a982d6903e72313f0d9884f440ffbd60c14ebb0c2dcbf2b1a",
+      "type": "f"
+    },
+    {
+      "length": 684,
+      "path": "src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md",
+      "sha256": "e19ab06c237b66a59c3c20827878f1eeffb4ded19a8b55fec7bfbfd20862def7",
+      "type": "f"
+    },
+    {
+      "length": 618,
+      "path": "src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/task-packet.md",
+      "sha256": "1258b5d646d2f2ff36b91301f1b198b88169ca281bd86cc53f3afc18a1d972b1",
+      "type": "f"
+    },
+    {
+      "length": 27,
+      "path": "tests/__init__.py",
+      "sha256": "18c0e58e201957ca020eeaa1169e21606d91b1eda2abc2b4445b49a7cc618c94",
+      "type": "f"
+    },
+    {
+      "length": 45,
+      "path": "tests/contract/__init__.py",
+      "sha256": "6d711233068c3f30af5e703640288e7a0da6189a3f67ac9634abfe212236bbc8",
+      "type": "f"
+    },
+    {
+      "length": 5211,
+      "path": "tests/contract/test_compatibility_retirement.py",
+      "sha256": "3d3c1cbcb3a9da384adde5162074b250c8fbf2ca4884658609b4ec0759b53bbd",
+      "type": "f"
+    },
+    {
+      "length": 9372,
+      "path": "tests/contract/test_concurrency_contract.py",
+      "sha256": "2315b10437ca3be0d6e77dea1207546698cb1b7e287c4df02fee4082ed9ef323",
+      "type": "f"
+    },
+    {
+      "length": 6325,
+      "path": "tests/contract/test_packaging_metadata.py",
+      "sha256": "bb15964649cf8a78dc451ff21afb1d9198885bc4d47e6aa08d17d5d706ce5668",
+      "type": "f"
+    },
+    {
+      "length": 12698,
+      "path": "tests/contract/test_repository_contract.py",
+      "sha256": "0b3d3541d75ae86cff19bb50f81485d0cf6a088d464382e7ef1db2257a60949b",
+      "type": "f"
+    },
+    {
+      "length": 2954,
+      "path": "tests/contract/test_repository_paths.py",
+      "sha256": "eb7cc51f39a3cc7839da3ef06a12eedf530c27a4cde28cfd349e7449ca1fd8aa",
+      "type": "f"
+    },
+    {
+      "length": 9243,
+      "path": "tests/contract/test_task_dossier_contract.py",
+      "sha256": "c170f3da954a78f7264633c88969ad1919ad6e54dfa51632fa5c4d9ceac05d6d",
+      "type": "f"
+    },
+    {
+      "length": 52,
+      "path": "tests/integration/__init__.py",
+      "sha256": "6048c4f4fe2e3b4b4da6c6036202ab85e5c4e321261f2144bc3badcd69961f5d",
+      "type": "f"
+    },
+    {
+      "length": 10219,
+      "path": "tests/integration/test_cli_compatibility.py",
+      "sha256": "8ee6d132a2fdd1449e41ae9fa00dac358ffa79f5e4bea48701ae9c3b2210539d",
+      "type": "f"
+    },
+    {
+      "length": 22119,
+      "path": "tests/integration/test_installed_dogfood.py",
+      "sha256": "9623f6f90700c5c8d3638ce162e2f088dcfd35d52a66414f6404012b7b4722e0",
+      "type": "f"
+    },
+    {
+      "length": 11585,
+      "path": "tests/integration/test_task_dossier_workflow.py",
+      "sha256": "6609380a585fb5717c9cc4e11f10c81984c00b54d637100bc5fc617b7058f37b",
+      "type": "f"
+    },
+    {
+      "length": 10499,
+      "path": "tests/integration/test_worker_routing_cli.py",
+      "sha256": "9078710e87f58c6b7ad666dfba348e171e42bb3a70478044e1aba41fa6fe57fe",
+      "type": "f"
+    },
+    {
+      "length": 49,
+      "path": "tests/unit/__init__.py",
+      "sha256": "c9079a4bce2828ac088fff5d49cdecf30fa381114ebf9f42de4ab8d4ed193c7f",
+      "type": "f"
+    },
+    {
+      "length": 6065,
+      "path": "tests/unit/test_build_pypi_readme.py",
+      "sha256": "f7b75712a92e3e6e4deefe04581e23dd44571c90b6fb007e74c5231ee7e44026",
+      "type": "f"
+    },
+    {
+      "length": 10412,
+      "path": "tests/unit/test_cli_entrypoints.py",
+      "sha256": "ae3ce2dab7de8da774b254417ed3247b5eab8722d2b1a9d0ee8a58159f138364",
+      "type": "f"
+    },
+    {
+      "length": 9255,
+      "path": "tests/unit/test_cli_render.py",
+      "sha256": "26de6e2acd3518e9d0f285388453de614de55075009408e69bb98a2ed24c6ca1",
+      "type": "f"
+    },
+    {
+      "length": 6702,
+      "path": "tests/unit/test_codex_project_launch.py",
+      "sha256": "ad6e740f28e90bdebb038c72d968d6c97981559397407d6b87132aea53945233",
+      "type": "f"
+    },
+    {
+      "length": 19309,
+      "path": "tests/unit/test_handoff_receipt_validator.py",
+      "sha256": "90e6925dd83b50653bcd2f2673e3e1e7f26e68d46667f00c940720f20637ae39",
+      "type": "f"
+    },
+    {
+      "length": 6346,
+      "path": "tests/unit/test_herdr_layout.py",
+      "sha256": "9e12010e5826d17660c559ba4cfe915fc8b4905f965f4423d0019e16b75692bb",
+      "type": "f"
+    },
+    {
+      "length": 11574,
+      "path": "tests/unit/test_model_routing.py",
+      "sha256": "c0e5fb23440a5ab91fc7ddf3636b180ffd36f4d5f2126ff16441b5dbe032adbf",
+      "type": "f"
+    },
+    {
+      "length": 3116,
+      "path": "tests/unit/test_module_boundaries.py",
+      "sha256": "b509f7d02f735c17d77568beb001ab6878538bfd14da32b12d516cdbfc55f3c8",
+      "type": "f"
+    },
+    {
+      "length": 10410,
+      "path": "tests/unit/test_project_lifecycle.py",
+      "sha256": "0e932812abe8e869f771293eb20b22ad4bc0c9c2ba00cea7e1dc97e0f5ad1fbe",
+      "type": "f"
+    },
+    {
+      "length": 7465,
+      "path": "tests/unit/test_release_pypi.py",
+      "sha256": "65f68935873b69516285382025d9af891102c0dd5332a5df2ba3d69dc002f7bb",
+      "type": "f"
+    },
+    {
+      "length": 35840,
+      "path": "tests/unit/test_task_dossier_validator.py",
+      "sha256": "14b7acea3bb7b9aeaafa4be1d1ac3bc7616afa451e7d913b2adfa484900783c4",
+      "type": "f"
+    }
+  ],
+  "snapshot_dir": "projects/brida-task-dossier-workflow/handoffs/TDW-009/capture/snapshot"
+}

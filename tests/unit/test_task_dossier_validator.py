@@ -901,6 +901,69 @@ class TaskDossierValidatorTest(unittest.TestCase):
         self.assertEqual(1, code)
         self.assertIn("Invalid task dossiers", stderr.getvalue())
 
+    def test_a_symlinked_ancestor_above_the_receipt_is_diagnosed(self):
+        """A real receipt reached through a symlinked directory is invalid.
+
+        The leaf being a genuine file is not enough: a link above it decides
+        which file the declared path reaches.
+        """
+        dossier = build_dossier(self.projects)
+        handoffs = self.projects / "example" / "handoffs"
+        real = self.projects / "example" / "handoffs-real"
+        handoffs.rename(real)
+        handoffs.symlink_to(real)
+        dossier = self.projects / "example" / "handoffs" / "TASK-001"
+
+        diagnostics = self.assert_reports(
+            dossier,
+            "must not reach the canonical receipt through a symlinked ancestor",
+        )
+        named = [
+            diagnostic
+            for diagnostic in diagnostics
+            if "symlinked ancestor" in diagnostic.message
+        ]
+        self.assertEqual(1, len(named), self.messages(diagnostics))
+        self.assertEqual("index.md", named[0].path.name)
+        self.assertEqual(
+            "Task identity.Canonical receipt path", named[0].field
+        )
+
+    def test_a_symlinked_ancestor_above_project_memory_is_diagnosed(self):
+        dossier = build_dossier(self.projects)
+        example = self.projects / "example"
+        real = self.projects / "example-real"
+        example.rename(real)
+        example.symlink_to(real)
+        dossier = self.projects / "example" / "handoffs" / "TASK-001"
+
+        diagnostics = self.assert_reports(
+            dossier, "must not reach project memory through a symlinked ancestor"
+        )
+        named = [
+            diagnostic
+            for diagnostic in diagnostics
+            if diagnostic.field.endswith("Project memory path")
+        ]
+        self.assertEqual(1, len(named), self.messages(diagnostics))
+        self.assertEqual("index.md", named[0].path.name)
+
+    def test_the_clean_authority_case_is_unchanged(self):
+        """Neither new diagnostic fires on a dossier with real directories."""
+        dossier = build_dossier(self.projects)
+        diagnostics = self.validate(dossier)
+        self.assertEqual([], diagnostics, self.messages(diagnostics))
+        self.assertNotIn("symlinked ancestor", self.messages(diagnostics))
+
+    def test_exactly_two_ancestor_diagnostics_are_added(self):
+        source = (
+            ROOT / "src/brichan/contracts/task_dossier/validation.py"
+        ).read_text(encoding="utf-8")
+        # one definition plus exactly two call sites: the receipt link and the
+        # project-memory link, and nothing else.
+        self.assertEqual(3, source.count("_symlinked_ancestor("))
+        self.assertEqual(1, source.count("def _symlinked_ancestor("))
+
     def test_cli_reports_missing_projects_root(self):
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):

@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "task_id": "SYNTH-011",
+  "level": "1",
+  "project": "synthetic-level1",
+  "origin": "synthetic-fixture:TDW-009-P7-v7",
+  "index_identity": {
+    "Project memory path": "projects/synthetic-level1/current-state.md",
+    "Accepted plan ID": "SYNTH-011-P1",
+    "Accepted plan version": 1,
+    "Review route strength": "routine",
+    "Review route override": null,
+    "Ship authorization": "not-requested",
+    "Ship authorization evidence": null
+  },
+  "artifacts": {
+    "index": {
+      "version": 1,
+      "origin": null,
+      "phase_state": "passed",
+      "applicability": "required",
+      "applicability_rationale": null,
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-coordinator-0002",
+      "effective_route": "coordinator",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "medium",
+      "reviewing_session": null,
+      "review_verdict": null,
+      "fields": {},
+      "sections": [],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. Level 1 fixture index artifact.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` is this dossier's only source.",
+        "`evals/task-dossier-pilots/concise/results.md` records the measured line totals for this sample."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    },
+    "request": {
+      "version": 1,
+      "origin": "user-request",
+      "phase_state": "passed",
+      "applicability": "required",
+      "applicability_rationale": null,
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-coordinator-0002",
+      "effective_route": "coordinator",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "medium",
+      "reviewing_session": null,
+      "review_verdict": null,
+      "fields": {
+        "Redaction applied": "yes",
+        "Mutability": "immutable"
+      },
+      "sections": [],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. Level 1 fixture request artifact.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` is this dossier's only source.",
+        "`records/SYNTH-011.record.json` carries the redacted request fields this artifact renders."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    },
+    "requirements": {
+      "version": 1,
+      "origin": null,
+      "phase_state": "passed",
+      "applicability": "required",
+      "applicability_rationale": null,
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-planner-0002",
+      "effective_route": "plan",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "high",
+      "reviewing_session": null,
+      "review_verdict": null,
+      "fields": {},
+      "sections": [],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. Level 1 fixture requirements artifact.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` is this dossier's only source.",
+        "`src/brichan/contracts/task_dossier/schema.py` names the eleven artifacts this sample carries."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    },
+    "brief": {
+      "version": 1,
+      "origin": null,
+      "phase_state": "passed",
+      "applicability": "required",
+      "applicability_rationale": null,
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-planner-0002",
+      "effective_route": "plan",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "high",
+      "reviewing_session": null,
+      "review_verdict": null,
+      "fields": {},
+      "sections": [],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. Level 1 fixture brief artifact.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` is this dossier's only source.",
+        "`evals/task-dossier-pilots/results.md` states the 716-line Level 1 baseline this sample is measured against."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    },
+    "options": {
+      "version": 1,
+      "origin": null,
+      "phase_state": "passed",
+      "applicability": "required",
+      "applicability_rationale": null,
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-planner-0002",
+      "effective_route": "plan",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "high",
+      "reviewing_session": null,
+      "review_verdict": null,
+      "fields": {},
+      "sections": [],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. Level 1 fixture options artifact.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` is this dossier's only source.",
+        "`records/SYNTH-011.record.json` holds the single structured record every option here was rendered from."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    },
+    "design": {
+      "version": 1,
+      "origin": null,
+      "phase_state": "passed",
+      "applicability": "required",
+      "applicability_rationale": null,
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-planner-0002",
+      "effective_route": "plan",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "high",
+      "reviewing_session": null,
+      "review_verdict": null,
+      "fields": {},
+      "sections": [],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. Level 1 fixture design artifact.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` is this dossier's only source.",
+        "`src/brichan/contracts/task_dossier/generate.py` is the renderer that produced this artifact."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    },
+    "client-follow-up-questions": {
+      "version": 1,
+      "origin": null,
+      "phase_state": "not-required",
+      "applicability": "not-required",
+      "applicability_rationale": "No client question changes this synthetic fixture.",
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-coordinator-0002",
+      "effective_route": "coordinator",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "medium",
+      "reviewing_session": null,
+      "review_verdict": null,
+      "fields": {},
+      "sections": [],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. No client follow-up applies.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` records no open client question.",
+        "`records/SYNTH-011.record.json` records no open client question for this fixture."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    },
+    "plan": {
+      "version": 1,
+      "origin": null,
+      "phase_state": "passed",
+      "applicability": "required",
+      "applicability_rationale": null,
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-planner-0002",
+      "effective_route": "plan",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "high",
+      "reviewing_session": null,
+      "review_verdict": null,
+      "fields": {
+        "Plan ID": "SYNTH-011-P1",
+        "Plan status": "accepted"
+      },
+      "sections": [
+        {
+          "title": "Steps",
+          "body": [
+            "1. Synthetic fixture step; no work is authorized by it.",
+            "2. Synthetic fixture step; it records no real implementation."
+          ]
+        }
+      ],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. Level 1 fixture plan artifact.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` is this dossier's only source.",
+        "`records/SYNTH-011.record.json` fixes the plan identity this artifact declares."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    },
+    "plan-review": {
+      "version": 1,
+      "origin": null,
+      "phase_state": "passed",
+      "applicability": "required",
+      "applicability_rationale": null,
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-reviewer-0002",
+      "effective_route": "review",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "medium",
+      "reviewing_session": "synthetic-fixture-reviewer-0002",
+      "review_verdict": "PASS",
+      "fields": {
+        "Reviewed plan ID": "SYNTH-011-P1",
+        "Reviewed plan version": "1"
+      },
+      "sections": [],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. Level 1 fixture plan-review artifact.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` is this dossier's only source.",
+        "`records/SYNTH-011.record.json` records the reviewing session identity for this fixture."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    },
+    "code-review": {
+      "version": 1,
+      "origin": null,
+      "phase_state": "passed",
+      "applicability": "required",
+      "applicability_rationale": null,
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-reviewer-0002",
+      "effective_route": "review",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "medium",
+      "reviewing_session": "synthetic-fixture-reviewer-0002",
+      "review_verdict": "PASS",
+      "fields": {
+        "Reviewed plan ID": "SYNTH-011-P1",
+        "Reviewed plan version": "1"
+      },
+      "sections": [],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. Level 1 fixture code-review artifact.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` is this dossier's only source.",
+        "`records/SYNTH-011.record.json` records the reviewing session identity for this fixture."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    },
+    "pr-desc": {
+      "version": 1,
+      "origin": null,
+      "phase_state": "passed",
+      "applicability": "required",
+      "applicability_rationale": null,
+      "authorship": "model",
+      "authoring_session": "synthetic-fixture-coordinator-0002",
+      "effective_route": "coordinator",
+      "effective_model": "synthetic-fixture-model",
+      "effective_effort": "medium",
+      "reviewing_session": null,
+      "review_verdict": null,
+      "fields": {
+        "Remote action authorized": "no"
+      },
+      "sections": [],
+      "claim": "Synthetic non-authoritative fixture data; it proves no real review. Level 1 fixture pr-desc artifact.",
+      "evidence": [
+        "`records/SYNTH-011.record.json` is this dossier's only source.",
+        "`records/SYNTH-011.record.json` is the only source of this description; it authorizes no remote action."
+      ],
+      "uncertainty": [
+        "No unresolved uncertainty remains; this is fixture data and proves no review."
+      ]
+    }
+  }
+}

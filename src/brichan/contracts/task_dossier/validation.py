@@ -28,6 +28,7 @@ from .parser import (
 from .schema import (
     APPLICABILITY_STATES,
     ARTIFACTS,
+    ARTIFACT_EXTRA_SECTIONS,
     AUTHORSHIP_KINDS,
     BODY_SECTIONS,
     CANONICAL_MEMORY_FILES,
@@ -68,14 +69,7 @@ from .schema import (
 )
 
 
-EXTRA_SECTION_FIELDS = {
-    "index": ((INDEX_IDENTITY_SECTION, INDEX_IDENTITY_FIELDS),),
-    "request": ((REQUEST_PROVENANCE_SECTION, REQUEST_PROVENANCE_FIELDS),),
-    "plan": ((PLAN_STATUS_SECTION, PLAN_STATUS_FIELDS),),
-    "plan-review": ((REVIEW_TARGET_SECTION, REVIEW_TARGET_FIELDS),),
-    "code-review": ((REVIEW_TARGET_SECTION, REVIEW_TARGET_FIELDS),),
-    "pr-desc": ((REMOTE_ACTION_SECTION, REMOTE_ACTION_FIELDS),),
-}
+EXTRA_SECTION_FIELDS = ARTIFACT_EXTRA_SECTIONS
 
 PROVENANCE_FIELDS = (
     "Authoring session",
@@ -779,6 +773,23 @@ def _is_safe_relative(value: str) -> bool:
     )
 
 
+def _symlinked_ancestor(repository_root: Path, parts: Sequence[str]) -> Path | None:
+    """Return the first symlinked ancestor of a declared authority path.
+
+    An authority path whose leaf is a real file is still untrustworthy when a
+    directory above it is a symlink: the link decides which file the name
+    reaches. Components are walked from the repository root and ``lstat``-ed
+    without following anything, so the check answers a question about the path
+    that was declared rather than about whatever it currently resolves to.
+    """
+    current = repository_root
+    for part in parts[:-1]:
+        current = current / part
+        if current.is_symlink():
+            return current
+    return None
+
+
 def _validate_receipt_link(
     index: ParsedArtifact,
     dossier: Path,
@@ -821,6 +832,19 @@ def _validate_receipt_link(
             index,
             field,
             f"canonical receipt does not exist: {value}",
+        )
+        return
+
+    ancestor = _symlinked_ancestor(
+        projects_root.parent.resolve(), PurePosixPath(value).parts
+    )
+    if ancestor is not None:
+        _diagnose(
+            diagnostics,
+            index,
+            field,
+            "must not reach the canonical receipt through a symlinked "
+            f"ancestor: {ancestor}",
         )
 
 
@@ -869,6 +893,16 @@ def _validate_memory_link(
     candidate = repository_root.joinpath(*pure.parts)
     if candidate.is_symlink():
         _diagnose(diagnostics, index, field, "must not be a symlink")
+        return
+    ancestor = _symlinked_ancestor(repository_root, pure.parts)
+    if ancestor is not None:
+        _diagnose(
+            diagnostics,
+            index,
+            field,
+            "must not reach project memory through a symlinked ancestor: "
+            f"{ancestor}",
+        )
         return
     try:
         resolved = candidate.resolve()
