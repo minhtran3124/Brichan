@@ -15,7 +15,8 @@ worker tests.
 ## Change workflow
 
 1. State the objective and acceptance criteria.
-2. Keep the change within one clear concern.
+2. Keep the change within one clear concern. Tracked tasks own a full task
+   dossier; see [Task dossier workflow](docs/workflows/task-dossier.md).
 3. Update documentation when behavior or operating contracts change.
 4. Add or update regression tests for executable behavior.
 5. Run `make check`.

@@ -43,6 +43,18 @@ Return:
 5. Residual risks and required human decisions.
 ```
 
+## Task dossier reviews
+
+When the change is tracked by a task dossier (`docs/workflows/task-dossier.md`),
+the reviewer writes `plan-review.md` and `code-review.md` and nothing else in the
+dossier. Reviewers do not back-write `requirements.md`, `design.md`, or
+`plan.md`. Each review names the exact reviewed plan ID and version, records the
+reviewing session identity, and returns a verdict of `PASS` or
+`CHANGES REQUIRED`.
+
+Level 0 and level 1 may use the routine review route. Level 2 requires a
+documented stronger one-off override recorded in the dossier index.
+
 ## When review is mandatory
 
 - Authentication, authorization, secrets, payments, or personal data.

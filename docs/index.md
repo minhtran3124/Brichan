@@ -14,6 +14,7 @@ and orchestration boundaries.
 ## Workflows
 
 - [Workflow documentation policy](workflows/README.md)
+- [Task dossier workflow](workflows/task-dossier.md)
 
 ## Guides
 

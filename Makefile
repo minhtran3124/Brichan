@@ -1,4 +1,4 @@
-.PHONY: help release-preview test test-unit test-contract test-integration metrics receipts path-check readme-check phase5-preflight package-check contract-check check
+.PHONY: help release-preview test test-unit test-contract test-integration metrics receipts dossiers path-check readme-check phase5-preflight package-check contract-check check
 
 PYTHON ?= python3
 
@@ -10,6 +10,7 @@ help:
 	@echo "  make test-integration Run stable-wrapper integration tests"
 	@echo "  make metrics        Validate and summarize the metrics ledger"
 	@echo "  make receipts       Validate canonical handoff receipts"
+	@echo "  make dossiers       Validate checkout-mode task dossiers"
 	@echo "  make path-check     Validate repository paths and local Markdown links"
 	@echo "  make readme-check   Rebuild and validate the PyPI long description"
 	@echo "  make phase5-preflight Report compatibility-pointer retirement eligibility"
@@ -40,6 +41,9 @@ metrics:
 receipts:
 	$(PYTHON) scripts/validate_handoff_receipts.py projects
 
+dossiers:
+	$(PYTHON) scripts/validate_task_dossiers.py projects
+
 path-check:
 	$(PYTHON) scripts/check_repository_paths.py
 
@@ -60,5 +64,5 @@ package-check:
 contract-check: path-check test-contract
 	sh -n bin/brichan
 
-check: test metrics receipts path-check readme-check phase5-preflight package-check
+check: test metrics receipts dossiers path-check readme-check phase5-preflight package-check
 	sh -n bin/brichan

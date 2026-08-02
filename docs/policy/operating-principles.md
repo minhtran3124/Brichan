@@ -29,6 +29,11 @@ Measure those outcomes instead of assuming savings.
 Every delegated task needs a task packet. Use the template in the
 `herdr-orchestration` skill.
 
+Every tracked task also owns one task dossier. Follow
+`docs/workflows/task-dossier.md`. All task levels produce the same standard
+artifact set; the level changes evidence depth, reviewer strength, and
+authorization gates, never artifact presence.
+
 ## 3. Route deliberately
 
 Resolve the named worker route in repository settings first. Consult
@@ -58,6 +63,10 @@ Require evidence appropriate to the task:
 
 Use `docs/policy/reviewer.md` for material changes. Prefer a different model
 family or at least an independent fresh session for review.
+
+Record that evidence in the task dossier as well as the receipt. Document
+presence is not evidence, and an artifact with no material work is recorded as
+`not-required` with rationale and evidence.
 
 ## 6. Update durable memory
 

@@ -144,6 +144,18 @@
       "policy": "canonical"
     },
     {
+      "path": "docs/workflows/task-dossier.md",
+      "kind": "file",
+      "category": "workflow-policy",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/workflows/task-dossier/templates",
+      "kind": "directory",
+      "category": "workflow-policy",
+      "policy": "canonical"
+    },
+    {
       "path": "docs/architecture/repository-layout.md",
       "kind": "file",
       "category": "architecture",
@@ -181,6 +193,18 @@
     },
     {
       "path": "scripts/validate_handoff_receipts.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "scripts/validate_task_dossiers.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "scripts/scaffold_task_dossier.py",
       "kind": "file",
       "category": "automation-entrypoint",
       "policy": "stable-wrapper"
@@ -379,6 +403,30 @@
     },
     {
       "path": "src/brichan/contracts/receipts/discovery.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/validation.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/schema.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/parser.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/scaffold.py",
       "kind": "file",
       "category": "importable-api",
       "policy": "canonical"
@@ -606,6 +654,62 @@
     {
       "source": "tests/contract/test_repository_contract.py",
       "target": "metrics/runs.jsonl"
+    },
+    {
+      "source": "docs/index.md",
+      "target": "docs/workflows/task-dossier.md",
+      "needle": "workflows/task-dossier.md"
+    },
+    {
+      "source": "docs/workflows/README.md",
+      "target": "docs/workflows/task-dossier.md",
+      "needle": "task-dossier.md"
+    },
+    {
+      "source": "CONTRIBUTING.md",
+      "target": "docs/workflows/task-dossier.md"
+    },
+    {
+      "source": "docs/policy/operating-principles.md",
+      "target": "docs/workflows/task-dossier.md"
+    },
+    {
+      "source": "docs/policy/reviewer.md",
+      "target": "docs/workflows/task-dossier.md"
+    },
+    {
+      "source": "docs/workflows/task-dossier.md",
+      "target": "docs/workflows/task-dossier/templates",
+      "needle": "task-dossier/templates/"
+    },
+    {
+      "source": "Makefile",
+      "target": "scripts/validate_task_dossiers.py"
+    },
+    {
+      "source": "scripts/validate_task_dossiers.py",
+      "target": "src/brichan/contracts/task_dossier/validation.py",
+      "needle": "brichan.contracts.task_dossier.validation"
+    },
+    {
+      "source": "scripts/scaffold_task_dossier.py",
+      "target": "src/brichan/contracts/task_dossier/scaffold.py",
+      "needle": "brichan.contracts.task_dossier.scaffold"
+    },
+    {
+      "source": "src/brichan/contracts/task_dossier/scaffold.py",
+      "target": "docs/workflows/task-dossier/templates",
+      "needle": "docs/workflows/task-dossier/templates"
+    },
+    {
+      "source": "src/brichan/contracts/task_dossier/validation.py",
+      "target": "src/brichan/contracts/task_dossier/schema.py",
+      "needle": "from .schema import"
+    },
+    {
+      "source": "src/brichan/contracts/task_dossier/validation.py",
+      "target": "src/brichan/contracts/task_dossier/parser.py",
+      "needle": "from .parser import"
     }
   ]
 }
