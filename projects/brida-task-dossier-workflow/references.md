@@ -16,3 +16,10 @@
 | Task dossier contract | `docs/workflows/task-dossier.md` | 2026-08-02 | Canonical checkout-mode full-document workflow |
 | TDW-005 implementation worker | `brichan-full-doc-workflow-implement` / `w2D:p5` / `429445d9-3f2a-4d3c-9c87-63f51755a9a7` | 2026-08-02 | Claude Opus medium implementation and two remediation rounds |
 | TDW-005 independent reviewer | `brichan-full-doc-workflow-review` / `w2D:p6` / `019fc0a4-188e-7e91-91b1-22436b4fd951` | 2026-08-02 | Codex Sol high; adversarial review, two CHANGES REQUIRED rounds, final PASS |
+| TDW-006 receipt | `projects/brida-task-dossier-workflow/handoffs/TDW-006/receipt.md` | 2026-08-02 | Canonical Level 0 pilot lifecycle and evidence |
+| TDW-007 receipt | `projects/brida-task-dossier-workflow/handoffs/TDW-007/receipt.md` | 2026-08-02 | Canonical Level 1 pilot lifecycle and evidence |
+| TDW-008 receipt | `projects/brida-task-dossier-workflow/handoffs/TDW-008/receipt.md` | 2026-08-02 | Canonical Level 2 pilot lifecycle and evidence |
+| Pilot implementation worker | `brichan-dossier-pilot-implement` / `w2D:pA` / `6135c46e-a43e-4f14-9840-873bf01365c0` | 2026-08-02 | Claude Opus medium; wrote only three isolated fixture directories |
+| Pilot routine reviewer | `brichan-dossier-pilot-routine-review` / `w2D:p8` / `019fc0e5-9de0-7811-8bf1-c3bacd28eee9` | 2026-08-02 | Codex Luna medium; Level 0/1 plan and code reviews PASS |
+| Pilot stronger reviewer | `brichan-dossier-pilot-strong-review` / `w2D:p9` / `019fc0e5-9e45-75d1-b92e-d8f4fe4fd44a` | 2026-08-02 | Codex Sol high override; Level 2 plan and code reviews PASS |
+| Three-lane pilot evaluation | `evals/task-dossier-pilots/results.md` | 2026-08-02 | Evidence-depth, routing, review, verification, and ceremony findings |

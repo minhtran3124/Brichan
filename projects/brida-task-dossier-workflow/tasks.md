@@ -19,3 +19,6 @@
 | TDW-003 | Verified routing remains mechanically valid and defined routing-neutral workflow constraints | `brichan-task-dossier-routing-audit` / `w2D:p4`; `routing-impact.md`; 44 focused tests; disposable installed probe | 2026-08-02 |
 | TDW-004 | Accepted and documented one full evidence dossier for every task level | `decisions.md`; `plan.md`; `research.md`; user direction | 2026-08-02 |
 | TDW-005 | Implemented and independently reviewed checkout full-doc workflow, scaffolder, validator, and tests | implementer `429445d9-3f2a-4d3c-9c87-63f51755a9a7`; reviewer `019fc0a4-188e-7e91-91b1-22436b4fd951`; canonical receipt; 96 focused tests; `make check` | 2026-08-02 |
+| TDW-006 | Completed Level 0 full-doc pilot and exact 35-byte fixture | complete dossier; Luna plan/code PASS; exact-byte check | 2026-08-02 |
+| TDW-007 | Completed Level 1 full-doc pilot and dependency-free slug utility | complete dossier; Luna plan/code PASS; 7 focused tests | 2026-08-02 |
+| TDW-008 | Completed Level 2 full-doc fail-closed policy simulation | complete dossier; Sol high plan/code PASS; 10 focused tests plus supplemental matrix | 2026-08-02 |
