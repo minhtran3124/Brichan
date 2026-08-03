@@ -111,7 +111,13 @@ The complete footprint is:
 
 The manifest records schema and package versions plus hashes for managed
 configuration, policy, and skill resources. Files under `project-memory/` are
-mutable. Brichan never edits root `AGENTS.md`, `CLAUDE.md`, `.codex/`, or provider
+mutable.
+
+When the repository has no root `AGENTS.md` or `CLAUDE.md`, `init` also
+creates the missing ones as short pointers to `.brichan/policy/bootstrap.md`.
+They belong to the repository from then on: they are not recorded in the
+manifest, not health-checked, and never edited or overwritten. Brichan never
+edits an existing root `AGENTS.md`, `CLAUDE.md`, `.codex/`, or provider
 configuration during initialization.
 
 ## Diagnose and run

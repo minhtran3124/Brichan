@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from brichan.lifecycle import (
+    AGENT_ENTRY_PATHS,
     CHECKOUT_MEMORY_PATHS,
     CHECKOUT_POLICY_PATHS,
     DOCTOR_SCHEMA_VERSION,
@@ -265,6 +266,83 @@ class ProjectLifecycleTest(unittest.TestCase):
         self.assertEqual(0, code)
         self.assertTrue(lines[2].startswith("codex: ok "))
         self.assertTrue(lines[3].startswith("herdr: ok "))
+
+
+class AgentEntryFilesTest(unittest.TestCase):
+    """`init` provisions root AGENTS.md/CLAUDE.md pointers, never edits them."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name) / "target"
+        self.root.mkdir()
+        (self.root / ".git").mkdir()
+        self.paths = project_paths(explicit=self.root)
+
+    def test_agent_entry_contract_names_both_runtime_files(self):
+        self.assertEqual(("AGENTS.md", "CLAUDE.md"), AGENT_ENTRY_PATHS)
+
+    def test_dry_run_lists_missing_agent_entries_without_writing(self):
+        code, lines = initialize_project(self.paths, apply=False)
+        self.assertEqual(0, code)
+        self.assertIn("create AGENTS.md", lines)
+        self.assertIn("create CLAUDE.md", lines)
+        self.assertFalse((self.root / "AGENTS.md").exists())
+        self.assertFalse((self.root / "CLAUDE.md").exists())
+
+    def test_apply_creates_missing_agent_entries_pointing_at_state(self):
+        code, lines = initialize_project(self.paths, apply=True)
+        self.assertEqual(0, code)
+        self.assertIn("create AGENTS.md", lines)
+        self.assertIn("create CLAUDE.md", lines)
+        for name in AGENT_ENTRY_PATHS:
+            content = (self.root / name).read_text(encoding="utf-8")
+            self.assertIn(".brichan/policy/bootstrap.md", content, name)
+        self.assertIs(StateKind.HEALTHY, inspect_project(self.paths).kind)
+
+    def test_existing_agent_entry_is_kept_and_missing_one_is_added(self):
+        agents = self.root / "AGENTS.md"
+        agents.write_bytes(b"user instructions\n")
+
+        code, lines = initialize_project(self.paths, apply=False)
+        self.assertEqual(0, code)
+        self.assertNotIn("create AGENTS.md", lines)
+        self.assertIn("create CLAUDE.md", lines)
+
+        code, _ = initialize_project(self.paths, apply=True)
+        self.assertEqual(0, code)
+        self.assertEqual(b"user instructions\n", agents.read_bytes())
+        self.assertTrue((self.root / "CLAUDE.md").is_file())
+
+    def test_healthy_project_gains_missing_agent_entries_on_reinit(self):
+        initialize_project(self.paths, apply=True)
+        (self.root / "CLAUDE.md").unlink()
+
+        code, lines = initialize_project(self.paths, apply=False)
+        self.assertEqual(0, code)
+        self.assertIn("create CLAUDE.md", lines)
+        self.assertFalse((self.root / "CLAUDE.md").exists())
+
+        code, lines = initialize_project(self.paths, apply=True)
+        self.assertEqual(0, code)
+        self.assertIn("create CLAUDE.md", lines)
+        self.assertTrue((self.root / "CLAUDE.md").is_file())
+
+        code, lines = initialize_project(self.paths, apply=True)
+        self.assertEqual(0, code)
+        self.assertTrue(lines[0].startswith("no changes:"))
+        self.assertNotIn("create CLAUDE.md", lines)
+
+    def test_symlinked_agent_entry_is_treated_as_present_and_untouched(self):
+        outside = self.root / "outside.md"
+        link = self.root / "CLAUDE.md"
+        link.symlink_to(outside)
+
+        code, lines = initialize_project(self.paths, apply=True)
+        self.assertEqual(0, code)
+        self.assertNotIn("create CLAUDE.md", lines)
+        self.assertTrue(link.is_symlink())
+        self.assertFalse(outside.exists())
 
 
 class DoctorReportTest(unittest.TestCase):

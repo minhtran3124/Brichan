@@ -75,10 +75,12 @@ brichan init --project /absolute/path/to/repository
 brichan init --apply --project /absolute/path/to/repository
 ```
 
-`init` defaults to dry-run and performs zero writes. `--apply` creates only a
+`init` defaults to dry-run and performs zero writes. `--apply` creates a
 versioned `.brichan/` directory containing managed policy, model routing,
-Herdr skill resources, and mutable project memory. Repeating it against
-healthy state is idempotent.
+Herdr skill resources, and mutable project memory, plus root `AGENTS.md` and
+`CLAUDE.md` pointers when the repository does not already have them. Existing
+root files are never modified. Repeating it against healthy state is
+idempotent.
 
 Diagnose and launch from any directory with an explicit target:
 
