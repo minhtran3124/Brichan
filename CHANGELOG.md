@@ -7,6 +7,26 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-03
+
+### Added
+
+- `brichan init --init-agents` exports the herdr-orchestration skill to
+  `.agents/skills/herdr-orchestration/` in the target repository, so a
+  `codex` session started directly there (without `brichan run`, which
+  injects the skill from `.brichan/skills/` explicitly) still discovers it.
+  The export is opt-in and follows the same contract as the root agent
+  entry pointers: created only when the directory is absent, unmanaged
+  afterwards, never edited or overwritten, and topped up by re-running
+  `init --init-agents` against healthy state.
+
+### Changed
+
+- The PyPI long description was rewritten for the private-repository
+  reality: the install-from-source and task dossier sections are gone,
+  leaving package description, requirements, installation, basic commands,
+  usage, and feature notes.
+
 ## [0.9.0] - 2026-08-03
 
 ### Added
