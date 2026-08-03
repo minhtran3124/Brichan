@@ -107,6 +107,10 @@ $ brichan doctor --project /absolute/path/to/repository
 $ brichan run --project /absolute/path/to/repository -- <codex arguments>
 ```
 
+`doctor --json` emits the same diagnostics as machine-readable JSON for
+scripts and CI. The default text output groups findings into a compact
+callout with route and dependency summaries.
+
 From inside a healthy initialized repository, bare `brichan` launches Codex
 directly:
 
@@ -161,6 +165,17 @@ Installing `brichan` also provides:
 `brichan-codex` and `brichan-claude` are checkout-oriented and intended for
 development, not standalone installed-project launches. `--help` and `--version`
 work from any directory.
+
+### Task dossier workflow (developing Brichan itself)
+
+Tasks tracked in the Brichan source checkout follow the task dossier
+workflow: a fixed set of eleven handoff artifacts per task (request,
+requirements, brief, options, design, plan, plan review, code review, PR
+description, index, and receipt), scaffolded, generated, summarized, and
+validated by checkout scripts. This is how Brichan's own repository is
+developed, not a command available to an installed project — see the
+[task dossier workflow docs](https://github.com/minhtran3124/Brichan/blob/main/docs/workflows/task-dossier.md)
+in the source repository.
 
 ## License
 
