@@ -11,15 +11,18 @@ from ._root import exec_runtime
 from .codex import run_project
 from .render import (
     DOCTOR_DESCRIPTION,
+    DOCTOR_JSON_HELP,
     INIT_DESCRIPTION,
     STATUS_DESCRIPTION,
+    format_doctor_json,
+    format_doctor_text,
     format_init,
     resolve_style,
 )
 from brichan import __version__
 from brichan.lifecycle import (
     StateKind,
-    doctor_lines,
+    doctor_report,
     initialize_project,
     inspect_project,
     status_lines,
@@ -87,6 +90,8 @@ def _lifecycle_command(command_name: str, argv: list[str]) -> int:
             action="store_true",
             help="preview the footprint with zero writes (default)",
         )
+    if command_name == "doctor":
+        parser.add_argument("--json", action="store_true", help=DOCTOR_JSON_HELP)
     args = parser.parse_args(argv)
     try:
         paths = project_paths(explicit=args.project)
@@ -104,8 +109,18 @@ def _lifecycle_command(command_name: str, argv: list[str]) -> int:
         )
     elif command_name == "status":
         code, lines = status_lines(paths)
+    elif args.json:
+        code, report = doctor_report(paths, checkout_root=_checkout_root())
+        # Written rather than printed so the document ends in exactly one
+        # newline, whatever the platform.
+        sys.stdout.write(format_doctor_json(report))
+        return code
     else:
-        code, lines = doctor_lines(paths)
+        code, report = doctor_report(paths, checkout_root=_checkout_root())
+        lines = format_doctor_text(
+            report,
+            style=resolve_style(sys.stdout, os.environ),
+        )
     _print_lines(lines)
     return code
 

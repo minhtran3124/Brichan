@@ -30,6 +30,11 @@
 - Summary: Move coordinator and worker role model selection into validated repository settings with safe per-launch overrides.
 - Memory: projects/brida-model-routing/
 
+## Brida task dossier workflow
+- Status: proposed
+- Summary: Evaluate an adaptive per-task dossier spanning intake, exploration, design, planning, implementation, review, and ship evidence.
+- Memory: projects/brida-task-dossier-workflow/
+
 ## Entry template
 
 ```text

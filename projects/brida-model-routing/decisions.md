@@ -109,3 +109,21 @@
 - Owner: Brida
 - Evidence: `docs/policy/model-catalog.md`
 - Supersedes: null
+
+## 2026-08-03 — Retain Fable planning and Opus implementation routes
+
+- Status: accepted
+- Context: An uncommitted edit swapped the `plan` and `implement` Claude models
+  without recording a rationale.
+- Decision: Restore and retain `plan → claude-fable-5` and
+  `implement → claude-opus-5`, both on the existing Claude runtime and effort
+  settings.
+- Rationale: The verified model catalog assigns Fable to complex planning and
+  Opus to complex implementation; the committed routing history made the same
+  role distinction.
+- Trade-offs: Planning and implementation remain on the same provider, so
+  independent review continues to rely on the configured Codex review route and
+  fresh-session/no-context reviewer safeguards.
+- Owner: Brida
+- Evidence: `docs/policy/model-catalog.md`; `git show 6892eff`; `config/model-routing.json`
+- Supersedes: null

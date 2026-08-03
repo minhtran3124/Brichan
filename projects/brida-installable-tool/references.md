@@ -1,5 +1,6 @@
 # References
 
+- `projects/brida-installable-tool/handoffs/DOGFOOD-006/receipt.md` — user-requested read-only JSON doctor diagnostics; no remote action authorized
 - `projects/brida-installable-tool/handoffs/DOGFOOD-005/receipt.md` — bounded Claude implementation and review receipt for installer prerequisite hardening
 - `projects/brida-installable-tool/handoffs/PYPI-001/receipt.md` — Brichan PyPI-readiness implementation and review receipt
 - `projects/brida-installable-tool/existing-instructions-compatibility-assessment.md` — `.claude`/`.agents`/`.codex` coexistence matrix, controlled probe, risks, and official provider sources

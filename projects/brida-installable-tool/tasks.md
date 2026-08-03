@@ -4,6 +4,7 @@
 
 | ID | Task | Owner/session | Model | Status | Acceptance criteria |
 |---|---|---|---|---|---|
+|---|---|---|---|---|---|
 
 ## Blocked
 
@@ -28,3 +29,4 @@
 | DOGFOOD-004 | Independent safety and portability review of the external installer | `brida-installer-review` / `w1X:p3D`; Claude Opus high; final verdict `PASS`; 155-check independent `make check` | 2026-07-29 |
 | DOGFOOD-005 | Installer prerequisite and reused-environment hardening | `brida-installer-pip-fix` / `w1X:p3E`; Claude Sonnet medium; pip-specific regressions, docs alignment, local-venv scan fix, and full suite passed | 2026-07-29 |
 | PYPI-001 | `brichan` `0.5.0` PyPI release preparation, independently reviewed | `brida-brichan-pypi-implement` / `w1X:p3F` (Claude Sonnet medium); `brida-brichan-pypi-review` / `w1X:p3G` (Claude Opus high); receipt, clean artifacts, OIDC workflow, and full checks | 2026-07-29 |
+| DOGFOOD-006 | Read-only JSON doctor diagnostics plus compact text summary with route models, policy bullets, repository/Git/dependency details, and required Herdr | `handoffs/DOGFOOD-006/receipt.md`; plan review PASS v3; code review PASS v2; focused/full tests, direct JSON/text probes, symlink/UTF-8 adversarial probes; full check passes from clean generated-artifact state | 2026-08-03 |

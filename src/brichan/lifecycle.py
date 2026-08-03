@@ -7,6 +7,8 @@ import json
 import os
 import shutil
 import stat
+import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass
 from enum import Enum
@@ -41,6 +43,47 @@ MUTABLE_PATHS = (
     "project-memory/main/references.md",
     "project-memory/main/tasks.md",
 )
+
+
+#: Version of the `doctor --json` document. Independent of the `.brichan`
+#: state schema: this describes the diagnostic report, not the installed
+#: footprint.
+DOCTOR_SCHEMA_VERSION = 1
+
+STATUS_OK = "ok"
+STATUS_MISSING = "missing"
+STATUS_INVALID = "invalid"
+STATUS_UNAVAILABLE = "unavailable"
+
+#: Worse statuses win when a section aggregates its checks.
+_STATUS_RANK = {
+    STATUS_OK: 0,
+    STATUS_UNAVAILABLE: 1,
+    STATUS_MISSING: 2,
+    STATUS_INVALID: 3,
+}
+
+#: Source-checkout contract, drawn from the `internal-policy`,
+#: `runtime-config`, and `durable-state` entries of
+#: `config/repository-paths.json`.
+CHECKOUT_POLICY_PATHS = (
+    ("docs/policy/identity.md", "file"),
+    ("docs/policy/memory-policy.md", "file"),
+    ("docs/policy/model-catalog.md", "file"),
+    ("docs/policy/operating-principles.md", "file"),
+    ("docs/policy/reviewer.md", "file"),
+)
+CHECKOUT_MEMORY_PATHS = (
+    ("projects", "directory"),
+    ("projects/index.md", "file"),
+)
+ROUTING_RELATIVE_PATH = "config/model-routing.json"
+
+#: Installed-project contract, taken from the managed footprint.
+INSTALLED_POLICY_PATHS = tuple(
+    (path, "file") for path in IMMUTABLE_PATHS if path.startswith("policy/")
+)
+INSTALLED_MEMORY_PATHS = tuple((path, "file") for path in MUTABLE_PATHS)
 
 
 class StateKind(str, Enum):
@@ -327,8 +370,383 @@ def doctor_lines(paths: ProjectPaths) -> tuple[int, list[str]]:
         f"codex: {'ok ' + str(Path(codex).resolve()) if codex else 'missing'}"
     )
     lines.append(
-        f"herdr: {'ok ' + str(Path(herdr).resolve()) if herdr else 'optional-missing'}"
+        f"herdr: {'ok ' + str(Path(herdr).resolve()) if herdr else 'missing'}"
     )
-    if codex is None:
+    if codex is None or herdr is None:
         return 4, lines
     return 0, lines
+
+
+def _worst_status(statuses: list[str]) -> str:
+    return max(statuses, key=lambda status: _STATUS_RANK[status], default=STATUS_OK)
+
+
+def _component_problem(path: Path, kind: str) -> tuple[str, str] | None:
+    """Classify one path component with a no-follow check, or None if sound."""
+
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        return STATUS_MISSING, f"required {kind} is missing"
+    except OSError as exc:
+        return STATUS_INVALID, (
+            f"cannot inspect required {kind}: "
+            f"{exc.__class__.__name__}: {exc.strerror or exc}"
+        )
+    if stat.S_ISLNK(metadata.st_mode):
+        return STATUS_INVALID, f"required {kind} is a symbolic link"
+    if kind == "directory" and not stat.S_ISDIR(metadata.st_mode):
+        return STATUS_INVALID, "required directory is not a directory"
+    if kind == "file" and not stat.S_ISREG(metadata.st_mode):
+        return STATUS_INVALID, "required file is not a regular file"
+    return None
+
+
+def _path_check(root: Path, relative_path: str, kind: str) -> dict[str, Any]:
+    """Check one required path without following symlinks or reading it.
+
+    Every parent component is checked before the leaf, so a symlinked parent
+    is reported rather than silently traversed into another tree.
+    """
+
+    entry = {"path": str(root / relative_path)}
+    current = root
+    for component in Path(relative_path).parts[:-1]:
+        current = current / component
+        problem = _component_problem(current, "directory")
+        if problem is not None:
+            status, detail = problem
+            parent = current.relative_to(root).as_posix()
+            return {**entry, "status": status, "detail": f"parent {parent}: {detail}"}
+
+    problem = _component_problem(root / relative_path, kind)
+    if problem is not None:
+        status, detail = problem
+        return {**entry, "status": status, "detail": detail}
+    return {**entry, "status": STATUS_OK, "detail": f"required {kind} is present"}
+
+
+def _blocked_section(
+    root: Path,
+    entries: tuple[tuple[str, str], ...],
+    status: str,
+    detail: str,
+) -> dict[str, Any]:
+    """Report a section without touching the filesystem beneath `root`.
+
+    Used when the state root itself is unsafe: the paths are still named so the
+    document keeps its exact shape, but nothing under them is stat'ed or read.
+    """
+
+    return {
+        "status": status,
+        "files": {
+            relative_path: {
+                "status": status,
+                "path": str(root / relative_path),
+                "detail": detail,
+            }
+            for relative_path, _ in entries
+        },
+        "detail": detail,
+    }
+
+
+def _paths_section(
+    root: Path,
+    entries: tuple[tuple[str, str], ...],
+    label: str,
+) -> dict[str, Any]:
+    files = {
+        relative_path: _path_check(root, relative_path, kind)
+        for relative_path, kind in entries
+    }
+    unhealthy = sorted(
+        relative_path
+        for relative_path, check in files.items()
+        if check["status"] != STATUS_OK
+    )
+    detail = (
+        f"all {len(files)} required {label} paths are present"
+        if not unhealthy
+        else f"unhealthy {label} paths: {', '.join(unhealthy)}"
+    )
+    return {
+        "status": _worst_status([check["status"] for check in files.values()]),
+        "files": files,
+        "detail": detail,
+    }
+
+
+def _routing_section(root: Path) -> dict[str, Any]:
+    check = _path_check(root, ROUTING_RELATIVE_PATH, "file")
+    section = {
+        "status": check["status"],
+        "path": check["path"],
+        "schema_version": None,
+        "detail": check["detail"],
+    }
+    if check["status"] != STATUS_OK:
+        return section
+
+    path = root / ROUTING_RELATIVE_PATH
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        section["status"] = STATUS_INVALID
+        section["detail"] = f"cannot read routing config: {exc.strerror or exc}"
+        return section
+    except UnicodeDecodeError as exc:
+        section["status"] = STATUS_INVALID
+        section["detail"] = (
+            f"routing config is not valid {exc.encoding}: {exc.reason} "
+            f"at byte {exc.start}"
+        )
+        return section
+    except json.JSONDecodeError as exc:
+        section["status"] = STATUS_INVALID
+        section["detail"] = (
+            f"routing config contains malformed JSON at line {exc.lineno}, "
+            f"column {exc.colno}"
+        )
+        return section
+    if isinstance(payload, dict) and type(payload.get("schema_version")) is int:
+        section["schema_version"] = payload["schema_version"]
+
+    try:
+        load_settings(path)
+    except RoutingError as exc:
+        section["status"] = STATUS_INVALID
+        section["detail"] = f"routing config is invalid: {exc}"
+        return section
+    section["detail"] = "routing config is valid"
+    return section
+
+
+def _git_section(root: Path) -> dict[str, Any]:
+    """Report Git state using read-only queries only.
+
+    Every invocation carries `--no-optional-locks` so Git never writes an
+    optional index refresh, and only `rev-parse`/`status` queries are used: no
+    fetch, checkout, commit, or config command is ever run.
+    """
+
+    unknown = {"branch": None, "commit": None, "dirty": None, "untracked": None}
+    git = shutil.which("git")
+    if git is None:
+        return {
+            **unknown,
+            "status": STATUS_UNAVAILABLE,
+            "detail": "git executable is not on PATH",
+        }
+
+    def query(*arguments: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [git, "--no-optional-locks", "-C", str(root), *arguments],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+    try:
+        head = query("rev-parse", "--abbrev-ref", "HEAD")
+        revision = query("rev-parse", "HEAD")
+        worktree = query("status", "--porcelain")
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {
+            **unknown,
+            "status": STATUS_UNAVAILABLE,
+            "detail": f"cannot query git: {exc.__class__.__name__}: {exc}",
+        }
+
+    if worktree.returncode != 0:
+        return {
+            **unknown,
+            "status": STATUS_INVALID,
+            "detail": (
+                "git status failed: "
+                f"{worktree.stderr.strip() or f'exit {worktree.returncode}'}"
+            ),
+        }
+
+    entries = [line for line in worktree.stdout.splitlines() if line]
+    untracked = any(line.startswith("??") for line in entries)
+    dirty = any(not line.startswith("??") for line in entries)
+    branch = head.stdout.strip() if head.returncode == 0 else ""
+    commit = revision.stdout.strip() if revision.returncode == 0 else ""
+    # An unborn or detached HEAD reports no branch rather than a fake one.
+    if branch == "HEAD":
+        branch = ""
+    return {
+        "status": STATUS_OK,
+        "branch": branch or None,
+        "commit": commit or None,
+        "dirty": dirty,
+        "untracked": untracked,
+        "detail": (
+            f"{'dirty' if dirty else 'clean'} worktree; "
+            f"{'untracked files present' if untracked else 'no untracked files'}"
+        ),
+    }
+
+
+def _dependency_check(name: str, *, required: bool) -> dict[str, Any]:
+    """Resolve one executable on PATH. Resolution only; nothing is executed."""
+
+    resolved = shutil.which(name)
+    if resolved is None:
+        suffix = "" if required else " (optional)"
+        return {
+            "status": STATUS_MISSING,
+            "path": None,
+            "required": required,
+            "detail": f"{name} is not on PATH{suffix}",
+        }
+    return {
+        "status": STATUS_OK,
+        "path": str(Path(resolved).resolve()),
+        "required": required,
+        "detail": f"{name} resolved on PATH",
+    }
+
+
+def _dependencies_section() -> dict[str, Any]:
+    if sys.executable:
+        python = {
+            "status": STATUS_OK,
+            "path": str(Path(sys.executable).resolve()),
+            "required": True,
+            "detail": "running interpreter",
+        }
+    else:
+        python = {
+            "status": STATUS_UNAVAILABLE,
+            "path": None,
+            "required": True,
+            "detail": "running interpreter path is unknown",
+        }
+    dependencies = {
+        "python": python,
+        "git": _dependency_check("git", required=True),
+        "codex": _dependency_check("codex", required=True),
+        # Herdr is required for worker orchestration, but is only resolved
+        # here and is never launched by doctor.
+        "herdr": _dependency_check("herdr", required=True),
+    }
+    required = [
+        check["status"] for check in dependencies.values() if check["required"]
+    ]
+    return {"status": _worst_status(required), **dependencies}
+
+
+_INSTALLED_REPOSITORY_STATUS = {
+    StateKind.HEALTHY: STATUS_OK,
+    StateKind.UNINITIALIZED: STATUS_MISSING,
+    StateKind.MALFORMED: STATUS_INVALID,
+    StateKind.INCOMPATIBLE: STATUS_INVALID,
+}
+
+
+def doctor_report(
+    paths: ProjectPaths,
+    *,
+    checkout_root: Path | None = None,
+) -> tuple[int, dict[str, Any]]:
+    """Collect the read-only `doctor --json` report and its exit code.
+
+    Source-checkout mode applies only when the resolved target *is* the running
+    Brichan checkout; every other target is diagnosed as an installed project,
+    whose state verdict and exit class stay owned by `inspect_project`.
+    """
+
+    source_mode = checkout_root is not None and checkout_root == paths.project_root
+    inspection: Inspection | None = None
+    blocked: tuple[str, str] | None = None
+    if source_mode:
+        repository = {
+            "status": STATUS_OK,
+            "root": str(paths.project_root),
+            "kind": "source_checkout",
+            "detail": "brichan source checkout",
+        }
+        contract_root = paths.project_root
+        policy_paths = CHECKOUT_POLICY_PATHS
+        memory_paths = CHECKOUT_MEMORY_PATHS
+    else:
+        inspection = inspect_project(paths)
+        repository = {
+            "status": _INSTALLED_REPOSITORY_STATUS[inspection.kind],
+            "root": str(paths.project_root),
+            "kind": "installed_project",
+            "detail": f"{inspection.kind.value}: {inspection.detail}",
+        }
+        contract_root = paths.state_root
+        policy_paths = INSTALLED_POLICY_PATHS
+        memory_paths = INSTALLED_MEMORY_PATHS
+        # A `.brichan` that is absent, symlinked, or not a directory must not
+        # be traversed: descending through it would stat and read files in
+        # whatever tree the link points at, outside the target repository.
+        problem = _component_problem(paths.state_root, "directory")
+        if problem is not None:
+            status, reason = problem
+            blocked = (status, f".brichan state directory: {reason}")
+
+    if blocked is None:
+        policies = _paths_section(contract_root, policy_paths, "policy")
+        project_memory = _paths_section(contract_root, memory_paths, "project-memory")
+        model_routing = _routing_section(contract_root)
+    else:
+        status, reason = blocked
+        policies = _blocked_section(contract_root, policy_paths, status, reason)
+        project_memory = _blocked_section(contract_root, memory_paths, status, reason)
+        model_routing = {
+            "status": status,
+            "path": str(contract_root / ROUTING_RELATIVE_PATH),
+            "schema_version": None,
+            "detail": reason,
+        }
+    git = _git_section(paths.project_root)
+    dependencies = _dependencies_section()
+
+    codex_status = dependencies["codex"]["status"]
+    other_required = [
+        repository["status"],
+        git["status"],
+        policies["status"],
+        model_routing["status"],
+        project_memory["status"],
+        dependencies["python"]["status"],
+        dependencies["git"]["status"],
+        dependencies["herdr"]["status"],
+    ]
+    ok = codex_status == STATUS_OK and all(
+        status == STATUS_OK for status in other_required
+    )
+
+    if source_mode:
+        if ok:
+            code = 0
+        elif all(status == STATUS_OK for status in other_required):
+            code = 4
+        else:
+            code = 2
+    else:
+        assert inspection is not None
+        # Installed exits stay owned by state plus codex, so a missing git
+        # executable reports `ok: false` without changing the exit class.
+        if inspection.kind is not StateKind.HEALTHY:
+            code = inspection.exit_code
+        else:
+            code = 0 if codex_status == STATUS_OK else 4
+
+    return code, {
+        "schema_version": DOCTOR_SCHEMA_VERSION,
+        "ok": ok,
+        "repository": repository,
+        "git": git,
+        "policies": policies,
+        "model_routing": model_routing,
+        "project_memory": project_memory,
+        "dependencies": dependencies,
+    }

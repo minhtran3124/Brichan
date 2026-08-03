@@ -142,6 +142,11 @@ class InstalledDogfoodTest(unittest.TestCase):
         )
         fake_codex.chmod(fake_codex.stat().st_mode | stat.S_IXUSR)
 
+        # `doctor` only resolves herdr on PATH; it never executes it.
+        fake_herdr = self.fake_bin / "herdr"
+        fake_herdr.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        fake_herdr.chmod(fake_herdr.stat().st_mode | stat.S_IXUSR)
+
         hostile_bin = self.target / "bin"
         hostile_bin.mkdir()
         self.hostile_marker = self.temp_path / "hostile-ran"
@@ -390,7 +395,7 @@ class InstalledDogfoodTest(unittest.TestCase):
         self.assertTrue(result.stdout.startswith("healthy:"))
         result = self.run_brichan("doctor", "--project", str(self.target))
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn("codex: ok", result.stdout)
+        self.assertIn("dependencies: OK", result.stdout)
 
         result = self.run_brichan(
             "run", "--project", str(self.target), "--", "--help"
@@ -519,7 +524,8 @@ class InstalledDogfoodTest(unittest.TestCase):
         manifest_path.write_text(json.dumps(payload), encoding="utf-8")
         result = self.run_brichan("doctor", "--project", str(self.target))
         self.assertEqual(3, result.returncode)
-        self.assertIn("state: incompatible schema_version 2", result.stdout)
+        self.assertIn("repository: INVALID", result.stdout)
+        self.assertIn("schema_version 2 is not supported", result.stdout)
 
     def test_installed_dangling_state_and_apply_failure_have_no_traceback(self):
         missing_state = self.temp_path / "missing-state"
@@ -573,6 +579,98 @@ class InstalledDogfoodTest(unittest.TestCase):
             self.assertEqual(2, result.returncode)
             self.assertIn("cannot inspect project state", result.stdout)
             self.assertNotIn("Traceback", result.stderr)
+
+    def doctor_json(self, *arguments, codex=True):
+        environment = self.environment()
+        if not codex:
+            # Drop the fake codex without losing the interpreter or git.
+            environment["PATH"] = os.pathsep.join(
+                [str(self.venv / "bin"), "/usr/bin", "/bin"]
+            )
+        result = subprocess.run(
+            [str(self.brichan), "doctor", "--json", *arguments],
+            cwd=self.temp_path,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual("", result.stderr)
+        self.assertTrue(result.stdout.endswith("}\n"), repr(result.stdout[-20:]))
+        return result.returncode, json.loads(result.stdout)
+
+    def test_installed_doctor_json_reports_the_managed_footprint(self):
+        code, report = self.doctor_json("--project", str(self.target))
+        self.assertEqual(1, code)
+        self.assertEqual(
+            {
+                "schema_version",
+                "ok",
+                "repository",
+                "git",
+                "policies",
+                "model_routing",
+                "project_memory",
+                "dependencies",
+            },
+            set(report),
+        )
+        self.assertEqual(1, report["schema_version"])
+        self.assertEqual("installed_project", report["repository"]["kind"])
+        self.assertEqual(str(self.resolved_target), report["repository"]["root"])
+        self.assertEqual("missing", report["repository"]["status"])
+        self.assertFalse(report["ok"])
+        self.assertFalse(self.target.joinpath(".brichan").exists())
+
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
+        self.assertEqual(0, result.returncode, result.stderr)
+        before = self.state_snapshot()
+        root_files_before = {
+            name: (self.target / name).read_bytes()
+            for name in self.original_root_files
+        }
+
+        code, report = self.doctor_json("--project", str(self.target))
+        self.assertEqual(0, code)
+        self.assertEqual("ok", report["repository"]["status"])
+        self.assertIn("policy/identity.md", report["policies"]["files"])
+        self.assertIn("project-memory/index.md", report["project_memory"]["files"])
+        self.assertEqual("ok", report["policies"]["status"])
+        self.assertEqual("ok", report["project_memory"]["status"])
+        self.assertEqual(1, report["model_routing"]["schema_version"])
+        self.assertEqual(
+            str(self.resolved_target / ".brichan" / "config" / "model-routing.json"),
+            report["model_routing"]["path"],
+        )
+        self.assertTrue(report["dependencies"]["codex"]["required"])
+        self.assertTrue(report["dependencies"]["herdr"]["required"])
+        # Read-only: neither managed state nor untouched root files change.
+        self.assertEqual(before, self.state_snapshot())
+        self.assertEqual(root_files_before, self.original_root_files)
+
+    def test_installed_doctor_json_preserves_every_exit_class(self):
+        self.run_brichan("init", "--apply", "--project", str(self.target))
+        manifest = self.target / ".brichan" / "manifest.json"
+        healthy = manifest.read_bytes()
+
+        code, report = self.doctor_json("--project", str(self.target), codex=False)
+        self.assertEqual(4, code)
+        self.assertEqual("missing", report["dependencies"]["codex"]["status"])
+        self.assertEqual("ok", report["repository"]["status"])
+        self.assertFalse(report["ok"])
+
+        manifest.write_text("{", encoding="utf-8")
+        code, report = self.doctor_json("--project", str(self.target))
+        self.assertEqual(2, code)
+        self.assertEqual("invalid", report["repository"]["status"])
+
+        payload = json.loads(healthy)
+        payload["schema_version"] = 99
+        manifest.write_text(json.dumps(payload), encoding="utf-8")
+        code, report = self.doctor_json("--project", str(self.target))
+        self.assertEqual(3, code)
+        self.assertEqual("invalid", report["repository"]["status"])
+        self.assertIn("incompatible", report["repository"]["detail"])
 
 
 if __name__ == "__main__":

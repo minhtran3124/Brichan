@@ -3,7 +3,7 @@
 This schema-v1 vertical slice runs Brichan from an installed Python wheel inside
 an existing top-level Git repository. It is intentionally limited to a
 POSIX-compatible environment, Python 3.10+, and Codex launched through `brichan`.
-Herdr is required only when Brichan coordinates worker sessions.
+Herdr is a required Brichan dependency for a healthy checkout.
 
 The PyPI distribution name, the importable Python package, and every console
 command all share the name `brichan`/`brichan-*`, so a release installs with:
@@ -123,8 +123,18 @@ brichan run --project /absolute/path/to/repository -- <codex arguments>
 ```
 
 From inside a healthy initialized repository, bare `brichan` also launches Codex.
-`status` reports project state only. `doctor` additionally resolves `codex` on
-`PATH`; Herdr is reported as optional until worker coordination is needed.
+`status` reports project state only. `doctor` shows a compact, human-readable
+summary of the repository, Git, policy, routing, memory, and dependency checks;
+when run in a terminal it uses colour, bold labels, and status icons. Herdr is
+a required dependency for a healthy checkout. Pass `doctor --json`
+for the complete machine-readable report (see below).
+
+The text summary also lists the configured route models in the form
+`model — purpose`, followed by the required policy files as bullets. It omits
+file-level diagnostics and error details unless a check needs attention. The
+repository line identifies the checkout type, Git shows branch/commit and
+worktree state, and dependencies are listed individually with their required
+status.
 
 `brichan --help` and `brichan --version` work from any directory, including one
 that is not yet a Git repository or not yet initialized: they print
@@ -145,6 +155,80 @@ launch into. Naming a runtime keeps the forwarding: `brichan --runtime codex
 | Malformed or unsafe partial state | 2 |
 | Incompatible schema/package version | 3 |
 | Healthy state but required `codex` missing in `doctor` | 4 |
+
+### Machine-readable diagnostics
+
+`doctor --json` writes one complete JSON document to stdout instead of the
+compact text summary. The JSON form includes file-level details that are
+intentionally omitted from the default output.
+
+```bash
+brichan doctor --json --project /absolute/path/to/repository
+bin/brichan doctor --json          # from a Brichan source checkout
+```
+
+The document is serialized with sorted keys, two-space indentation, and exactly
+one trailing newline, so runs are diffable and stable. The root object is
+exactly:
+
+| Key | Type | Meaning |
+|---|---|---|
+| `schema_version` | integer | Report schema, currently `1`. Independent of the `.brichan` state schema. |
+| `ok` | boolean | True only when every required check is `ok`. |
+| `repository` | object | `status`, `root`, `kind`, `detail`. |
+| `git` | object | `status`, `branch`, `commit`, `dirty`, `untracked`, `detail`. |
+| `policies` | object | `status`, `files`, `detail`. |
+| `model_routing` | object | `status`, `path`, `schema_version`, `detail`. |
+| `project_memory` | object | `status`, `files`, `detail`. |
+| `dependencies` | object | `status` plus a check for `python`, `git`, `codex`, and `herdr`. |
+
+No other root keys are emitted. Every `status` is one of `ok`, `missing`,
+`invalid`, or `unavailable`. Each entry in a `files` map is keyed by its
+contract-relative path and holds exactly `status`, `path` (absolute), and
+`detail`. Each dependency check holds exactly `status`, `path` (absolute or
+`null`), `required`, and `detail`.
+
+`repository.kind` selects what is diagnosed:
+
+- `source_checkout` — the target *is* the running Brichan checkout. The policy,
+  routing, and memory sections check the checkout contract: `docs/policy/*`,
+  `config/model-routing.json`, and `projects/`.
+- `installed_project` — any other target. The sections check the managed
+  `.brichan` footprint, and `repository.status`/`detail` carry the
+  `inspect_project` verdict (`ok` healthy, `missing` uninitialized, `invalid`
+  malformed or incompatible).
+
+Exit codes:
+
+- Source checkout: `0` when `ok`; `4` when the only required failure is a
+  missing `codex`; `2` for any other required failure, including a missing
+  `git` executable. Every invalid checkout therefore exits nonzero.
+- Installed project: the table above is preserved exactly. The exit code stays
+  governed by state plus `codex`, so a non-state finding — a missing `git`
+  executable, say — reports `ok: false` while the exit code still reflects the
+  project state.
+
+`herdr` is required: it is resolved on `PATH` and a missing `herdr` sets
+`ok` to false. In source-checkout mode it produces the invalid-checkout exit
+code; installed-project state exit compatibility remains governed by the
+initialized project state.
+
+The command is read-only. It writes nothing to the checkout or the target
+repository, never executes `herdr` or `codex` (both are only resolved with
+`shutil.which`), and interrogates Git with `--no-optional-locks` read-only
+`rev-parse` and `status` queries only — never `fetch`, `checkout`, `commit`, or
+`config` — so neither the worktree nor the Git index is modified. When `git` is
+absent or a query fails, the `git` section degrades to `unavailable` or
+`invalid` with null fields rather than raising.
+
+Path checks never follow symlinks, and they never traverse an unsafe state
+root. If `.brichan` is a symlink (resolving or dangling) or is not a directory,
+the policy, routing, and memory sections are reported as `invalid` from the
+state root alone — nothing beneath it is stat'ed or read, so a link pointing
+outside the target repository cannot cause a read there. A symlinked parent
+component inside an otherwise sound `.brichan` is reported the same way, and
+routing is never parsed through it. A routing file that is not decodable UTF-8
+is reported `invalid` like any other unparseable config.
 
 Launch uses the installed Python entrypoint, changes to the target root, and
 executes `codex` from `PATH`. It never selects target `bin/brichan-*` wrappers.

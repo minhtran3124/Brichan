@@ -11,9 +11,11 @@ verbatim, so `brichan init | grep` behaves the same as it always has.
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
-from typing import IO, Iterable
+from pathlib import Path
+from typing import IO, Any, Iterable
 
 
 CREATE_PREFIX = "create .brichan/"
@@ -39,11 +41,27 @@ STATUS_DESCRIPTION = (
 )
 
 DOCTOR_DESCRIPTION = (
-    "Diagnose everything a launch needs: the resolved project root, the "
-    ".brichan/ state, and whether the external codex and herdr executables "
-    "are on PATH. herdr is optional and is only required when Brichan "
-    "coordinates worker sessions. Nothing is written."
+    "Show a compact health summary for the resolved project root, Git, "
+    ".brichan/ state, "
+    "policies, model routing, project memory, and required codex/herdr "
+    "dependencies. "
+    "Nothing is written."
 )
+
+DOCTOR_JSON_HELP = (
+    "emit the diagnostic report as one JSON document on stdout instead of "
+    "the compact human-readable summary"
+)
+
+
+def format_doctor_json(report: dict[str, Any]) -> str:
+    """Serialize a `doctor --json` report deterministically.
+
+    Sorted keys, two-space indentation, and exactly one trailing newline, so
+    the bytes are stable across runs and diffable between machines.
+    """
+
+    return json.dumps(report, indent=2, sort_keys=True) + "\n"
 
 _UNICODE_GLYPHS = {"tee": "├── ", "elbow": "└── ", "pipe": "│   ", "gap": "    "}
 _ASCII_GLYPHS = {"tee": "|-- ", "elbow": "`-- ", "pipe": "|   ", "gap": "    "}
@@ -53,6 +71,8 @@ _BOLD = "\033[1m"
 _DIM = "\033[2m"
 _CYAN = "\033[36m"
 _GREEN = "\033[32m"
+_YELLOW = "\033[33m"
+_RED = "\033[31m"
 
 
 @dataclass(frozen=True)
@@ -75,6 +95,154 @@ class Style:
         if not self.color or not codes:
             return text
         return f"{''.join(codes)}{text}{_RESET}"
+
+
+def format_doctor_text(report: dict[str, Any], style: Style) -> list[str]:
+    """Render the compact operator-facing doctor summary."""
+
+    def state(status: str) -> str:
+        if status == "ok":
+            return style.paint("OK", _BOLD, _GREEN)
+        if status in {"missing", "unavailable"}:
+            return style.paint(status.upper(), _BOLD, _YELLOW)
+        return style.paint(status.upper(), _BOLD, _RED)
+
+    def mark(status: str) -> str:
+        if style.unicode:
+            return style.paint("✓" if status == "ok" else "!", _BOLD)
+        return "[ok]" if status == "ok" else "[!]"
+
+    rows = [*_doctor_callout(report, style), ""]
+    checks = [
+        ("repository", "repository"),
+        ("git", "git"),
+        ("policies", "policies"),
+        ("model_routing", "model routing"),
+        ("project_memory", "project memory"),
+        ("dependencies", "dependencies"),
+    ]
+    for key, label in checks:
+        section = report[key]
+        status = section["status"]
+        suffix = ""
+        if key == "repository" and status == "ok":
+            kind = section.get("kind", "repository").replace("_", " ")
+            suffix = f" · {kind}"
+        elif key == "git" and status == "ok":
+            suffix = f" · {'dirty' if section.get('dirty') else 'clean'} worktree"
+            if section.get("branch"):
+                suffix += f" · {section['branch']}"
+            if section.get("commit"):
+                suffix += f" · commit {section['commit'][:7]}"
+            suffix += " · untracked" if section.get("untracked") else " · no untracked"
+        rows.append(f"{mark(status)} {label}: {state(status)}{suffix}")
+        if status != "ok":
+            rows.append(f"    {section.get('detail', 'check failed')}")
+
+        if key == "policies" and section.get("files"):
+            bullet = "•" if style.unicode else "-"
+            for path, check in section["files"].items():
+                if check.get("status") == "ok":
+                    rows.append(f"    {bullet} {path}")
+
+        if key == "model_routing" and status == "ok":
+            rows.extend(_format_route_summary(section, style))
+
+        if key == "dependencies":
+            rows.extend(_format_dependency_summary(section, style))
+
+    overall_status = "ok" if report["ok"] else "invalid"
+    rows.extend(["", f"overall: {state(overall_status)} · {'healthy' if report['ok'] else 'needs attention'}"])
+    return rows
+
+
+def _doctor_callout(report: dict[str, Any], style: Style) -> list[str]:
+    """Highlight the command title and target root in a dotted callout."""
+
+    title = "BRICHAN DOCTOR"
+    root = f"project root: {report['repository']['root']}"
+    inner_width = max(len(title), len(root)) + 2
+    if style.unicode:
+        left, right = "┌", "┐"
+        vertical = "│"
+        bottom_left, bottom_right = "└", "┘"
+    else:
+        left, right = "+", "+"
+        vertical = "|"
+        bottom_left, bottom_right = "+", "+"
+    dots = "·" * inner_width if style.unicode else "." * inner_width
+
+    def content(value: str, *codes: str) -> str:
+        return (
+            style.paint(vertical, _DIM)
+            + " "
+            + style.paint(value, *codes)
+            + " " * (inner_width - len(value) - 1)
+            + style.paint(vertical, _DIM)
+        )
+
+    return [
+        style.paint(left + dots + right, _BOLD, _CYAN),
+        content(title, _BOLD, _CYAN),
+        content(root, _DIM),
+        style.paint(bottom_left + dots + bottom_right, _BOLD, _CYAN),
+    ]
+
+
+_ROUTE_PURPOSES = {
+    "plan": "planning",
+    "implement": "implementation",
+    "review": "review",
+    "scan": "repository scan",
+}
+
+
+def _format_route_summary(section: dict[str, Any], style: Style) -> list[str]:
+    """Show configured route models without expanding the JSON contract."""
+
+    try:
+        path = section.get("path")
+        if not path:
+            return []
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        routes = payload.get("routes", {})
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, AttributeError):
+        return []
+    if not isinstance(routes, dict):
+        return []
+
+    bullet = "•" if style.unicode else "-"
+    lines = []
+    for name, route in routes.items():
+        if not isinstance(route, dict) or not route.get("model"):
+            continue
+        purpose = _ROUTE_PURPOSES.get(name, name)
+        lines.append(
+            f"    {bullet} {route['model']} — {purpose} ({name})"
+        )
+    return lines
+
+
+def _format_dependency_summary(section: dict[str, Any], style: Style) -> list[str]:
+    bullet = "•" if style.unicode else "-"
+    lines = []
+    for name in ("python", "git", "codex", "herdr"):
+        dependency = section.get(name)
+        if not isinstance(dependency, dict):
+            continue
+        required = "required" if dependency.get("required") else "optional"
+        lines.append(
+            f"    {bullet} {name}: {state_for_dependency(dependency['status'], style)} · {required}"
+        )
+    return lines
+
+
+def state_for_dependency(status: str, style: Style) -> str:
+    if status == "ok":
+        return style.paint("OK", _BOLD, _GREEN)
+    if status in {"missing", "unavailable"}:
+        return style.paint(status.upper(), _BOLD, _YELLOW)
+    return style.paint(status.upper(), _BOLD, _RED)
 
 
 def _supports_unicode(stream: IO[str]) -> bool:

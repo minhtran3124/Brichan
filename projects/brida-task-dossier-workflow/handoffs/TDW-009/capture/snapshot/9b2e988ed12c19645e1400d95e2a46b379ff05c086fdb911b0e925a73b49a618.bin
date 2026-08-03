@@ -1,0 +1,715 @@
+{
+  "schema_version": 1,
+  "ignored_root_files": [
+    ".DS_Store",
+    ".env"
+  ],
+  "entries": [
+    {
+      "path": ".editorconfig",
+      "kind": "file",
+      "category": "repository-config",
+      "policy": "stable-root"
+    },
+    {
+      "path": ".gitattributes",
+      "kind": "file",
+      "category": "repository-config",
+      "policy": "stable-root"
+    },
+    {
+      "path": ".gitignore",
+      "kind": "file",
+      "category": "repository-config",
+      "policy": "stable-root"
+    },
+    {
+      "path": "AGENTS.md",
+      "kind": "file",
+      "category": "agent-discovery",
+      "policy": "permanent-root"
+    },
+    {
+      "path": "CLAUDE.md",
+      "kind": "file",
+      "category": "agent-discovery",
+      "policy": "permanent-root"
+    },
+    {
+      "path": "README.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "stable-root"
+    },
+    {
+      "path": "packaging/pypi-readme.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "canonical"
+    },
+    {
+      "path": "README_PYPI.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "generated"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "stable-root"
+    },
+    {
+      "path": "PRODUCT.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "stable-root"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "retain-root-first-migration"
+    },
+    {
+      "path": "SECURITY.md",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "retain-root-first-migration"
+    },
+    {
+      "path": "LICENSE",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "stable-root"
+    },
+    {
+      "path": "VERSION",
+      "kind": "file",
+      "category": "public-entrypoint",
+      "policy": "stable-root"
+    },
+    {
+      "path": "Makefile",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-root"
+    },
+    {
+      "path": "pyproject.toml",
+      "kind": "file",
+      "category": "package-config",
+      "policy": "stable-root"
+    },
+    {
+      "path": "docs/index.md",
+      "kind": "file",
+      "category": "documentation-index",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/policy/identity.md",
+      "kind": "file",
+      "category": "internal-policy",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/policy/operating-principles.md",
+      "kind": "file",
+      "category": "internal-policy",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/policy/memory-policy.md",
+      "kind": "file",
+      "category": "internal-policy",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/policy/model-catalog.md",
+      "kind": "file",
+      "category": "internal-policy",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/policy/reviewer.md",
+      "kind": "file",
+      "category": "internal-policy",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/workflows/README.md",
+      "kind": "file",
+      "category": "workflow-policy",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/workflows/task-dossier.md",
+      "kind": "file",
+      "category": "workflow-policy",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/workflows/task-dossier/templates",
+      "kind": "directory",
+      "category": "workflow-policy",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/architecture/repository-layout.md",
+      "kind": "file",
+      "category": "architecture",
+      "policy": "canonical"
+    },
+    {
+      "path": "docs/history/setup-status.md",
+      "kind": "file",
+      "category": "history",
+      "policy": "canonical"
+    },
+    {
+      "path": "bin/brichan",
+      "kind": "file",
+      "category": "runtime-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "bin/brichan-codex",
+      "kind": "file",
+      "category": "runtime-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "bin/brichan-claude",
+      "kind": "file",
+      "category": "runtime-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "bin/brichan-herdr-agent-start",
+      "kind": "file",
+      "category": "runtime-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "scripts/validate_handoff_receipts.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "scripts/validate_task_dossiers.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "scripts/scaffold_task_dossier.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "scripts/check_repository_paths.py",
+      "kind": "file",
+      "category": "structure-guard",
+      "policy": "stable-path"
+    },
+    {
+      "path": "scripts/build_pypi_readme.py",
+      "kind": "file",
+      "category": "structure-guard",
+      "policy": "stable-path"
+    },
+    {
+      "path": "scripts/release_pypi.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-path"
+    },
+    {
+      "path": "scripts/check_compatibility_retirement.py",
+      "kind": "file",
+      "category": "structure-guard",
+      "policy": "stable-path"
+    },
+    {
+      "path": "scripts/install-brichan",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "config/repository-paths.json",
+      "kind": "file",
+      "category": "structure-guard",
+      "policy": "stable-path"
+    },
+    {
+      "path": "config/compatibility-retirement.json",
+      "kind": "file",
+      "category": "structure-guard",
+      "policy": "stable-path"
+    },
+    {
+      "path": "config/model-routing.json",
+      "kind": "file",
+      "category": "runtime-config",
+      "policy": "canonical"
+    },
+    {
+      "path": "config/pypi-readme.json",
+      "kind": "file",
+      "category": "runtime-config",
+      "policy": "canonical"
+    },
+    {
+      "path": ".codex/config.toml",
+      "kind": "file",
+      "category": "runtime-config",
+      "policy": "stable-path"
+    },
+    {
+      "path": ".agents/skills/herdr-orchestration",
+      "kind": "directory",
+      "category": "runtime-skill",
+      "policy": "stable-path"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "kind": "file",
+      "category": "ci-entrypoint",
+      "policy": "stable-path"
+    },
+    {
+      "path": ".github/workflows/publish.yml",
+      "kind": "file",
+      "category": "ci-entrypoint",
+      "policy": "stable-path"
+    },
+    {
+      "path": "projects",
+      "kind": "directory",
+      "category": "durable-state",
+      "policy": "frozen"
+    },
+    {
+      "path": "projects/index.md",
+      "kind": "file",
+      "category": "durable-state",
+      "policy": "frozen"
+    },
+    {
+      "path": "projects/_template/overview.md",
+      "kind": "file",
+      "category": "durable-state",
+      "policy": "frozen"
+    },
+    {
+      "path": "evals",
+      "kind": "directory",
+      "category": "historical-evidence",
+      "policy": "frozen"
+    },
+    {
+      "path": "metrics",
+      "kind": "directory",
+      "category": "durable-metrics",
+      "policy": "frozen"
+    },
+    {
+      "path": "metrics/validate_metrics.py",
+      "kind": "file",
+      "category": "automation-entrypoint",
+      "policy": "stable-path"
+    },
+    {
+      "path": "metrics/runs.jsonl",
+      "kind": "file",
+      "category": "durable-metrics",
+      "policy": "frozen"
+    },
+    {
+      "path": "src/brichan/cli/runtime.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/cli/render.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/cli/codex.py",
+      "kind": "file",
+      "category": "provider-adapter",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/cli/claude.py",
+      "kind": "file",
+      "category": "provider-adapter",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/orchestration/worker_launch.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/orchestration/model_routing.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/cli/provider_commands.py",
+      "kind": "file",
+      "category": "provider-adapter",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/orchestration/layout.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/orchestration/herdr_client.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/receipts/validation.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/receipts/schema.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/receipts/parser.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/receipts/discovery.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/validation.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/schema.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/parser.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/contracts/task_dossier/scaffold.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    }
+  ],
+  "references": [
+    {
+      "source": "AGENTS.md",
+      "target": "bin/brichan"
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "docs/policy/identity.md"
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "docs/policy/operating-principles.md"
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "PRODUCT.md"
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "projects/index.md"
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "docs/policy/memory-policy.md"
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "docs/policy/model-catalog.md"
+    },
+    {
+      "source": "AGENTS.md",
+      "target": "docs/policy/reviewer.md",
+      "needle": "reviewer instructions"
+    },
+    {
+      "source": "AGENTS.md",
+      "target": ".agents/skills/herdr-orchestration",
+      "needle": "$herdr-orchestration"
+    },
+    {
+      "source": "CLAUDE.md",
+      "target": "AGENTS.md"
+    },
+    {
+      "source": "CLAUDE.md",
+      "target": "PRODUCT.md"
+    },
+    {
+      "source": "CLAUDE.md",
+      "target": "docs/policy/identity.md"
+    },
+    {
+      "source": "CLAUDE.md",
+      "target": "docs/policy/operating-principles.md"
+    },
+    {
+      "source": "CLAUDE.md",
+      "target": "docs/policy/memory-policy.md"
+    },
+    {
+      "source": "CLAUDE.md",
+      "target": "config/model-routing.json"
+    },
+    {
+      "source": "docs/guides/model-routing.md",
+      "target": "config/model-routing.json"
+    },
+    {
+      "source": "docs/policy/operating-principles.md",
+      "target": "docs/policy/model-catalog.md"
+    },
+    {
+      "source": "docs/policy/operating-principles.md",
+      "target": "docs/policy/reviewer.md"
+    },
+    {
+      "source": "docs/policy/operating-principles.md",
+      "target": "docs/policy/memory-policy.md"
+    },
+    {
+      "source": "CONTRIBUTING.md",
+      "target": "docs/policy/reviewer.md"
+    },
+    {
+      "source": ".github/pull_request_template.md",
+      "target": "docs/policy/reviewer.md"
+    },
+    {
+      "source": ".agents/skills/herdr-orchestration/SKILL.md",
+      "target": "docs/policy/model-catalog.md",
+      "needle": "../../../docs/policy/model-catalog.md"
+    },
+    {
+      "source": "Makefile",
+      "target": "metrics/validate_metrics.py"
+    },
+    {
+      "source": "Makefile",
+      "target": "metrics/runs.jsonl"
+    },
+    {
+      "source": "Makefile",
+      "target": "scripts/validate_handoff_receipts.py"
+    },
+    {
+      "source": "Makefile",
+      "target": "scripts/check_repository_paths.py"
+    },
+    {
+      "source": "Makefile",
+      "target": "scripts/check_compatibility_retirement.py"
+    },
+    {
+      "source": "scripts/check_compatibility_retirement.py",
+      "target": "config/compatibility-retirement.json"
+    },
+    {
+      "source": "Makefile",
+      "target": "projects"
+    },
+    {
+      "source": "Makefile",
+      "target": "bin/brichan"
+    },
+    {
+      "source": ".github/workflows/ci.yml",
+      "target": "Makefile",
+      "needle": "make check"
+    },
+    {
+      "source": "bin/brichan",
+      "target": "src/brichan/cli/runtime.py",
+      "needle": "brichan.cli.runtime"
+    },
+    {
+      "source": "src/brichan/cli/runtime.py",
+      "target": "bin/brichan-codex",
+      "needle": "brichan-{runtime}"
+    },
+    {
+      "source": "src/brichan/cli/runtime.py",
+      "target": "bin/brichan-claude",
+      "needle": "brichan-{runtime}"
+    },
+    {
+      "source": "bin/brichan-codex",
+      "target": "src/brichan/cli/codex.py",
+      "needle": "brichan.cli.codex"
+    },
+    {
+      "source": "bin/brichan-claude",
+      "target": "src/brichan/cli/claude.py",
+      "needle": "brichan.cli.claude"
+    },
+    {
+      "source": "bin/brichan-herdr-agent-start",
+      "target": "src/brichan/orchestration/worker_launch.py",
+      "needle": "brichan.orchestration.worker_launch"
+    },
+    {
+      "source": "src/brichan/orchestration/model_routing.py",
+      "target": "config/model-routing.json",
+      "needle": "model-routing.json"
+    },
+    {
+      "source": "src/brichan/orchestration/worker_launch.py",
+      "target": "src/brichan/orchestration/model_routing.py",
+      "needle": "model_routing"
+    },
+    {
+      "source": "src/brichan/orchestration/worker_launch.py",
+      "target": "src/brichan/cli/provider_commands.py",
+      "needle": "provider_commands"
+    },
+    {
+      "source": "scripts/validate_handoff_receipts.py",
+      "target": "src/brichan/contracts/receipts/validation.py",
+      "needle": "brichan.contracts.receipts.validation"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "AGENTS.md"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "CLAUDE.md"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "CONTRIBUTING.md"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "SECURITY.md"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "bin/brichan"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "bin/brichan-codex"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "bin/brichan-claude"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "bin/brichan-herdr-agent-start"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": ".codex/config.toml"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "projects/_template/overview.md"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "metrics/runs.jsonl"
+    },
+    {
+      "source": "docs/index.md",
+      "target": "docs/workflows/task-dossier.md",
+      "needle": "workflows/task-dossier.md"
+    },
+    {
+      "source": "docs/workflows/README.md",
+      "target": "docs/workflows/task-dossier.md",
+      "needle": "task-dossier.md"
+    },
+    {
+      "source": "CONTRIBUTING.md",
+      "target": "docs/workflows/task-dossier.md"
+    },
+    {
+      "source": "docs/policy/operating-principles.md",
+      "target": "docs/workflows/task-dossier.md"
+    },
+    {
+      "source": "docs/policy/reviewer.md",
+      "target": "docs/workflows/task-dossier.md"
+    },
+    {
+      "source": "docs/workflows/task-dossier.md",
+      "target": "docs/workflows/task-dossier/templates",
+      "needle": "task-dossier/templates/"
+    },
+    {
+      "source": "Makefile",
+      "target": "scripts/validate_task_dossiers.py"
+    },
+    {
+      "source": "scripts/validate_task_dossiers.py",
+      "target": "src/brichan/contracts/task_dossier/validation.py",
+      "needle": "brichan.contracts.task_dossier.validation"
+    },
+    {
+      "source": "scripts/scaffold_task_dossier.py",
+      "target": "src/brichan/contracts/task_dossier/scaffold.py",
+      "needle": "brichan.contracts.task_dossier.scaffold"
+    },
+    {
+      "source": "src/brichan/contracts/task_dossier/scaffold.py",
+      "target": "docs/workflows/task-dossier/templates",
+      "needle": "docs/workflows/task-dossier/templates"
+    },
+    {
+      "source": "src/brichan/contracts/task_dossier/validation.py",
+      "target": "src/brichan/contracts/task_dossier/schema.py",
+      "needle": "from .schema import"
+    },
+    {
+      "source": "src/brichan/contracts/task_dossier/validation.py",
+      "target": "src/brichan/contracts/task_dossier/parser.py",
+      "needle": "from .parser import"
+    }
+  ]
+}

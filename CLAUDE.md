@@ -23,3 +23,22 @@ so `docs/policy/` wins any conflict and the conflict is reported to the user.
 Use progressive project memory according to `docs/policy/memory-policy.md`. Do
 not access secrets, broaden permissions, contact external parties, or change
 remote state without explicit user authorization.
+
+## Run commands
+
+- Checkout: `bin/brichan --runtime claude|codex`. Installed: `brichan run
+  --project <path> -- <runtime args>`. Model/effort routing comes from
+  `config/model-routing.json`, not flags or env vars.
+
+## Test instructions
+
+- `make check` before calling any change done; `make test` for all layers,
+  or `make test-unit` / `test-contract` / `test-integration` individually.
+  Add/update regression tests for any executable-behavior change.
+
+## Environment warnings
+
+- No third-party Python deps (3.10+ only) — don't add one without sign-off.
+- Use `PYTHONDONTWRITEBYTECODE=1` (+ `PYTHONPATH=src` for package checks) to
+match CI. Herdr/Codex needed only for e2e/orchestration, not most tests.
+- Never commit credentials, tokens, or private transcripts.

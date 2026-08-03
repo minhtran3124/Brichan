@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-07-29
+Last updated: 2026-08-03
 
 ## Summary
 
@@ -78,6 +78,13 @@ dogfood in a selected real repository, followed later by 3–5 trusted users.
   review uses `claude-opus-5` high. The canonical IDs and their aliases
   completed live probes. Claude Sonnet implementation and Claude Opus
   independent review returned `PASS`.
+- Implemented `bin/brichan doctor --json` for source checkouts and installed
+  projects. It reports repository, Git, policy, model-routing, project-memory,
+  and dependency checks with deterministic JSON, preserves lifecycle exits, and
+  never invokes Herdr or mutates Git/filesystem state.
+- DOGFOOD-006 plan v3 passed independent plan review; H1 symlink traversal and
+  M1 invalid-UTF-8 traceback were found by code review, remediated with
+  regressions, and passed independent remediation re-review.
 
 ## In progress
 
@@ -107,6 +114,12 @@ dogfood in a selected real repository, followed later by 3–5 trusted users.
   `𝜋thon` alias and packaging utilities. It is excluded from source scans and
   cannot enter the installer wheel snapshot, but its provenance should be
   resolved before any future publishing step.
+- `make check` for DOGFOOD-006 passes from a clean generated-artifact state;
+  the dossier validator and focused doctor/remediation tests also pass.
+- The default `doctor` text view now includes configured route models with
+  purposes and required policy files as bullets; `doctor --json` remains the
+  complete machine-readable contract. Repository/Git/dependency summaries are
+  expanded, and Herdr is a required dependency for a healthy checkout.
 
 ## Next actions
 
