@@ -42,3 +42,7 @@ remote state without explicit user authorization.
 - Use `PYTHONDONTWRITEBYTECODE=1` (+ `PYTHONPATH=src` for package checks) to
 match CI. Herdr/Codex needed only for e2e/orchestration, not most tests.
 - Never commit credentials, tokens, or private transcripts.
+- `README_PYPI.md` is generated; never edit it directly. Edit
+  `packaging/pypi-readme.md` (the source) and regenerate with `python3
+  scripts/build_pypi_readme.py`. `make check` / `--check` fails if the two
+  drift.

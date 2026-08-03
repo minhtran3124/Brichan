@@ -88,6 +88,10 @@ brichan doctor --project /absolute/path/to/repository
 brichan run --project /absolute/path/to/repository -- <codex arguments>
 ```
 
+`doctor --json` emits the same diagnostics as machine-readable JSON for
+scripts and CI. The default text output groups findings into a compact
+callout with route and dependency summaries.
+
 From inside a healthy initialized repository, bare `brichan` also launches
 Codex. The installed entrypoint:
 
@@ -195,10 +199,18 @@ in `bin/` and `scripts/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the change
 workflow and [the repository layout](docs/architecture/repository-layout.md)
 for module boundaries.
 
+Tasks tracked in this checkout follow the task dossier workflow: a fixed set
+of eleven handoff artifacts per task (request, requirements, brief, options,
+design, plan, plan review, code review, PR description, index, and receipt),
+scaffolded, generated, summarized, and validated by
+`scripts/{scaffold,generate,summarize,validate}_task_dossier.py`. See
+[the task dossier workflow](docs/workflows/task-dossier.md).
+
 ## Learn more
 
 - [Model routing and worker launch settings](docs/guides/model-routing.md)
 - [Installed Codex dogfood](docs/guides/installable-dogfood.md)
+- [Task dossier workflow](docs/workflows/task-dossier.md)
 - [Documentation index](docs/index.md)
 - [Operating principles](docs/policy/operating-principles.md)
 - [Security policy](SECURITY.md)
