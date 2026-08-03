@@ -1,54 +1,66 @@
 # `brichan` PyPI release checklist
 
-This repository is prepared for a future `brichan` release but nothing has
-been published, tagged, or credentialed. The following must be done
-deliberately, outside of this task, before a real release:
+The `brichan` distribution is published on PyPI
+(<https://pypi.org/project/brichan/>) and releases are automated: pushing a
+`vX.Y.Z` tag triggers `.github/workflows/publish.yml`, which builds, validates,
+and publishes via PyPI Trusted Publishing. The first fully automated publish
+was `v0.9.0` (2026-08-03); earlier versions (0.5.0–0.8.0) were uploaded
+manually while the publisher configuration was incomplete.
 
-## One-time PyPI setup
+## One-time PyPI setup (completed)
 
-- [ ] Confirm PyPI account/organization ownership of the `brichan` project
-      name (or reserve it) before the first publish.
-- [ ] Create a PyPI Trusted Publisher for this GitHub repository pointing at
-      `.github/workflows/publish.yml`, the `pypi` environment, and the exact
-      repository owner/name and branch/tag pattern that will publish.
-- [ ] Create the `pypi` GitHub Environment in repository settings with
-      required reviewers and/or branch/tag protection, matching the
+- [x] PyPI ownership of the `brichan` project name is held by the publishing
+      account (releases 0.5.0 onward live under it).
+- [x] PyPI Trusted Publisher configured on 2026-08-03: owner `minhtran3124`,
+      repository `Brichan`, workflow `publish.yml`, environment `pypi`. The
+      claims must match exactly — a mismatch fails the publish job with
+      `invalid-publisher`.
+- [x] `pypi` GitHub Environment exists in repository settings, matching the
       `environment: pypi` block in `.github/workflows/publish.yml`.
-- [ ] Decide whether a `testpypi` environment and a matching Trusted
-      Publisher are wanted for pre-release validation; this repository does
-      not include a TestPyPI workflow.
+- [ ] TestPyPI rehearsal environment: deliberately not set up. Add a
+      `testpypi` environment, workflow, and matching Trusted Publisher first
+      if a pre-release publish rehearsal is ever wanted.
 
-## Per-release steps (not run by this task)
+## Per-release steps
 
-- [ ] Bump `pyproject.toml`, `VERSION`, `src/brida/__init__.py`, and
-      `CHANGELOG.md` together for the release version.
-- [ ] Run the full local verification (`PYTHONDONTWRITEBYTECODE=1 make check`,
-      a clean `python -m build`, `twine check`, and an installed-artifact
-      smoke test) before tagging.
-- [ ] Push a `vX.Y.Z` tag matching `pyproject.toml`'s `version`; this is the
-      only trigger for `.github/workflows/publish.yml`.
-- [ ] Approve the `pypi` environment deployment when GitHub Actions requests
-      it, if required reviewers are configured.
-- [ ] Verify the published project page and `pip install brichan` in a
-      disposable environment after the workflow completes.
+- [ ] Bump `pyproject.toml`, `VERSION`, `src/brichan/__init__.py`, and
+      `CHANGELOG.md` together for the release version (move the Unreleased
+      section into a dated entry).
+- [ ] Run the full local verification before tagging:
+      `PYTHONDONTWRITEBYTECODE=1 make check`, a clean `python -m build`,
+      `twine check` on both artifacts, and an installed-wheel smoke test in a
+      disposable virtual environment. Remove any stale `dist/`,
+      `src/brichan.egg-info/`, or `build/` artifacts first — the contract and
+      integration suites fail on leftovers.
+- [ ] Commit the bump as `chore(release): bump version to X.Y.Z` on `main`.
+- [ ] Push a `vX.Y.Z` tag matching `pyproject.toml`'s `version`; the tag push
+      is the only trigger for `.github/workflows/publish.yml`, and the
+      workflow refuses a tag that does not match the package version.
+- [ ] Create the GitHub release for the tag with notes drawn from the
+      CHANGELOG entry.
+- [ ] Verify the published page and `pip install brichan==X.Y.Z` in a
+      disposable environment after the workflow completes. The PyPI JSON API
+      reflects the release immediately; the pip simple index can lag a minute
+      or two behind it.
+- [ ] If the publish job fails after a successful build, fix the cause and
+      re-run only the failed job (`gh run rerun <run-id> --failed`); the
+      built artifacts are reused.
+
+Schema v1 note: a package-version change makes previously initialized
+`.brichan/` project state report `incompatible` by design (no automatic
+migration). Installed projects need a deliberate backup and re-init after
+upgrading.
 
 ## Known gaps intentionally left open
 
-- **Public repository URL**: this checkout's `github` remote points at a
-  non-standard host and is not confirmed to be a public, reachable URL, so no
-  `project.urls` (Homepage/Source/Issues) were added to `pyproject.toml` and
-  no such link was added to `README.md`. Provide a confirmed public URL to
-  add these.
-- **README hero image**: `README.md` embeds `assets/brida-hero.png` with a
-  path relative to the repository. GitHub renders this correctly, but PyPI's
-  README renderer will show a broken image, since a repository URL to
-  resolve it against is not confirmed (see above). Fix once a public
-  repository URL exists, either by adding `project.urls.Homepage` (some
-  renderers can resolve relative links against it) or by switching to an
-  absolute URL.
-- **TestPyPI**: no TestPyPI workflow, environment, or Trusted Publisher was
-  added; add one first if a pre-release publish rehearsal is wanted.
+- **Public repository URL**: the repository is private, so no `project.urls`
+  (Homepage/Source/Issues) are set in `pyproject.toml`. The PyPI long
+  description is generated by `scripts/build_pypi_readme.py` from
+  `packaging/pypi-readme.md`, which drops images and flattens relative links
+  while the repository stays private; flip `public_repository` in
+  `config/pypi-readme.json` when it goes public.
+- **TestPyPI**: no TestPyPI workflow, environment, or Trusted Publisher
+  exists; add one first if a pre-release publish rehearsal is wanted.
 - **sdist scope**: the source distribution intentionally contains only the
-  installable package inputs (`pyproject.toml`, `README.md`, `LICENSE`, and
-  `src/`). It can be installed and built, but it is not a test-suite source
-  archive.
+  installable package inputs. It can be installed and built, but it is not a
+  test-suite source archive.
