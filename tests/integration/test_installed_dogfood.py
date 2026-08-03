@@ -142,6 +142,11 @@ class InstalledDogfoodTest(unittest.TestCase):
         )
         fake_codex.chmod(fake_codex.stat().st_mode | stat.S_IXUSR)
 
+        # `doctor` only resolves herdr on PATH; it never executes it.
+        fake_herdr = self.fake_bin / "herdr"
+        fake_herdr.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        fake_herdr.chmod(fake_herdr.stat().st_mode | stat.S_IXUSR)
+
         hostile_bin = self.target / "bin"
         hostile_bin.mkdir()
         self.hostile_marker = self.temp_path / "hostile-ran"

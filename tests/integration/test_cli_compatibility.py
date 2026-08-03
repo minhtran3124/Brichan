@@ -527,14 +527,28 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
             self.assertEqual("invalid", report[section]["status"], section)
 
     def test_default_doctor_output_is_compact_human_readable_text(self):
+        # Deterministic PATH: codex/herdr availability is exercised by the
+        # dedicated dependency tests above, not this formatting check.
+        self.fake_executable("codex")
+        self.fake_executable("herdr")
+        path = os.pathsep.join(
+            [
+                str(self.tool_bin),
+                str(Path(self.git).parent),
+                str(Path(sys.executable).parent),
+                "/usr/bin",
+                "/bin",
+            ]
+        )
         result = subprocess.run(
             [str(ROOT / "bin" / "brichan"), "doctor"],
             cwd=ROOT,
+            env={**os.environ, "PATH": path},
             check=False,
             capture_output=True,
             text=True,
         )
-        self.assertIn(result.returncode, (0, 4), result.stderr)
+        self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("BRICHAN DOCTOR", result.stdout)
         self.assertIn(f"project root: {ROOT}", result.stdout)
         self.assertIn("overall:", result.stdout)
