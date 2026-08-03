@@ -262,7 +262,7 @@ class LifecycleHelpTest(unittest.TestCase):
 
     def test_init_help_still_documents_every_flag(self):
         text = self._help("init")
-        for flag in ("--project", "--apply", "--dry-run"):
+        for flag in ("--project", "--apply", "--dry-run", "--init-agents"):
             self.assertIn(flag, text, flag)
 
     def test_status_description_names_every_state_and_exit_code(self):

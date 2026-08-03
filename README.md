@@ -78,10 +78,10 @@ brichan init --apply --project /absolute/path/to/repository
 `init` defaults to dry-run and performs zero writes. `--apply` creates a
 versioned `.brichan/` directory containing managed policy, model routing,
 Herdr skill resources, and mutable project memory, plus root `AGENTS.md` and
-`CLAUDE.md` pointers and a `.agents/skills/` export of the Herdr skill (for
-`codex` sessions started without `brichan run`) when the repository does not
-already have them. Existing files are never modified. Repeating it against
-healthy state is idempotent.
+`CLAUDE.md` pointers when the repository does not already have them. Adding
+`--init-agents` also exports the Herdr skill to `.agents/skills/` so `codex`
+sessions started without `brichan run` discover it. Existing files are never
+modified. Repeating it against healthy state is idempotent.
 
 Diagnose and launch from any directory with an explicit target:
 

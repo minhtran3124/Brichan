@@ -332,6 +332,8 @@ def inspect_project(paths: ProjectPaths) -> Inspection:
 
 def _missing_agent_entries(
     paths: ProjectPaths,
+    *,
+    include_agents: bool = False,
 ) -> tuple[tuple[str, str], ...]:
     """Pending unmanaged files as (project-relative path, resource path)."""
 
@@ -340,7 +342,9 @@ def _missing_agent_entries(
         for name in AGENT_ENTRY_PATHS
         if not os.path.lexists(paths.project_root / name)
     ]
-    if not os.path.lexists(paths.project_root / AGENT_SKILLS_DIR):
+    if include_agents and not os.path.lexists(
+        paths.project_root / AGENT_SKILLS_DIR
+    ):
         pending.extend(
             (f".agents/{resource}", resource)
             for resource in IMMUTABLE_PATHS
@@ -369,10 +373,17 @@ def _write_agent_entries(
     return None
 
 
-def initialize_project(paths: ProjectPaths, *, apply: bool) -> tuple[int, list[str]]:
+def initialize_project(
+    paths: ProjectPaths,
+    *,
+    apply: bool,
+    include_agents: bool = False,
+) -> tuple[int, list[str]]:
     inspection = inspect_project(paths)
     if inspection.kind is StateKind.HEALTHY:
-        missing_entries = _missing_agent_entries(paths)
+        missing_entries = _missing_agent_entries(
+            paths, include_agents=include_agents
+        )
         if not missing_entries:
             return 0, [f"no changes: {paths.state_root} is already healthy"]
         entry_actions = [f"create {name}" for name, _ in missing_entries]
@@ -390,7 +401,9 @@ def initialize_project(paths: ProjectPaths, *, apply: bool) -> tuple[int, list[s
             f"{inspection.kind.value}: {paths.state_root}: {inspection.detail}"
         ]
 
-    missing_entries = _missing_agent_entries(paths)
+    missing_entries = _missing_agent_entries(
+        paths, include_agents=include_agents
+    )
     actions = [f"create .brichan/{path}" for path in documented_footprint()]
     actions.extend(f"create {name}" for name, _ in missing_entries)
     if not apply:

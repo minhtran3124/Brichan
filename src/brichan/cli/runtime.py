@@ -90,6 +90,15 @@ def _lifecycle_command(command_name: str, argv: list[str]) -> int:
             action="store_true",
             help="preview the footprint with zero writes (default)",
         )
+        parser.add_argument(
+            "--init-agents",
+            action="store_true",
+            help=(
+                "also export the Herdr skill to .agents/skills/ so a codex "
+                "session started without 'brichan run' discovers it "
+                "(created only when absent, never overwritten)"
+            ),
+        )
     if command_name == "doctor":
         parser.add_argument("--json", action="store_true", help=DOCTOR_JSON_HELP)
     args = parser.parse_args(argv)
@@ -100,7 +109,9 @@ def _lifecycle_command(command_name: str, argv: list[str]) -> int:
         return 2
 
     if command_name == "init":
-        code, lines = initialize_project(paths, apply=args.apply)
+        code, lines = initialize_project(
+            paths, apply=args.apply, include_agents=args.init_agents
+        )
         lines = format_init(
             lines,
             project_root=str(paths.project_root),
