@@ -1,14 +1,20 @@
 import contextlib
 import io
+import json
 import re
+import tempfile
 import unittest
+from pathlib import Path
 
 from brichan.cli.render import (
     DOCTOR_DESCRIPTION,
+    DOCTOR_JSON_HELP,
     INIT_DESCRIPTION,
     INIT_SUBTITLE,
     STATUS_DESCRIPTION,
     Style,
+    format_doctor_json,
+    format_doctor_text,
     format_init,
     resolve_style,
 )
@@ -231,6 +237,134 @@ class LifecycleHelpTest(unittest.TestCase):
     def test_read_only_commands_promise_not_to_write(self):
         for description in (STATUS_DESCRIPTION, DOCTOR_DESCRIPTION):
             self.assertIn("nothing is written", description.lower())
+
+
+class DoctorJsonSerializationTest(unittest.TestCase):
+    REPORT = {
+        "schema_version": 1,
+        "ok": True,
+        "repository": {"kind": "source_checkout", "status": "ok"},
+        "git": {"branch": "main", "dirty": False, "commit": None},
+    }
+
+    def test_serialization_is_sorted_indented_and_newline_terminated(self):
+        text = format_doctor_json(self.REPORT)
+        self.assertEqual(
+            "{\n"
+            '  "git": {\n'
+            '    "branch": "main",\n'
+            '    "commit": null,\n'
+            '    "dirty": false\n'
+            "  },\n"
+            '  "ok": true,\n'
+            '  "repository": {\n'
+            '    "kind": "source_checkout",\n'
+            '    "status": "ok"\n'
+            "  },\n"
+            '  "schema_version": 1\n'
+            "}\n",
+            text,
+        )
+        self.assertTrue(text.endswith("}\n"))
+        self.assertFalse(text.endswith("}\n\n"))
+        self.assertEqual(self.REPORT, json.loads(text))
+
+    def test_serialization_is_byte_stable_across_key_insertion_order(self):
+        shuffled = dict(reversed(list(self.REPORT.items())))
+        self.assertEqual(
+            format_doctor_json(self.REPORT).encode("utf-8"),
+            format_doctor_json(shuffled).encode("utf-8"),
+        )
+
+    def test_doctor_json_flag_is_documented_as_a_single_stdout_document(self):
+        self.assertIn("JSON", DOCTOR_JSON_HELP)
+        self.assertIn("stdout", DOCTOR_JSON_HELP)
+
+
+class DoctorTextRenderingTest(unittest.TestCase):
+    REPORT = {
+        "ok": True,
+        "repository": {"root": "/repo", "status": "ok", "kind": "source_checkout"},
+        "git": {
+            "status": "ok",
+            "dirty": False,
+            "branch": "main",
+            "commit": "1234567890abcdef",
+            "untracked": False,
+        },
+        "policies": {
+            "status": "ok",
+            "detail": "all policy files present",
+            "files": {
+                "docs/policy/identity.md": {"status": "ok"},
+                "docs/policy/operating-principles.md": {"status": "ok"},
+            },
+        },
+        "model_routing": {"status": "ok", "detail": "valid"},
+        "project_memory": {"status": "ok", "detail": "valid"},
+        "dependencies": {
+            "status": "ok",
+            "python": {"status": "ok", "required": True},
+            "git": {"status": "ok", "required": True},
+            "codex": {"status": "ok", "required": True},
+            "herdr": {"status": "missing", "required": True},
+        },
+    }
+
+    def test_text_is_a_compact_operator_summary(self):
+        text = "\n".join(format_doctor_text(self.REPORT, PLAIN))
+        self.assertIn("BRICHAN DOCTOR", text)
+        self.assertIn("+", text)
+        self.assertIn(".", text)
+        self.assertIn("repository: OK", text)
+        self.assertIn("source checkout", text)
+        self.assertIn("git: OK · clean worktree · main", text)
+        self.assertIn("commit 1234567", text)
+        self.assertIn("no untracked", text)
+        self.assertIn("- python: OK · required", text)
+        self.assertIn("- herdr: MISSING · required", text)
+        self.assertNotIn("all policy files present", text)
+        self.assertIn("- docs/policy/identity.md", text)
+        self.assertIn("overall: OK · healthy", text)
+
+    def test_text_lists_configured_route_models(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "model-routing.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "routes": {
+                            "plan": {"model": "claude-fable-5"},
+                            "implement": {"model": "claude-opus-5"},
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            report = dict(self.REPORT)
+            report["model_routing"] = {"status": "ok", "path": str(path)}
+            text = "\n".join(format_doctor_text(report, PLAIN))
+        self.assertIn("- claude-fable-5 — planning (plan)", text)
+        self.assertIn("- claude-opus-5 — implementation (implement)", text)
+
+    def test_failed_checks_show_only_the_actionable_detail(self):
+        report = dict(self.REPORT)
+        report["policies"] = {
+            "status": "missing",
+            "detail": "unhealthy policy paths: docs/policy/identity.md",
+        }
+        report["ok"] = False
+        text = "\n".join(format_doctor_text(report, PLAIN))
+        self.assertIn("policies: MISSING", text)
+        self.assertIn("identity.md", text)
+        self.assertIn("overall: INVALID · needs attention", text)
+
+    def test_interactive_text_uses_colour_and_unicode(self):
+        text = "\n".join(format_doctor_text(self.REPORT, FANCY))
+        self.assertIn("\033[", text)
+        self.assertIn("✓", text)
+        self.assertIn("┌", text)
+        self.assertIn("·", text)
 
 
 if __name__ == "__main__":
