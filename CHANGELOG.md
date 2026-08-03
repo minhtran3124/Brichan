@@ -7,6 +7,26 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-03
+
+### Added
+
+- `brichan init` now creates root `AGENTS.md` and `CLAUDE.md` files in the
+  target repository when they are absent, pointing agent runtimes at
+  `.brichan/policy/bootstrap.md`. Existing files — including symlinks — are
+  never edited or overwritten; created files belong to the repository from
+  then on and are excluded from the manifest and health checks. Re-running
+  `init` against healthy state creates any missing pointer, dry-run lists
+  the new `create AGENTS.md` / `create CLAUDE.md` lines, and the interactive
+  init tree shows and counts them.
+
+### Changed
+
+- The product non-goal forbidding mutation of a target repository's
+  `AGENTS.md`/`CLAUDE.md` was narrowed to existing files: creating missing
+  root pointers is now in scope, editing or overwriting present ones remains
+  out of scope.
+
 ## [0.8.0] - 2026-08-03
 
 ### Added
