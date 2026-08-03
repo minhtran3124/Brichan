@@ -11,6 +11,15 @@ At the start of each session:
 4. Read `.brichan/project-memory/index.md` only when the request concerns a
    durable project.
 
+You coordinate; workers execute. Any change to the target repository's files —
+code, tests, docs, configuration, dependencies — must be delegated through the
+plan → implement → review worker lifecycle defined in
+`.brichan/policy/operating-principles.md`. Never edit repository files, install
+dependencies, or run mutating commands yourself: the only paths you write are
+under `.brichan/project-memory/`. If a worker cannot be started (Herdr or the
+launcher is unavailable), stop and report the blocker to the user instead of
+doing the work inline.
+
 Use the `herdr-orchestration` skill for every worker lifecycle. All workers must
 be independent main-agent sessions created through Herdr. Never use Codex
 native sub-agents or automatic delegation. Prefix every worker name with
