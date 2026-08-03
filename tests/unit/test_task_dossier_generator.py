@@ -1309,8 +1309,13 @@ class PublicationSubstitutionTest(GenerationBase):
 
     def test_a_regular_file_substituted_for_the_source_is_refused(self):
         def replace(path):
-            path.unlink()
-            path.write_text("substituted regular file\n", encoding="utf-8")
+            # Substitute via rename rather than unlink-then-create: an
+            # in-place unlink/recreate can hand the new file the same inode
+            # the old one held (observed on Linux tmpfs), which would make
+            # this an accidental no-op instead of an actual substitution.
+            decoy = path.with_name(path.name + ".decoy")
+            decoy.write_text("substituted regular file\n", encoding="utf-8")
+            os.replace(decoy, path)
 
         injected, error = self.substitute_before_link(replace)
 
@@ -1327,8 +1332,11 @@ class PublicationSubstitutionTest(GenerationBase):
 
     def test_a_symlink_substituted_for_the_source_is_refused(self):
         def replace(path):
-            path.unlink()
-            path.symlink_to(self.decoy)
+            # See the note in the regular-file variant above: substitute via
+            # rename so the identity actually changes on every filesystem.
+            decoy_link = path.with_name(path.name + ".decoy")
+            decoy_link.symlink_to(self.decoy)
+            os.replace(decoy_link, path)
 
         injected, error = self.substitute_before_link(replace)
 
