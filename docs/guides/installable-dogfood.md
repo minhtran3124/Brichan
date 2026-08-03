@@ -115,10 +115,14 @@ mutable.
 
 When the repository has no root `AGENTS.md` or `CLAUDE.md`, `init` also
 creates the missing ones as short pointers to `.brichan/policy/bootstrap.md`.
-They belong to the repository from then on: they are not recorded in the
-manifest, not health-checked, and never edited or overwritten. Brichan never
-edits an existing root `AGENTS.md`, `CLAUDE.md`, `.codex/`, or provider
-configuration during initialization.
+With the opt-in `--init-agents` flag, `init` additionally exports the Herdr
+skill to `.agents/skills/herdr-orchestration/` (when that directory is absent)
+so a `codex` session started directly in the repository — without
+`brichan run`, which injects the skill from `.brichan/skills/` explicitly —
+still discovers it. These files belong to the repository from then on: they
+are not recorded in the manifest, not health-checked, and never edited or
+overwritten. Brichan never edits an existing root `AGENTS.md`, `CLAUDE.md`,
+`.agents/`, `.codex/`, or provider configuration during initialization.
 
 ## Diagnose and run
 

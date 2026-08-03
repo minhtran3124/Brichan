@@ -51,6 +51,14 @@ MUTABLE_PATHS = (
 AGENT_ENTRY_PATHS = ("AGENTS.md", "CLAUDE.md")
 AGENT_ENTRY_RESOURCE_DIR = "agent-entry"
 
+#: Codex skill-discovery export. `brichan run` injects the managed skill from
+#: `.brichan/skills/` explicitly, but a `codex` session started directly in
+#: the repository discovers skills only under `.agents/skills/`. `init`
+#: exports the skill there once, when the directory is absent, under the same
+#: contract as the agent entry files: unmanaged afterwards, never overwritten.
+AGENT_SKILLS_DIR = ".agents/skills/herdr-orchestration"
+_SKILL_RESOURCE_PREFIX = "skills/herdr-orchestration/"
+
 
 #: Version of the `doctor --json` document. Independent of the `.brichan`
 #: state schema: this describes the diagnostic report, not the installed
@@ -322,22 +330,39 @@ def inspect_project(paths: ProjectPaths) -> Inspection:
         )
 
 
-def _missing_agent_entries(paths: ProjectPaths) -> tuple[str, ...]:
-    return tuple(
-        name
+def _missing_agent_entries(
+    paths: ProjectPaths,
+    *,
+    include_agents: bool = False,
+) -> tuple[tuple[str, str], ...]:
+    """Pending unmanaged files as (project-relative path, resource path)."""
+
+    pending = [
+        (name, f"{AGENT_ENTRY_RESOURCE_DIR}/{name}")
         for name in AGENT_ENTRY_PATHS
         if not os.path.lexists(paths.project_root / name)
-    )
+    ]
+    if include_agents and not os.path.lexists(
+        paths.project_root / AGENT_SKILLS_DIR
+    ):
+        pending.extend(
+            (f".agents/{resource}", resource)
+            for resource in IMMUTABLE_PATHS
+            if resource.startswith(_SKILL_RESOURCE_PREFIX)
+        )
+    return tuple(pending)
 
 
-def _write_agent_entries(paths: ProjectPaths, names: tuple[str, ...]) -> str | None:
-    for name in names:
-        destination = paths.project_root / name
+def _write_agent_entries(
+    paths: ProjectPaths,
+    pending: tuple[tuple[str, str], ...],
+) -> str | None:
+    for relative_path, resource in pending:
+        destination = paths.project_root / relative_path
         try:
+            destination.parent.mkdir(parents=True, exist_ok=True)
             with open(destination, "xb") as stream:
-                stream.write(
-                    _resource_bytes(f"{AGENT_ENTRY_RESOURCE_DIR}/{name}")
-                )
+                stream.write(_resource_bytes(resource))
         except FileExistsError:
             continue
         except OSError as exc:
@@ -348,13 +373,20 @@ def _write_agent_entries(paths: ProjectPaths, names: tuple[str, ...]) -> str | N
     return None
 
 
-def initialize_project(paths: ProjectPaths, *, apply: bool) -> tuple[int, list[str]]:
+def initialize_project(
+    paths: ProjectPaths,
+    *,
+    apply: bool,
+    include_agents: bool = False,
+) -> tuple[int, list[str]]:
     inspection = inspect_project(paths)
     if inspection.kind is StateKind.HEALTHY:
-        missing_entries = _missing_agent_entries(paths)
+        missing_entries = _missing_agent_entries(
+            paths, include_agents=include_agents
+        )
         if not missing_entries:
             return 0, [f"no changes: {paths.state_root} is already healthy"]
-        entry_actions = [f"create {name}" for name in missing_entries]
+        entry_actions = [f"create {name}" for name, _ in missing_entries]
         if not apply:
             return 0, ["dry-run: zero writes", *entry_actions]
         problem = _write_agent_entries(paths, missing_entries)
@@ -369,9 +401,11 @@ def initialize_project(paths: ProjectPaths, *, apply: bool) -> tuple[int, list[s
             f"{inspection.kind.value}: {paths.state_root}: {inspection.detail}"
         ]
 
-    missing_entries = _missing_agent_entries(paths)
+    missing_entries = _missing_agent_entries(
+        paths, include_agents=include_agents
+    )
     actions = [f"create .brichan/{path}" for path in documented_footprint()]
-    actions.extend(f"create {name}" for name in missing_entries)
+    actions.extend(f"create {name}" for name, _ in missing_entries)
     if not apply:
         return 0, ["dry-run: zero writes", *actions]
 
