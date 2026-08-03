@@ -1,8 +1,9 @@
 """Human-facing rendering for lifecycle command output.
 
 `brichan.lifecycle` returns plain semantic lines and stays the machine-readable
-contract: `dry-run: zero writes`, `create .brichan/<path>`, and the rest are
-asserted on by tests and parsed by scripts. Nothing here may change them.
+contract: `dry-run: zero writes`, `create .brichan/<path>`, `create <root
+agent entry>`, and the rest are asserted on by tests and parsed by scripts.
+Nothing here may change them.
 
 This module is presentation only, and applies exclusively when stdout is an
 interactive terminal. Redirected or piped output keeps the plain lines
@@ -28,8 +29,9 @@ INIT_SUBTITLE = "Managed state: policy, model routing, Herdr skills, and project
 INIT_DESCRIPTION = (
     "Create the .brichan/ state directory that Brichan manages in this "
     "repository: policy, model routing, Herdr skills, and project memory. "
-    "Defaults to a dry run with zero writes; pass --apply to create the "
-    "footprint. Existing repository files are never modified."
+    "Also creates root AGENTS.md and CLAUDE.md pointers when they are "
+    "absent. Defaults to a dry run with zero writes; pass --apply to create "
+    "the footprint. Existing repository files are never modified."
 )
 
 STATUS_DESCRIPTION = (
@@ -316,7 +318,12 @@ def format_init(
         for line in lines
         if line.startswith(CREATE_PREFIX)
     ]
-    if not created or not style.enabled:
+    root_created = [
+        line[len("create "):]
+        for line in lines
+        if line.startswith("create ") and not line.startswith(CREATE_PREFIX)
+    ]
+    if (not created and not root_created) or not style.enabled:
         return lines
 
     mode = "applied" if apply else "dry run"
@@ -331,10 +338,14 @@ def format_init(
 
     subtitle = style.paint(INIT_SUBTITLE, _DIM)
 
-    body = [style.paint(STATE_ROOT, _BOLD, _CYAN)]
-    body.extend(_render_tree(_tree(created), style))
+    body = []
+    if created:
+        body.append(style.paint(STATE_ROOT, _BOLD, _CYAN))
+        body.extend(_render_tree(_tree(created), style))
+    body.extend(style.paint(name, _BOLD, _CYAN) for name in root_created)
 
-    count = f"{len(created)} file{'s' if len(created) != 1 else ''}"
+    total = len(created) + len(root_created)
+    count = f"{total} file{'s' if total != 1 else ''}"
     if apply:
         summary = style.paint(f"{count} created", _GREEN)
         footer = [summary]

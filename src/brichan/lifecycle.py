@@ -44,6 +44,13 @@ MUTABLE_PATHS = (
     "project-memory/main/tasks.md",
 )
 
+#: Root-level agent entry files. `init` creates each one from the
+#: `agent-entry/` resource only when the repository does not already have it
+#: (a symlink counts as having it); after creation they belong to the
+#: repository and are never inspected, hashed, or modified again.
+AGENT_ENTRY_PATHS = ("AGENTS.md", "CLAUDE.md")
+AGENT_ENTRY_RESOURCE_DIR = "agent-entry"
+
 
 #: Version of the `doctor --json` document. Independent of the `.brichan`
 #: state schema: this describes the diagnostic report, not the installed
@@ -315,16 +322,56 @@ def inspect_project(paths: ProjectPaths) -> Inspection:
         )
 
 
+def _missing_agent_entries(paths: ProjectPaths) -> tuple[str, ...]:
+    return tuple(
+        name
+        for name in AGENT_ENTRY_PATHS
+        if not os.path.lexists(paths.project_root / name)
+    )
+
+
+def _write_agent_entries(paths: ProjectPaths, names: tuple[str, ...]) -> str | None:
+    for name in names:
+        destination = paths.project_root / name
+        try:
+            with open(destination, "xb") as stream:
+                stream.write(
+                    _resource_bytes(f"{AGENT_ENTRY_RESOURCE_DIR}/{name}")
+                )
+        except FileExistsError:
+            continue
+        except OSError as exc:
+            return (
+                f"initialization failed: {destination}: "
+                f"{exc.__class__.__name__}: {exc}"
+            )
+    return None
+
+
 def initialize_project(paths: ProjectPaths, *, apply: bool) -> tuple[int, list[str]]:
     inspection = inspect_project(paths)
     if inspection.kind is StateKind.HEALTHY:
-        return 0, [f"no changes: {paths.state_root} is already healthy"]
+        missing_entries = _missing_agent_entries(paths)
+        if not missing_entries:
+            return 0, [f"no changes: {paths.state_root} is already healthy"]
+        entry_actions = [f"create {name}" for name in missing_entries]
+        if not apply:
+            return 0, ["dry-run: zero writes", *entry_actions]
+        problem = _write_agent_entries(paths, missing_entries)
+        if problem:
+            return 2, [problem]
+        return 0, [
+            f"no changes: {paths.state_root} is already healthy",
+            *entry_actions,
+        ]
     if inspection.kind is not StateKind.UNINITIALIZED:
         return inspection.exit_code, [
             f"{inspection.kind.value}: {paths.state_root}: {inspection.detail}"
         ]
 
+    missing_entries = _missing_agent_entries(paths)
     actions = [f"create .brichan/{path}" for path in documented_footprint()]
+    actions.extend(f"create {name}" for name in missing_entries)
     if not apply:
         return 0, ["dry-run: zero writes", *actions]
 
@@ -345,6 +392,9 @@ def initialize_project(paths: ProjectPaths, *, apply: bool) -> tuple[int, list[s
             f"initialization failed: {paths.state_root}: "
             f"{exc.__class__.__name__}: {exc}"
         ]
+    problem = _write_agent_entries(paths, missing_entries)
+    if problem:
+        return 2, [problem]
     return 0, [f"initialized: {paths.state_root}", *actions]
 
 

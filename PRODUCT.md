@@ -56,8 +56,10 @@ Do not add these unless the user explicitly asks and authorizes them:
   delegation) as a replacement for the Herdr worker lifecycle.
 - Third-party Python runtime dependencies.
 - Windows support, broad multi-platform or broad repository-shape support.
-- Automatic mutation of a target repository's `AGENTS.md`, `CLAUDE.md`,
-  `.codex/`, or provider configuration.
+- Automatic mutation of a target repository's existing `AGENTS.md`,
+  `CLAUDE.md`, `.codex/`, or provider configuration. (`brichan init` creates
+  missing root `AGENTS.md`/`CLAUDE.md` pointers to `.brichan/`, but never
+  edits, overwrites, or re-manages ones that already exist.)
 - Automatic repair or migration of `.brichan/` state (schema v1 is deliberately
   migration-free).
 - Publishing, deploying, remote-state changes, permission broadening, or secret

@@ -200,6 +200,47 @@ class TreeRenderTest(unittest.TestCase):
         self.assertEqual(0, depth, "unclosed escape sequence")
 
 
+class RootEntryRenderTest(unittest.TestCase):
+    """Root AGENTS.md/CLAUDE.md create lines must survive both render modes."""
+
+    LINES = [
+        "dry-run: zero writes",
+        *FOOTPRINT,
+        "create AGENTS.md",
+        "create CLAUDE.md",
+    ]
+
+    def test_plain_style_returns_root_entry_lines_untouched(self):
+        self.assertEqual(
+            self.LINES,
+            format_init(
+                self.LINES, project_root="/repo", apply=False, style=PLAIN
+            ),
+        )
+
+    def test_fancy_render_shows_root_entries_and_counts_them(self):
+        text = "\n".join(
+            format_init(
+                self.LINES,
+                project_root="/repo",
+                apply=False,
+                style=Style(unicode=True),
+            )
+        )
+        self.assertIn("AGENTS.md", text)
+        self.assertIn("CLAUDE.md", text)
+        self.assertIn("17 files", text)
+
+    def test_root_entries_alone_still_render_as_a_tree(self):
+        lines = ["dry-run: zero writes", "create CLAUDE.md"]
+        rendered = format_init(
+            lines, project_root="/repo", apply=False, style=Style(unicode=True)
+        )
+        text = "\n".join(rendered)
+        self.assertIn("CLAUDE.md", text)
+        self.assertIn("1 file ", text + " ")
+
+
 class LifecycleHelpTest(unittest.TestCase):
     """Each lifecycle command must say what it does, not just list its flags."""
 

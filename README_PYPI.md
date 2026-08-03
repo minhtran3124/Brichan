@@ -94,10 +94,12 @@ Once the footprint looks right, apply it:
 $ brichan init --apply --project /absolute/path/to/repository
 ```
 
-This creates only a versioned `.brichan/` directory holding managed policy, model
-routing, Herdr skill resources, and mutable project memory. Repeating it against
-healthy state is idempotent. Your `AGENTS.md`, `CLAUDE.md`, `.codex/`, and
-provider configuration are left untouched.
+This creates a versioned `.brichan/` directory holding managed policy, model
+routing, Herdr skill resources, and mutable project memory, plus root
+`AGENTS.md` and `CLAUDE.md` pointers when the repository does not already have
+them. Repeating it against healthy state is idempotent. An existing
+`AGENTS.md`, `CLAUDE.md`, `.codex/`, and provider configuration are left
+untouched.
 
 Diagnose and launch from any directory by naming the target explicitly:
 

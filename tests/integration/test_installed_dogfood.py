@@ -206,6 +206,8 @@ class InstalledDogfoodTest(unittest.TestCase):
             "brichan/resources/dogfood_v1/policy/memory-policy.md",
             "brichan/resources/dogfood_v1/skills/herdr-orchestration/SKILL.md",
             "brichan/resources/dogfood_v1/project-memory/main/overview.md",
+            "brichan/resources/dogfood_v1/agent-entry/AGENTS.md",
+            "brichan/resources/dogfood_v1/agent-entry/CLAUDE.md",
         )
         for suffix in required_suffixes:
             self.assertTrue(any(name.endswith(suffix) for name in names), suffix)
