@@ -7,6 +7,29 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-08-03
+
+### Changed
+
+- The installed-project policy now mandates the delegated worker lifecycle.
+  Previously the coordinator was allowed to "work directly when a task is
+  small", and in practice it implemented, tested, and installed dependencies
+  inline without ever spawning a worker. Under the new policy, any task that
+  creates, edits, or deletes repository files runs through `plan` →
+  `implement` → `review` workers on the named routes; the coordinator writes
+  only under `.brichan/project-memory/`; and a worker that cannot be started
+  is reported as a blocker instead of worked around inline. Verified
+  end-to-end: a real feature request produced plan, implement, review, and
+  remediation workers through Herdr, with the coordinator never editing
+  repository files itself.
+
+### Upgrade note
+
+- Because policy resources are hash-managed, existing `.brichan/` state
+  reports `incompatible` after upgrading (schema v1 is migration-free by
+  design). Back up `project-memory/`, delete `.brichan/`, and re-run
+  `brichan init --apply` to adopt the new policy.
+
 ## [0.10.0] - 2026-08-03
 
 ### Added
