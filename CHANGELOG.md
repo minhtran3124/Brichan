@@ -7,6 +7,24 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-03
+
+### Added
+
+- The task dossier workflow: a structured set of handoff documents (brief,
+  requirements, design, plan, code review, receipt, and more) with scaffolding,
+  generation, summarization, and validation scripts, plus contract tests that
+  keep the documents consistent with the repository's task lifecycle. See
+  `docs/workflows/task-dossier.md`.
+- `brichan doctor --json` emits the diagnostic report as machine-readable
+  JSON instead of the operator-facing text summary.
+
+### Changed
+
+- `brichan doctor`'s text output was redesigned around a compact callout plus
+  route and dependency summaries, making route resolution and missing
+  dependencies easier to scan than the prior flat line list.
+
 ## [0.7.0] - 2026-07-30
 
 ### Changed
