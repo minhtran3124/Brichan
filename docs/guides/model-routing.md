@@ -124,6 +124,79 @@ Known limitations, stated plainly:
   `brichan-opencode` run against a directory containing `.brichan` refuses
   before Herdr is contacted and before any provider starts.
 
+### Moving the OpenCode version pin
+
+Three parts of the guard are *derived* from the pinned provider's own source,
+not hand-listed: the configuration files it scans, the directory globs it
+refuses, and the configuration keys whose values become modules the provider
+would load. Each derivation is carried in `src/brichan/cli/opencode.py` with a
+source citation per entry, and each has a drift test. The offline tests compare
+those tables against a transcript of provider source lines; the transcript is
+only as current as the last person who refreshed it. All three also have a
+pinned-source class that reads a real extracted tree and re-derives the table
+from it, and each fails when the provider *gains* something, not only when it
+loses something.
+
+**So re-run the derivations against the real tree before changing
+`OPENCODE_VERSION`.** This is a mechanical step, not a judgement call:
+
+```bash
+gh api repos/anomalyco/opencode/tarball/v<new-version> > /tmp/oc.tgz
+mkdir -p /tmp/oc && tar -xzf /tmp/oc.tgz -C /tmp/oc
+BRICHAN_OPENCODE_PINNED_SOURCE=/tmp/oc/<extracted-dir> \
+  PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.unit.test_opencode_commands
+```
+
+Without that variable the checks skip and the suite stays hermetic and offline,
+which is why they cannot run in CI and have to be run here.
+
+**That run also rewrites `tests/fixtures/opencode-pinned-surface.json`,** a
+receipt carrying `OPENCODE_VERSION` and a digest over all three derived tables.
+An always-on contract test recomputes the digest and compares, so editing the
+version constant alone — or editing a derived table without re-running the
+check — fails `make check` offline with the command above in the message. The
+receipt is written only when the derivations actually pass against the supplied
+tree, and only when that tree's `packages/opencode/package.json` matches the
+pin.
+
+Be clear about its limit: **the receipt is a forcing function, not a proof.** A
+maintainer can paste the new digest in by hand and silence the test without
+verifying anything. What the mechanism buys is that doing so is a deliberate,
+visible line in the diff rather than an omission nobody can see. A bump commit
+whose fixture changed should quote the pinned-source run's output; a reviewer
+who finds one that does not has found the thing to ask about.
+`tests/opencode_surface.py` states the same limits at the code.
+
+A failure is not a flaky test. It means the new release changed the guard's
+surface, and it names which one:
+
+- *An undocumented glob site*, or a derived glob set that no longer matches —
+  the provider scans a directory family or file extension for code that D8 does
+  not. Refuse the bump until `EXECUTABLE_SCANS` covers it.
+- *An undocumented dynamic `import()` site* — the provider loads a module from a
+  specifier the enumeration has never resolved. Trace where that specifier comes
+  from. If a configuration key reaches it, that is a new execution vector and
+  `EXECUTION_KEYS` must gain it before the pin moves.
+- *An undocumented configuration read site*, or *a new document stem* — the
+  provider reads a configuration document from a call site nobody has resolved.
+  Work out what it reads. If it is a new file family or a new root,
+  `CONFIG_DISCOVERY_SOURCES` must gain it. If it is a separate document, the
+  question to settle is whether that document can carry a value that becomes a
+  module specifier: v1.18.12 ships two documents and **both** can, which is why
+  `tui.json`/`tui.jsonc` are scanned. A new document is not exempt by virtue of
+  looking like presentation state.
+- *A discovered basename or managed root that no longer matches* — the provider
+  renamed, added, or moved a configuration file the guard scans. The scan set
+  is wrong until the table is corrected.
+- *A key that no longer declares a top-level schema field* — the provider
+  renamed or removed a configuration key the guard refuses by name, so the
+  refusal now matches nothing.
+
+None of these is fixable by editing the test to agree with the provider. The
+guard is what has to change, and until it does the pin stays where it is. The
+same rule applies to `yargs`: D6's no-migration conclusion is pinned in that
+package too, so a bump of either re-opens the review.
+
 ## Legacy explicit commands
 
 The explicit command form remains available for compatibility:

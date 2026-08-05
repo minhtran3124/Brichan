@@ -10,7 +10,7 @@ Independent review of the implementation, or the recorded evidence for why no im
 - Artifact version: `3`
 - Origin: `review-session-b1186941-code-review-round-2`
 - Owner: `reviewer`
-- Phase state: `passed`
+- Phase state: `active`
 - Applicability: `required`
 - Applicability rationale: `null`
 - Authorship: `model`
@@ -19,14 +19,16 @@ Independent review of the implementation, or the recorded evidence for why no im
 - Effective model: `claude-sonnet-5`
 - Effective effort: `high`
 - Reviewing session: `6bfb28a8-5d39-405b-8b00-f56659c775b0`
-- Review verdict: `PASS`
+- Review verdict: `null`
 
 ## Review target
 
 - Reviewed plan ID: `OCS-001-PLAN`
-- Reviewed plan version: `9`
+- Reviewed plan version: `13`
 
 ## Claim or decision
+
+**Re-opened against plan version 10.** A live probe on the pinned 1.18.12 showed a project `opencode.json` declaring a `plugin` entry executes that file under the shipped guard; v10 extends D12 to refuse it. The version-9 PASS below is retained as history. Prior text follows.
 
 **Resolved against plan version 9: PASS.** The final review returned PASS on plan v9 and CHANGES REQUIRED on the code with five findings; remediation round 4 and two coordinator follow-up probes closed them, and the confirming re-review returned PASS on the current tree. Evidence: `/tmp/brichan-ocs001-final-review.md` and `/tmp/brichan-ocs001-final-review-round2.md`. Superseded history follows. The verdict recorded below was reached against version 8, which live probe L4 subsequently falsified: a project-local `.opencode/plugin/*.js` executed under the guarded launch. Version 9 extends D8 to scan plugin roots and corrects D1. The version-8 findings and reasoning are retained as history; this artifact is pending a fresh verdict against version 9.
 

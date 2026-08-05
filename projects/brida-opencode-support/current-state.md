@@ -4,21 +4,24 @@ Last updated: 2026-08-05
 
 ## Summary
 
-Status: **OCS-001 Stage 1 is complete and awaiting the user's ship decision.**
-Canonical plan is v9, `accepted`. Both the plan review and the code review
-returned PASS against that exact text, and all seven live probes (L1-L5, E1,
-E2) are recorded. Suites: 10/498/77/100. Everything is uncommitted on
-`feature/opencode-stage1`.
+Status: **Stage 1 fixed, verified, and committed in two commits on
+`feature/opencode-stage1`; nothing pushed.** Plan v13. The combined independent
+review returned PASS on both the plan and the code and recommended shipping,
+after re-deriving all three enumerations itself against a freshly downloaded
+pinned tree and widening the sweep to the shipped package's full 11-package
+dependency closure — wider than any implementation round went.
 
-The arc that matters: v8 passed an independent code review with 676 green tests
-and was then falsified by live probe L4, which executed a project-local plugin
-under the guarded launch. Static review had been wrong about this exact surface
-once, so every later claim was checked live. The user chose to close it by
-extending D8. v9 made D8's `{plugin,plugins}` scan the authoritative control,
-stopped citing `--pure` as proof, and the final review then found a second hole
-of the same class - D8 silently narrowed to cwd outside a Git worktree while
-the provider walks to the filesystem root - now closed by refusing to launch
-outside a worktree.
+Six executable-surface vectors were found in total. The first four were each
+found by something outside the guard's own logic: a live probe, an independent
+review, post-commit instrumentation. The last two were found by the derivation's
+own closure argument before any failure — `provider`/`providers` in round 8, and
+the TUI document in round 12. That shift is the reason the reviewer judged the
+discipline sufficient rather than hopeful.
+
+Every executable surface is now derived from the provider's own implementation,
+carried in code with source citations, drift-tested in the ADDED direction
+against real mutated trees, and bound to a committed fixture so editing the
+version pin alone fails `make check` offline.
 
 ## Verified environment
 
@@ -66,7 +69,48 @@ outside a worktree.
 
 ## Blockers
 
-- None blocking. Noted for the user, not blocking: Noted for the user, not blocking: the `review` route in
+- **FOURTH plugin-execution vector, confirmed live and open on 1.18.12 even with the
+  round-5 fix.** A project `.opencode/opencode.json` declaring `plugin` executes
+  under the guard: D8 globs only that root's `{tool,tools}`/`{plugin,plugins}`
+  subdirectories, and D12 walks plain ancestors without ever appending a
+  `.opencode` segment. Predicted by the v10 reviewer from the guard's code and
+  then confirmed live by the coordinator. Note the near-miss: the first control
+  run did not fire and made the finding look theoretical, because nested plugin
+  paths resolve relative to the config file's directory; the finding was correct.
+  The recurring shape means the next fix should derive D12's scan set from the
+  provider's own config-discovery implementation rather than adding one more
+  hand-listed location.
+
+- **A second plugin-execution vector was found while instrumenting the L4
+  mechanism, and it falsifies a premise the final review relied on.** A project
+  `opencode.json` declaring `"plugin": ["./anything.js"]` executes that file
+  even with `OPENCODE_DISABLE_PROJECT_CONFIG=true` set. D8 does not cover it,
+  because the declared path need not sit under `{plugin,plugins}` — in the
+  reproduction it was at the project root. The final review had ruled the
+  `plugin`/`plugin_origins` residual out of Stage 1 scope specifically because
+  "a project cannot inject a plugin entry" once project config is disabled;
+  that premise is now shown to be false, so the residual is a local-file-drop
+  vector rather than an org/managed-config one, and D13 clause 7 currently
+  accepts `plugin` unconditionally without value-gating.
+  **CONFIRMED on the pinned 1.18.12 after downgrading back to it**: the shipped
+  guard launches and the declared plugin executes. Critically, the D13 allowlist
+  cannot close this — `debug config` under the guard reports `plugin: []`,
+  because the project's array is correctly excluded from the merge while the
+  plugin loader reads the project `opencode.json` directly. The only viable
+  control is a D12-style scan refusing any discovered `opencode.json` that
+  carries a `plugin` key.
+- Resolved: the provider was downgraded back to 1.18.12 with
+  `opencode upgrade 1.18.12`; the 1.18.13 binary is kept at
+  `~/.opencode/bin/opencode.1.18.13.bak`. The drift is recorded because it
+  happened: **the installed OpenCode auto-updated 1.18.12 to 1.18.13 during
+  coordinator instrumentation**, because those runs invoked bare `opencode` without
+  `OPENCODE_DISABLE_AUTOUPDATE`. Consequence: the shipped guard now refuses
+  every launch on the D6 version pin, which is the guard failing closed exactly
+  as designed, so there is no exposure on this machine right now. All live probe
+  evidence in this task was gathered on 1.18.12 and remains valid for that
+  version. The plan's own rule applies: an upgrade re-opens the isolation review
+  before the pin moves.
+- Noted for the user, not blocking: Noted for the user, not blocking: the `review` route in
   `config/model-routing.json` resolves to Codex `gpt-5.6-sol`, which this
   account cannot use — Codex returns HTTP 400 "The 'gpt-5.6-sol' model is not
   supported when using Codex with a ChatGPT account." Every review since
@@ -89,10 +133,10 @@ outside a worktree.
 
 ## Next actions
 
-1. Collect the implementation report (`/tmp/brichan-ocs001-impl-report.md`),
-   verify `make check`/`make test`, and check AC1–AC9 evidence.
-2. Independently review the code with a fresh session on a different model
-   from the writer (manifest review route is unusable on this account — see
-   Blockers note).
-3. Run the live OpenCode worker lifecycle probes L1–L5 and E1–E2, complete the
-   receipt and dossier, and close panes.
+1. Settle the open `npm.install` question with a live probe: can project-controlled
+   configuration that is not already refused trigger a package install, whose
+   lifecycle scripts execute by subprocess rather than by `import()`?
+2. Decide whether to push and open a PR.
+3. Optional hardening the reviewer left as accepted residual: the authenticated
+   org/well-known/managed network config source, and the closure argument's
+   method boundary.

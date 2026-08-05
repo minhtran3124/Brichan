@@ -11,15 +11,15 @@
 - Attempt: `1`
 - Replaces session: `null`
 - Attempt origin: `initial`
-- Attempt lifecycle state: `complete`
+- Attempt lifecycle state: `active`
 - Prior attempt state: `null`
 - Replacement evidence path: `null`
 
 ## Plan version
 
 - Artifact or plan ID: `OCS-001-PLAN`
-- Version: `9`
-- Status: `reviewed`
+- Version: `13`
+- Status: `accepted`
 
 ## Sessions
 
@@ -48,13 +48,13 @@
 | `AC1` | `pass` | static + fake-provider tests in `tests/unit/test_opencode_commands.py` and integration suites; per-AC evidence in the implementation report |
 | `AC2` | `pass` | forbidden-input refusal tests assert nonzero exit with zero fake-Herdr/provider calls |
 | `AC3` | `pass` | environment-scrub and six-key guard tests; auth-reachability clause deferred to E2 as the plan states |
-| `AC4` | `pass` | v8 failed this live: a project plugin executed under the guarded launch. Closed by the v9 D8 extension to `{plugin,plugins}` plus the round-4 no-Git-worktree refusal. Live evidence: L4 re-run refuses singular/symlinked/plural project plugin markers; a fake-HOME probe shows global-XDG and home-dot plugin markers never execute, protected by D7 isolation rather than by refusal |
+| `AC4` | `pending` | v8 failed this live: a project plugin executed under the guarded launch. Closed by the v9 D8 extension to `{plugin,plugins}` plus the round-4 no-Git-worktree refusal. Live evidence: L4 re-run refuses singular/symlinked/plural project plugin markers; a fake-HOME probe shows global-XDG and home-dot plugin markers never execute, protected by D7 isolation rather than by refusal |
 | `AC5` | `pass` | all seven allowlist clauses plus run-2 mismatch refusal tested with key-path-only diagnostics; no-secret-leak assertion included |
 | `AC6` | `pass` | direct in-session read of the `<available_skills>` block returned exactly `herdr-orchestration`, with `customize-opencode` absent; L5 pin held; L3 produced zero child sessions. Plus single-primary, options=={}, skill-permission, subagent_depth tests; in-session availability proof deferred to E1/L3/L5 by design |
 | `AC7` | `pass` | pre-Herdr `.brichan` gate and D11 package-marker console-gate tests, including the lookalike-target dogfood case |
 | `AC8` | `pass` | byte-identical Codex/Claude argv snapshots and manifest-compatibility tests unchanged and green |
 | `AC9` | `pass` | packaging metadata, installer exposure, repository-path inventory, and installed-dogfood smoke all green |
-| `AC10` | `pass` | `make check`/`make test` pass and all seven live probes L1–L5/E1–E2 are recorded; the final independent review returned PASS on plan v9 and CHANGES REQUIRED on the code, whose findings rounds 4 and the follow-up probes closed. The confirming re-review returned PASS; plan and code reviews both PASS against the exact v9 text |
+| `AC10` | `pending` | `make check`/`make test` pass and all seven live probes L1–L5/E1–E2 are recorded; the final independent review returned PASS on plan v9 and CHANGES REQUIRED on the code, whose findings rounds 4 and the follow-up probes closed. The confirming re-review returned PASS; plan and code reviews both PASS against the exact v9 text |
 
 ## Verification
 
@@ -71,7 +71,7 @@
 
 ## Review verdict
 
-- Verdict: `PASS`
+- Verdict: `pending`
 - Findings: all closed. Against plan v8 the code review ran two rounds — one Medium diagnostic leak in the D9 skill precheck, fixed, then PASS. Live probe L4 then falsified v8 by executing a project-local plugin under the guarded launch; the user chose to close it by extending D8, the plan became v9, and remediation round 3 implemented `{plugin,plugins}` scanning. The v9 final review returned PASS on the plan and CHANGES REQUIRED on the code with five findings: an incomplete plugin-entry-point audit, D8's worktree bound silently narrowing to cwd outside a Git repo, AC4 live coverage narrower than its own scope, AC6/E1 evidence not being a direct read of the `<available_skills>` block, and a stale receipt. Remediation round 4 closed the two code findings, Brichan closed the two evidence findings with follow-up live probes and this receipt closed the fifth. The confirming re-review returned **PASS** on the current tree, independently re-verifying test bindingness by reverting the fix in a scratch copy.
 
 ## Risks and open decisions

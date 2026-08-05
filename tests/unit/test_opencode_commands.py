@@ -7,9 +7,11 @@ without reading real credentials.
 """
 
 import contextlib
+import getpass
 import io
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -20,6 +22,8 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
+
+from tests import opencode_surface
 
 from brichan import __version__
 from brichan.cli import opencode as oc
@@ -409,6 +413,1425 @@ class DiscoveryPreflightTest(_WorktreeTestCase):
         self.preflight()
 
 
+#: Extensions that make a glob match *executable* rather than data.  Kept
+#: deliberately wider than the two OpenCode uses today: the drift test decides
+#: whether a provider glob is an executable scan by intersecting its extensions
+#: with this set, so a bump that starts loading ``.mjs`` or ``.tsx`` is
+#: classified as an executable scan and compared, rather than skipped as data.
+CODE_EXTENSIONS = frozenset({"js", "jsx", "cjs", "mjs", "ts", "tsx", "cts", "mts"})
+
+#: Every ``Glob.scan``/``Glob.scanSync``/``fs.glob`` call site in
+#: ``packages/core/src`` and ``packages/opencode/src`` at v1.18.12 (tag
+#: ``v1.18.12`` = ``0dd6950d1b06958fbcdcadf0ad56258257ab7fdb``) whose pattern is
+#: a per-root directory glob, transcribed verbatim as
+#: ``(path, line, source line)``.
+#:
+#: This is the drift anchor plan version 12 requires for D8, and it is the same
+#: move version 11 made for D12 — with one difference that matters: the anchor
+#: is the *provider's* text, not a restatement of ours.  The executable subset
+#: is computed from these lines by brace expansion, so the expected glob set is
+#: derived here rather than asserted, and a line that gains a directory
+#: alternative or an extension changes the derived set without anyone editing
+#: an expectation.
+#:
+#: The non-executable entries are not decoration.  They are what makes an ADDED
+#: family detectable: refreshing this transcript at a version bump transcribes
+#: every per-root glob, and any one of them that turns out to carry a code
+#: extension lands in the executable set and fails
+#: ``test_the_table_matches_the_pinned_provider_globs``.
+PINNED_PER_ROOT_GLOBS = (
+    (
+        "packages/opencode/src/tool/registry.ts",
+        180,
+        '          Glob.scanSync("{tool,tools}/*.{js,ts}", { cwd: dir, absolute:'
+        " true, dot: true, symlink: true }),",
+    ),
+    (
+        "packages/opencode/src/config/plugin.ts",
+        21,
+        '  for (const item of await Glob.scan("{plugin,plugins}/*.{ts,js}", {',
+    ),
+    (
+        "packages/core/src/config/plugin/external.ts",
+        60,
+        '            .glob("{plugin,plugins}/*.{ts,js}", {',
+    ),
+    (
+        "packages/opencode/src/config/agent.ts",
+        13,
+        '  for (const item of await Glob.scan("{agent,agents}/**/*.md", {',
+    ),
+    (
+        "packages/opencode/src/config/agent.ts",
+        36,
+        '  for (const item of await Glob.scan("{mode,modes}/*.md", {',
+    ),
+    (
+        "packages/opencode/src/config/command.ts",
+        15,
+        '  for (const item of await Glob.scan("{command,commands}/**/*.md", {',
+    ),
+    (
+        "packages/core/src/config/plugin/command.ts",
+        55,
+        '      .glob("{command,commands}/**/*.md", { cwd: directory, absolute:'
+        " true, dot: true, symlink: true })",
+    ),
+    (
+        "packages/core/src/skill.ts",
+        79,
+        '          .glob("{*.md,**/SKILL.md}", { cwd: directory, absolute: true,'
+        ' include: "file", symlink: true, dot: true })',
+    ),
+    (
+        "packages/core/src/config/plugin/agent.ts",
+        21,
+        '  { pattern: "{agent,agents}/**/*.md", primary: false },',
+    ),
+    (
+        "packages/core/src/config/plugin/agent.ts",
+        22,
+        '  { pattern: "{mode,modes}/*.md", primary: true },',
+    ),
+    (
+        "packages/opencode/src/skill/index.ts",
+        23,
+        'const EXTERNAL_SKILL_PATTERN = "skills/**/SKILL.md"',
+    ),
+    (
+        "packages/opencode/src/skill/index.ts",
+        24,
+        'const OPENCODE_SKILL_PATTERN = "{skill,skills}/**/SKILL.md"',
+    ),
+    (
+        "packages/opencode/src/skill/index.ts",
+        25,
+        'const SKILL_PATTERN = "**/SKILL.md"',
+    ),
+    # Literal-pattern globs that are not per-root content discovery at all.
+    # They are transcribed anyway so the completeness check can assert that
+    # *every* literal glob in the two packages is accounted for: a site left out
+    # of this transcript is indistinguishable from a site nobody looked at.
+    (
+        "packages/core/src/tool/skill.ts",
+        87,
+        '                    ? (yield* fs.glob("**/*", { cwd: directory,'
+        ' absolute: true, include: "file", dot: true }))',
+    ),
+    (
+        "packages/opencode/src/storage/storage.ts",
+        85,
+        '    const projectDirs = yield* fs.glob("*", {',
+    ),
+    (
+        "packages/opencode/src/storage/storage.ts",
+        97,
+        "        for (const msgFile of yield* fs.glob"
+        '("storage/session/message/*/*.json", {',
+    ),
+    (
+        "packages/opencode/src/storage/storage.ts",
+        139,
+        "        for (const sessionFile of yield* fs.glob"
+        '("storage/session/info/*.json", {',
+    ),
+    (
+        "packages/opencode/src/storage/storage.ts",
+        183,
+        '    for (const item of yield* fs.glob("session/*/*.json", {',
+    ),
+    (
+        "packages/opencode/src/storage/storage.ts",
+        305,
+        '        .glob("**/*", {',
+    ),
+    (
+        "packages/opencode/src/project/project.ts",
+        318,
+        '        .glob("**/favicon.{ico,png,svg,jpg,jpeg,webp}", {',
+    ),
+)
+
+#: Glob call sites at the pinned ref whose pattern is *not* a string literal, so
+#: no transcript line can express them.  Each was resolved by hand to the
+#: constants it can receive; the last column records that resolution.
+#:
+#: This list exists so the completeness check has something to assert against.
+#: A provider bump that introduces a new dynamic glob call fails
+#: ``test_pinned_source_contains_no_undocumented_glob_sites`` and forces a human
+#: to resolve it, rather than letting an unreadable pattern pass unseen.
+PINNED_DYNAMIC_GLOB_SITES = {
+    ("packages/core/src/fs-util.ts", 149): "the FSUtil.glob wrapper itself",
+    ("packages/core/src/config/plugin/agent.ts", 143): (
+        "source.pattern from legacySources at :21-22 — both markdown"
+    ),
+    ("packages/core/src/filesystem/search.ts", 56): "ripgrep search tool",
+    ("packages/core/src/filesystem/search.ts", 151): "ripgrep search tool",
+    ("packages/core/src/filesystem/fff.bun.ts", 130): "filesystem backend shim",
+    ("packages/core/src/tool/glob.ts", 77): "the agent-facing glob tool",
+    ("packages/opencode/src/skill/index.ts", 150): (
+        "one of the three SKILL patterns at :23-25 — all markdown"
+    ),
+    ("packages/opencode/src/util/filesystem.ts", 233): "generic glob helper",
+    ("packages/opencode/src/cli/cmd/debug/ripgrep.ts", 37): "debug ripgrep cmd",
+    ("packages/opencode/src/storage/storage.ts", 150): "storage JSON",
+    ("packages/opencode/src/storage/storage.ts", 165): "storage JSON",
+    ("packages/opencode/src/tool/glob.ts", 50): "the agent-facing glob tool",
+    ("packages/opencode/src/session/instruction.ts", 141): "instruction files",
+}
+
+_GLOB_CALL = re.compile(r"(?:Glob\.scanSync|Glob\.scan|\.glob)\(")
+_LEADING_LITERAL = re.compile(r'^\s*"([^"]*)"')
+_PATTERN_LITERAL = re.compile(r'"([^"\s]*[*{][^"\s]*)"')
+
+
+def expand_braces(pattern):
+    """Expand ``{a,b}`` alternations into concrete patterns.
+
+    Comparing fully expanded patterns, rather than the pattern strings, is what
+    lets the drift test see three distinct kinds of change with one assertion: a
+    new directory alternative, a new extension, and a change of depth
+    (``tool/*.js`` becoming ``tool/**/*.js``) all alter the expanded set.
+    """
+
+    start = pattern.find("{")
+    if start == -1:
+        return [pattern]
+    depth = 0
+    for index in range(start, len(pattern)):
+        if pattern[index] == "{":
+            depth += 1
+        elif pattern[index] == "}":
+            depth -= 1
+            if depth == 0:
+                head, body, tail = (
+                    pattern[:start],
+                    pattern[start + 1 : index],
+                    pattern[index + 1 :],
+                )
+                expanded = []
+                for alternative in body.split(","):
+                    for rest in expand_braces(head + alternative + tail):
+                        if rest not in expanded:
+                            expanded.append(rest)
+                return expanded
+    raise AssertionError(f"unbalanced brace in provider glob: {pattern}")
+
+
+def executable_globs(transcript):
+    """Concrete executable glob patterns implied by a provider transcript.
+
+    A pattern counts as executable when any expansion of it ends in a
+    :data:`CODE_EXTENSIONS` suffix; the *whole* expansion of such a pattern is
+    then returned, so an extension added alongside ``js``/``ts`` widens the set
+    instead of being filtered away by the very rule that selected it.
+    """
+
+    patterns = set()
+    for _path, _line, text in transcript:
+        for literal in _PATTERN_LITERAL.findall(text):
+            expansions = expand_braces(literal)
+            if any(item.rsplit(".", 1)[-1] in CODE_EXTENSIONS for item in expansions):
+                patterns.update(expansions)
+    return patterns
+
+
+class ExecutableScanEnumerationTest(unittest.TestCase):
+    """D8's glob set must equal the pinned provider's own per-root scan set.
+
+    ``EXECUTABLE_SCANS`` was the last hand-listed executable surface after plan
+    version 11 derived D12's config set.  The round-6 implementer flagged it
+    rather than leaving it buried, and version 12 closes it here.
+    """
+
+    def guard_globs(self):
+        return {
+            f"{directory}/*.{extension}"
+            for scan in oc.EXECUTABLE_SCANS
+            for directory in scan.directories
+            for extension in scan.extensions
+        }
+
+    def test_the_table_matches_the_pinned_provider_globs(self):
+        self.assertEqual(
+            executable_globs(PINNED_PER_ROOT_GLOBS), self.guard_globs()
+        )
+
+    def test_every_entry_carries_a_pinned_source_citation(self):
+        for scan in oc.EXECUTABLE_SCANS:
+            with self.subTest(label=scan.label):
+                self.assertRegex(scan.citation, r"packages/\S+\.ts:\d")
+
+    def test_an_added_provider_directory_family_fails(self):
+        """The ADDED direction, demonstrated rather than asserted.
+
+        A provider release that starts globbing a third family — here a
+        hypothetical ``{extension,extensions}/*.js`` — enters the transcript
+        when it is refreshed at the version bump, widens the derived set, and
+        fails the equality assertion while ``EXECUTABLE_SCANS`` is untouched.
+        """
+
+        widened = PINNED_PER_ROOT_GLOBS + (
+            (
+                "packages/opencode/src/config/extension.ts",
+                9,
+                '  for (const item of await Glob.scan("{extension,extensions}/*.js", {',
+            ),
+        )
+        derived = executable_globs(widened)
+        self.assertIn("extension/*.js", derived)
+        self.assertNotEqual(derived, self.guard_globs())
+        with mock.patch.dict(globals(), {"PINNED_PER_ROOT_GLOBS": widened}):
+            with self.assertRaises(AssertionError):
+                self.test_the_table_matches_the_pinned_provider_globs()
+
+    def test_an_added_provider_extension_fails(self):
+        """The other ADDED shape: same families, one more extension."""
+
+        widened = tuple(
+            (path, line, text.replace("*.{ts,js}", "*.{ts,js,mjs}"))
+            for path, line, text in PINNED_PER_ROOT_GLOBS
+        )
+        derived = executable_globs(widened)
+        self.assertIn("plugin/*.mjs", derived)
+        with mock.patch.dict(globals(), {"PINNED_PER_ROOT_GLOBS": widened}):
+            with self.assertRaises(AssertionError):
+                self.test_the_table_matches_the_pinned_provider_globs()
+
+    def test_a_deeper_provider_glob_fails(self):
+        """Depth counts too: ``tool/*.js`` widening to ``tool/**/*.js``."""
+
+        widened = tuple(
+            (path, line, text.replace("{tool,tools}/*.", "{tool,tools}/**/*."))
+            for path, line, text in PINNED_PER_ROOT_GLOBS
+        )
+        self.assertIn("tool/**/*.js", executable_globs(widened))
+        with mock.patch.dict(globals(), {"PINNED_PER_ROOT_GLOBS": widened}):
+            with self.assertRaises(AssertionError):
+                self.test_the_table_matches_the_pinned_provider_globs()
+
+    def test_dropping_a_family_from_the_guard_fails(self):
+        """The deletion direction, for symmetry with round 6's demonstration."""
+
+        trimmed = tuple(
+            scan for scan in oc.EXECUTABLE_SCANS if scan.label != "executable plugin"
+        )
+        with mock.patch.object(oc, "EXECUTABLE_SCANS", trimmed):
+            with self.assertRaises(AssertionError):
+                self.test_the_table_matches_the_pinned_provider_globs()
+
+    def test_markdown_scans_are_classified_as_data(self):
+        """The classifier must not sweep every provider glob into the guard."""
+
+        derived = executable_globs(PINNED_PER_ROOT_GLOBS)
+        for pattern in derived:
+            self.assertNotIn(".md", pattern)
+        self.assertTrue(
+            any("SKILL.md" in text for _p, _l, text in PINNED_PER_ROOT_GLOBS)
+        )
+
+
+#: Set this to an extracted v1.18.12 source tree to run the completeness check
+#: below, e.g.::
+#:
+#:     gh api repos/anomalyco/opencode/tarball/v1.18.12 > oc.tgz
+#:     tar -xzf oc.tgz -C /some/dir
+#:     BRICHAN_OPENCODE_PINNED_SOURCE=/some/dir/anomalyco-opencode-0dd6950 \
+#:         python3 -m unittest tests.unit.test_opencode_commands
+#:
+#: It is opt-in because the default suite must stay hermetic and offline.  What
+#: it buys is the one thing the transcript above cannot prove on its own: that
+#: the transcript is *complete*.
+PINNED_SOURCE_ENV = "BRICHAN_OPENCODE_PINNED_SOURCE"
+
+
+@unittest.skipUnless(
+    os.environ.get(PINNED_SOURCE_ENV),
+    f"set {PINNED_SOURCE_ENV} to an extracted v1.18.12 tree",
+)
+class PinnedSourceCompletenessTest(unittest.TestCase):
+    """Check the transcript against the real pinned tree, when one is supplied.
+
+    Without this, ``PINNED_PER_ROOT_GLOBS`` is trusted text.  With it, the
+    transcript is verified line for line and, more importantly, verified to omit
+    nothing: every glob call site in the two packages that can load per-root
+    content is either transcribed or listed as a resolved dynamic site.
+    """
+
+    def setUp(self):
+        self.tree = Path(os.environ[PINNED_SOURCE_ENV])
+        if not (self.tree / "packages/opencode/src").is_dir():
+            self.skipTest(f"{self.tree} is not an opencode source tree")
+
+    def source_files(self):
+        for package in ("core", "opencode"):
+            yield from sorted((self.tree / "packages" / package / "src").rglob("*.ts"))
+
+    def test_every_transcribed_line_matches_the_pinned_source(self):
+        for path, line, text in PINNED_PER_ROOT_GLOBS:
+            with self.subTest(path=path, line=line):
+                actual = (self.tree / path).read_text(encoding="utf-8").splitlines()
+                self.assertEqual(text, actual[line - 1])
+
+    def test_pinned_source_contains_no_undocumented_glob_sites(self):
+        transcribed = {(path, line) for path, line, _text in PINNED_PER_ROOT_GLOBS}
+        literal_sites = set()
+        dynamic_sites = set()
+        for source in self.source_files():
+            relative = str(source.relative_to(self.tree))
+            for number, text in enumerate(
+                source.read_text(encoding="utf-8").splitlines(), start=1
+            ):
+                if text.lstrip().startswith("//"):
+                    continue
+                call = _GLOB_CALL.search(text)
+                if not call:
+                    continue
+                site = (relative, number)
+                if _LEADING_LITERAL.match(text[call.end() :]):
+                    literal_sites.add(site)
+                else:
+                    dynamic_sites.add(site)
+
+        # Every literal-pattern glob call must be transcribed above, or the
+        # transcript is not the complete per-root picture it claims to be.
+        self.assertEqual(set(), literal_sites - transcribed)
+        # And every pattern the transcript cannot express must be a site a human
+        # has already resolved.
+        self.assertEqual(set(), dynamic_sites - set(PINNED_DYNAMIC_GLOB_SITES))
+
+    def test_the_guard_glob_set_matches_the_pinned_tree_directly(self):
+        """Derive the executable set from the tree itself, ignoring the transcript."""
+
+        patterns = set()
+        for source in self.source_files():
+            for text in source.read_text(encoding="utf-8").splitlines():
+                if text.lstrip().startswith("//"):
+                    continue
+                call = _GLOB_CALL.search(text)
+                if not call:
+                    continue
+                literal = _LEADING_LITERAL.match(text[call.end() :])
+                if not literal:
+                    continue
+                expansions = expand_braces(literal.group(1))
+                if any(
+                    item.rsplit(".", 1)[-1] in CODE_EXTENSIONS for item in expansions
+                ):
+                    patterns.update(expansions)
+        self.assertEqual(
+            {
+                f"{directory}/*.{extension}"
+                for scan in oc.EXECUTABLE_SCANS
+                for directory in scan.directories
+                for extension in scan.extensions
+            },
+            patterns,
+        )
+
+
+# ---------------------------------------------------------------------------
+# D12 execution keys — the third derivation, of the same shape as the two above
+# ---------------------------------------------------------------------------
+
+
+#: Every ``import()`` call site in ``packages/{core,opencode}/src`` at the pinned
+#: ref whose specifier is **not** a string literal, transcribed verbatim, with
+#: the origin of that specifier resolved.
+#:
+#: The closure argument runs over imports, not over configuration keys, and that
+#: direction is what makes it complete: a configuration key can only execute code
+#: by reaching an ``import()``.  Enumerate every import a configuration value can
+#: reach, resolve where each one's specifier comes from, and the set of
+#: configuration keys falls out — with nothing left over to have been forgotten.
+#: Enumerating keys directly would have no such closure, which is how
+#: ``plugin``/``plugins`` came to be believed complete when it was not.
+#:
+#: ``origins`` is a tuple of resolutions, because one site can be fed from more
+#: than one place.  Each entry is either:
+#:
+#: * ``"key:<name>"`` — a top-level configuration key.  These are the guard's
+#:   :data:`oc.EXECUTION_KEYS`.
+#: * ``"glob:<pattern>"`` — a per-root directory scan, which is D8's surface and
+#:   already covered by :data:`oc.EXECUTABLE_SCANS`.
+#: * ``"file:<label>"`` — a discovered configuration *file* named by its path
+#:   rather than by any key, which is D12's :data:`oc.CONFIG_DISCOVERY_SOURCES`
+#:   surface.
+#: * ``"none"`` — no configuration input reaches this specifier.
+PINNED_DYNAMIC_IMPORT_SITES = (
+    (
+        "packages/core/src/config/plugin/external.ts",
+        80,
+        "          const mod = yield* Effect.promise(() => import(entrypoint))",
+        ("key:plugins", "glob:{plugin,plugins}/*.{ts,js}"),
+        "entry.info.plugins[].package at :42-56, or the directory glob at :60",
+    ),
+    (
+        "packages/core/src/plugin/provider/dynamic.ts",
+        20,
+        "          return (await import(",
+        ("key:providers",),
+        "evt.package, set from model.api.package by core/src/aisdk.ts:208,215",
+    ),
+    (
+        "packages/core/src/plugin/provider/sap-ai-core.ts",
+        25,
+        "          return (await import(",
+        ("key:providers",),
+        "the same evt.package, for the sap-ai-core provider id",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        265,
+        "          import(pathToFileURL(legacy).href, "
+        '{ with: { type: "toml" } })',
+        ("file:global legacy toml config",),
+        "the <Global.Path.config>/config file path itself; no key names it",
+    ),
+    (
+        "packages/opencode/src/plugin/loader.ts",
+        139,
+        "      mod = await import(row.entry)",
+        ("key:plugin", "glob:{plugin,plugins}/*.{ts,js}"),
+        "plugin_origins, built from the v1 plugin array at "
+        "opencode/src/config/config.ts:344-348,432 and from ConfigPlugin.load "
+        "— and, established in round 12, from the TUI document's own plugin "
+        "array via config/tui.ts:157-168 and plugin/tui/runtime.ts:1088,1106. "
+        "Same key name, second document; both are in CONFIG_DISCOVERY_SOURCES",
+    ),
+    (
+        "packages/opencode/src/provider/provider.ts",
+        1793,
+        "        const mod = await import(importSpec)",
+        ("key:provider",),
+        "model.api.npm, resolved from the v1 provider record at :1440-1443",
+    ),
+    (
+        "packages/opencode/src/tool/registry.ts",
+        187,
+        "          const mod = yield* Effect.promise(() => "
+        "import(pathToFileURL(match).href))",
+        ("glob:{tool,tools}/*.{js,ts}",),
+        "a match from the {tool,tools} scan at :180; no key reaches it",
+    ),
+)
+
+#: Where each derived key must appear as a top-level field in the pinned schemas.
+#: This is the second half of the derivation: the import trace says *which*
+#: values are imported, and this says what a config author has to spell to supply
+#: one.  A provider bump that renames a key breaks this even if the import site
+#: is untouched.
+PINNED_EXECUTION_KEY_SCHEMA = {
+    "plugin": ("packages/core/src/v1/config/config.ts", 56),
+    "provider": ("packages/core/src/v1/config/config.ts", 110),
+    "plugins": ("packages/core/src/config.ts", 102),
+    "providers": ("packages/core/src/config.ts", 106),
+}
+
+_IMPORT_CALL = re.compile(r"(?<![\w$.])import\s*\(")
+_IMPORT_LITERAL = re.compile(r"^\s*[\"'`]")
+
+
+def module_specifier_keys(transcript):
+    """Configuration keys implied by an import-site transcript."""
+
+    return {
+        origin[len("key:") :]
+        for _path, _line, _text, origins, _note in transcript
+        for origin in origins
+        if origin.startswith("key:")
+    }
+
+
+class ExecutionKeyEnumerationTest(unittest.TestCase):
+    """D12's key set must equal the pinned provider's module-specifier keys.
+
+    ``EXECUTION_KEYS`` was the last hand-listed executable surface after plan
+    versions 11 and 12 derived the config-file and directory-glob sets.  The
+    round-7 implementer flagged it; version 13 closes it here — and the
+    derivation immediately showed the hand-listed pair was not complete, adding
+    ``provider`` and ``providers``.
+    """
+
+    def guard_keys(self):
+        return {execution.key for execution in oc.EXECUTION_KEYS}
+
+    def test_the_table_matches_the_pinned_provider_keys(self):
+        self.assertEqual(
+            module_specifier_keys(PINNED_DYNAMIC_IMPORT_SITES), self.guard_keys()
+        )
+
+    def test_every_entry_carries_a_pinned_source_citation(self):
+        for execution in oc.EXECUTION_KEYS:
+            with self.subTest(key=execution.key):
+                self.assertRegex(execution.citation, r"packages/\S+\.ts:\d")
+                self.assertIn(execution.config_version, ("v1", "v2"))
+                self.assertTrue(execution.specifier_path)
+
+    def test_no_key_is_trusted_to_the_merged_document(self):
+        """``merge_gated`` is documentation; every key is refused regardless.
+
+        D12 exists because a merge-gated conclusion has been wrong here before,
+        so a future entry that sets this flag must still be scanned.
+        """
+
+        for execution in oc.EXECUTION_KEYS:
+            with self.subTest(key=execution.key):
+                self.assertFalse(execution.merge_gated)
+
+    def test_an_added_provider_module_specifier_key_fails(self):
+        """The ADDED direction, demonstrated rather than asserted.
+
+        A provider release that starts importing a specifier taken from a new
+        configuration key enters the transcript when it is refreshed at the
+        version bump, widens the derived set, and fails the equality assertion
+        while ``EXECUTION_KEYS`` is untouched.
+        """
+
+        widened = PINNED_DYNAMIC_IMPORT_SITES + (
+            (
+                "packages/core/src/config/plugin/extension.ts",
+                44,
+                "          const mod = yield* Effect.promise(() => import(spec))",
+                ("key:extensions",),
+                "entry.info.extensions[].package",
+            ),
+        )
+        derived = module_specifier_keys(widened)
+        self.assertIn("extensions", derived)
+        self.assertNotEqual(derived, self.guard_keys())
+        with mock.patch.dict(
+            globals(), {"PINNED_DYNAMIC_IMPORT_SITES": widened}
+        ):
+            with self.assertRaises(AssertionError):
+                self.test_the_table_matches_the_pinned_provider_keys()
+
+    def test_an_existing_site_gaining_a_second_key_fails(self):
+        """The other ADDED shape: an import already traced grows a new source.
+
+        This is how ``providers`` would have arrived had ``dynamic.ts`` not
+        already existed — a site whose specifier starts being fed from one more
+        place.  Resolving origins per site, rather than counting sites, is what
+        makes that visible.
+        """
+
+        widened = tuple(
+            (path, line, text, origins + ("key:tools",), note)
+            if path.endswith("tool/registry.ts")
+            else (path, line, text, origins, note)
+            for path, line, text, origins, note in PINNED_DYNAMIC_IMPORT_SITES
+        )
+        self.assertIn("tools", module_specifier_keys(widened))
+        with mock.patch.dict(
+            globals(), {"PINNED_DYNAMIC_IMPORT_SITES": widened}
+        ):
+            with self.assertRaises(AssertionError):
+                self.test_the_table_matches_the_pinned_provider_keys()
+
+    def test_dropping_a_key_from_the_guard_fails(self):
+        """The deletion direction, for symmetry with rounds 6 and 7."""
+
+        trimmed = tuple(
+            execution
+            for execution in oc.EXECUTION_KEYS
+            if execution.key != "providers"
+        )
+        with mock.patch.object(oc, "EXECUTION_KEYS", trimmed):
+            with self.assertRaises(AssertionError):
+                self.test_the_table_matches_the_pinned_provider_keys()
+
+    def test_glob_and_file_origins_are_not_swept_into_the_key_set(self):
+        """The classifier must not turn D8's and D12's surfaces into keys."""
+
+        derived = module_specifier_keys(PINNED_DYNAMIC_IMPORT_SITES)
+        self.assertEqual({"plugin", "plugins", "provider", "providers"}, derived)
+        origins = {
+            origin
+            for _p, _l, _t, items, _n in PINNED_DYNAMIC_IMPORT_SITES
+            for origin in items
+        }
+        self.assertIn("glob:{tool,tools}/*.{js,ts}", origins)
+        self.assertIn("file:global legacy toml config", origins)
+
+    def test_every_derived_key_is_refused_by_the_scan(self):
+        """The derivation is load-bearing: each key must actually refuse.
+
+        A key that is enumerated but not applied would pass the equality
+        assertion above while leaving the hole open, so the two are bound
+        together here rather than trusted to stay in step.
+        """
+
+        realistic = {
+            "plugin": ["./declared.js"],
+            "plugins": [{"package": "./declared.js"}],
+            "provider": {"rogue": {"npm": "file:///tmp/declared.js"}},
+            "providers": {
+                "rogue": {"api": {"type": "aisdk", "package": "file:///x.js"}}
+            },
+        }
+        root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        for execution in oc.EXECUTION_KEYS:
+            with self.subTest(key=execution.key):
+                self.assertIn(
+                    execution.key,
+                    realistic,
+                    "a newly derived key needs a realistic payload here",
+                )
+                payload = {execution.key: realistic[execution.key]}
+                target = root / "opencode.json"
+                target.write_text(json.dumps(payload), encoding="utf-8")
+                with self.assertRaises(oc.GuardError) as caught:
+                    oc.migration_scan(
+                        root,
+                        xdg_config_home=root / "xdg",
+                        test_home=root / "home",
+                        environment={},
+                    )
+                message = str(caught.exception)
+                self.assertIn("execution key", message)
+                self.assertIn(f"#{execution.key}", message)
+                self.assertNotIn("declared.js", message)
+                target.unlink()
+
+
+@unittest.skipUnless(
+    os.environ.get(PINNED_SOURCE_ENV),
+    f"set {PINNED_SOURCE_ENV} to an extracted v1.18.12 tree",
+)
+class PinnedSourceExecutionKeyTest(unittest.TestCase):
+    """Check the import transcript against the real pinned tree, when supplied.
+
+    Same opt-in switch as :class:`PinnedSourceCompletenessTest`, so one command
+    at a version bump re-runs all three derivations — config files, directory
+    globs, and execution keys — against a real extracted tree.  See
+    ``docs/guides/model-routing.md`` for the procedure that names it.
+    """
+
+    def setUp(self):
+        self.tree = Path(os.environ[PINNED_SOURCE_ENV])
+        if not (self.tree / "packages/opencode/src").is_dir():
+            self.skipTest(f"{self.tree} is not an opencode source tree")
+
+    def source_files(self):
+        for package in ("core", "opencode"):
+            yield from sorted((self.tree / "packages" / package / "src").rglob("*.ts"))
+
+    def test_every_transcribed_line_matches_the_pinned_source(self):
+        for path, line, text, _origins, _note in PINNED_DYNAMIC_IMPORT_SITES:
+            with self.subTest(path=path, line=line):
+                actual = (self.tree / path).read_text(encoding="utf-8").splitlines()
+                self.assertEqual(text, actual[line - 1])
+
+    def test_pinned_source_contains_no_undocumented_dynamic_import_sites(self):
+        """The ADDED direction against the tree itself.
+
+        Every ``import()`` whose specifier is not a string literal is a place a
+        configuration value could reach.  A provider release that adds one fails
+        here and forces a human to resolve where its specifier comes from,
+        rather than letting an unreadable specifier pass unseen.  Literal
+        specifiers are excluded because no configuration can redirect them.
+        """
+
+        transcribed = {
+            (path, line) for path, line, _t, _o, _n in PINNED_DYNAMIC_IMPORT_SITES
+        }
+        found = set()
+        for source in self.source_files():
+            relative = str(source.relative_to(self.tree))
+            for number, text in enumerate(
+                source.read_text(encoding="utf-8").splitlines(), start=1
+            ):
+                if text.lstrip().startswith("//"):
+                    continue
+                call = _IMPORT_CALL.search(text)
+                if not call:
+                    continue
+                if _IMPORT_LITERAL.match(text[call.end() :]):
+                    continue
+                found.add((relative, number))
+        self.assertEqual(set(), found - transcribed)
+        self.assertEqual(set(), transcribed - found)
+
+    def test_every_execution_key_is_a_top_level_schema_field(self):
+        """A key nobody can spell is not a key; a renamed one must fail here."""
+
+        self.assertEqual(
+            {execution.key for execution in oc.EXECUTION_KEYS},
+            set(PINNED_EXECUTION_KEY_SCHEMA),
+        )
+        for key, (path, line) in sorted(PINNED_EXECUTION_KEY_SCHEMA.items()):
+            with self.subTest(key=key):
+                actual = (self.tree / path).read_text(encoding="utf-8").splitlines()
+                self.assertTrue(
+                    actual[line - 1].startswith(f"  {key}:"),
+                    f"{path}:{line} no longer declares a top-level {key!r}",
+                )
+
+
+# ---------------------------------------------------------------------------
+# D12 config discovery against the pinned tree — the third derivation's own
+# tree check, added in round 11 to close the asymmetry round 10 disclosed
+# ---------------------------------------------------------------------------
+
+
+#: Every call site in ``packages/{core,opencode}/src`` at the pinned ref that
+#: reads a configuration document off disk, transcribed verbatim, with what it
+#: reads resolved.
+#:
+#: **The closure argument.** A configuration document can only influence the
+#: provider by being read, and at v1.18.12 every such read goes through one of
+#: five named helpers: ``loadFile`` (the v1 reader at
+#: ``opencode/src/config/config.ts:238-244`` and the v2 reader at
+#: ``core/src/config.ts:147-163``), ``readConfigFile`` (the text layer under
+#: it), ``loadDirectory`` (the v2 expansion of ``names`` over a directory),
+#: ``fileInDirectory`` (the ``<dir>/<name>.{json,jsonc}`` pair builder), and
+#: ``readManagedPreferences`` (the MDM plist, which bypasses ``loadFile``
+#: entirely and is why an enumeration of ``loadFile`` alone would be short).
+#: Enumerate the call sites and the discovery set falls out, the same way the
+#: ``import()`` enumeration made the execution-key set fall out.  The one read
+#: that is *not* a call to those helpers — the legacy TOML ``import()`` — is
+#: enumerated by :data:`PINNED_DYNAMIC_IMPORT_SITES` instead and cross-checked
+#: by :meth:`PinnedSourceConfigDiscoveryTest.test_the_legacy_toml_source_is_derived_from_the_tree`.
+#:
+#: ``resolutions`` is a tuple, because one site can serve more than one family
+#: — ``config.ts:429`` alone covers the project ``.opencode`` walk, the home-dot
+#: ``.opencode``, and ``OPENCODE_CONFIG_DIR``.  Each entry is one of:
+#:
+#: * ``"source:<label>"`` — this read is a :data:`oc.CONFIG_DISCOVERY_SOURCES`
+#:   entry, named by its label.  These are D12's surface.
+#: * ``"helper"`` — the definition of one of the readers, not a read site.
+#: * ``"env:<FLAG>"`` — the path comes from an environment flag, so it is not
+#:   expressible as a derived path.  Every flag named here is in
+#:   :data:`oc.CONFIG_SOURCE_FORBIDDEN_ENV` and refuses on presence.
+#: * ``"write"`` — the ``Config.update`` path, which reads a file this table
+#:   already covers in order to rewrite it.
+#: * ``"subcommand"`` — reachable only from an ``opencode`` subcommand the
+#:   guard's fixed ``LAUNCH_ARGV`` never invokes.
+#: * ``"unrelated"`` — the same identifier in a different subsystem.
+#:
+#: There is no ``"document:tui"`` resolution any more.  Round 11 used one to
+#: record the TUI document as found-but-unscanned; round 12 established it is
+#: an executable surface and put its four families in
+#: :data:`oc.CONFIG_DISCOVERY_SOURCES`, so those sites now resolve to
+#: ``source:`` labels like every other read.
+PINNED_CONFIG_READ_SITES = (
+    (
+        "packages/core/src/config/plugin/command.ts",
+        24,
+        "          return loadDirectory(fs, entry.path).pipe(",
+        ("unrelated",),
+        "loads command markdown from a command directory, not a config document",
+    ),
+    (
+        "packages/core/src/config/plugin/command.ts",
+        52,
+        "function loadDirectory(fs: FSUtil.Interface, directory: string) {",
+        ("unrelated",),
+        "the definition of that same command-directory reader",
+    ),
+    (
+        "packages/core/src/config.ts",
+        166,
+        "        ...(yield* Effect.forEach(names, (file) => "
+        "loadFile(path.join(directory, file))).pipe(",
+        (
+            "source:global config root",
+            "source:ancestor project config",
+            "source:ancestor .opencode config",
+        ),
+        "v2 loadDirectory over names = [\"opencode.json\", \"opencode.jsonc\"] "
+        "at :140, applied to global.config, to the ancestor walk's direct "
+        "files, and to every discovered .opencode (:173-190)",
+    ),
+    (
+        "packages/opencode/src/cli/cmd/plug.ts",
+        60,
+        "  files: (dir, name) => ConfigPaths.fileInDirectory(dir, name),",
+        ("subcommand",),
+        "the `opencode plug` subcommand; LAUNCH_ARGV is fixed and the argument "
+        "guards refuse any other subcommand before spawn",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        241,
+        "      const text = yield* readConfigFile(filepath)",
+        ("helper",),
+        "the text layer inside the v1 loadFile",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        258,
+        "      result = mergeConfig(result, yield* "
+        'loadFile(path.join(Global.Path.config, "config.json"), env))',
+        ("source:global config root",),
+        "the first of the three global basenames",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        259,
+        "      result = mergeConfig(result, yield* "
+        'loadFile(path.join(Global.Path.config, "opencode.json"), env))',
+        ("source:global config root",),
+        "the second",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        260,
+        "      result = mergeConfig(result, yield* "
+        'loadFile(path.join(Global.Path.config, "opencode.jsonc"), env))',
+        ("source:global config root",),
+        "the third",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        402,
+        "          yield* merge(Flag.OPENCODE_CONFIG, yield* "
+        "loadFile(Flag.OPENCODE_CONFIG, authEnv))",
+        ("env:OPENCODE_CONFIG",),
+        "an arbitrary absolute path; no derivation can express it, so the guard "
+        "refuses the variable's presence instead",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        408,
+        "            yield* merge(file, yield* loadFile(file, authEnv), "
+        '"local")',
+        ("source:ancestor project config",),
+        "ConfigPaths.files(\"opencode\", ...) — the cwd-to-worktree walk",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        429,
+        "              yield* merge(source, yield* loadFile(source, authEnv))",
+        (
+            "source:ancestor .opencode config",
+            "source:home-dot .opencode config",
+            "env:OPENCODE_CONFIG_DIR",
+        ),
+        "one site, three families: ConfigPaths.directories yields the project "
+        ".opencode walk, the home-dot .opencode, and OPENCODE_CONFIG_DIR, and "
+        ":425 keeps whichever end in .opencode or equal that flag",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        520,
+        '            yield* merge(source, yield* loadFile(source), "global")',
+        ("source:system managed config",),
+        "over ConfigManaged.managedConfigDir()",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        525,
+        "        const managed = yield* Effect.promise(() => "
+        "ConfigManaged.readManagedPreferences())",
+        ("source:macOS managed preferences",),
+        "the MDM plist; read through plutil, never through loadFile",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        627,
+        "      const existing = yield* loadFile(file)",
+        ("write",),
+        "Config.update reading before rewriting a file already in the table",
+    ),
+    (
+        "packages/opencode/src/config/config.ts",
+        639,
+        '      const before = (yield* readConfigFile(file)) ?? "{}"',
+        ("write",),
+        "the same update path, at the text layer",
+    ),
+    (
+        "packages/opencode/src/config/managed.ts",
+        43,
+        "export async function readManagedPreferences() {",
+        ("helper",),
+        "the definition of the plist reader",
+    ),
+    (
+        "packages/opencode/src/config/paths.ts",
+        43,
+        "export function fileInDirectory(dir: string, name: string) {",
+        ("helper",),
+        "the definition of the <dir>/<name>.{json,jsonc} pair builder",
+    ),
+    (
+        "packages/opencode/src/config/tui-migrate.ts",
+        117,
+        '    ...ConfigPaths.fileInDirectory(Global.Path.config, "opencode"),',
+        ("source:global config root",),
+        "TUI migration reads the main config to strip its tui keys; the read "
+        "target is already scanned and D12's migration-key refusal is what "
+        "keeps this from running at all",
+    ),
+    (
+        "packages/opencode/src/config/tui-migrate.ts",
+        121,
+        '    files.push(...ConfigPaths.fileInDirectory(dir, "opencode"))',
+        ("source:ancestor .opencode config",),
+        "the same migration read over the .opencode directories",
+    ),
+    (
+        "packages/opencode/src/config/tui.ts",
+        151,
+        "      const data = yield* loadFile(file)",
+        (
+            "source:global tui config",
+            "source:ancestor tui config",
+            "source:ancestor .opencode tui config",
+            "source:home-dot .opencode tui config",
+        ),
+        "the TUI document's own reader, shared by all four of its roots",
+    ),
+    (
+        "packages/opencode/src/config/tui.ts",
+        184,
+        "  for (const file of "
+        'ConfigPaths.fileInDirectory(Global.Path.config, "tui")) {',
+        ("source:global tui config",),
+        "tui.json/tui.jsonc in the global config root — the root D10 writes "
+        "its own keybind backstop into",
+    ),
+    (
+        "packages/opencode/src/config/tui.ts",
+        207,
+        '    for (const file of ConfigPaths.fileInDirectory(dir, "tui")) {',
+        (
+            "source:ancestor .opencode tui config",
+            "source:home-dot .opencode tui config",
+            "env:OPENCODE_CONFIG_DIR",
+        ),
+        "tui.json/tui.jsonc in every discovered .opencode directory, plus "
+        "OPENCODE_CONFIG_DIR, exactly as config.ts:429 does for the main "
+        "document",
+    ),
+    (
+        "packages/opencode/src/plugin/install.ts",
+        88,
+        "  files: (dir, name) => ConfigPaths.fileInDirectory(dir, name),",
+        ("subcommand",),
+        "plugin installation, reachable from `opencode plug`, not from launch",
+    ),
+)
+
+#: **The round-12 determination, pinned to the tree.**
+#:
+#: Round 11 derived D12's surface from the tree instead of a transcript and
+#: found a config-file family the transcript had never named: ``tui.json`` and
+#: ``tui.jsonc``.  Round 12 settled the only question that mattered about it —
+#: can that document carry a value that becomes a module specifier the provider
+#: loads?  It can, and the chain below is why.  The four families are now in
+#: :data:`oc.CONFIG_DISCOVERY_SOURCES` with ``document="tui"``.
+#:
+#: Each entry is ``(citation, must_appear)``.  These are the load-bearing lines
+#: of the determination; if a later release drops any of them the finding needs
+#: re-deriving, and this fails rather than decaying into a stale comment.
+PINNED_TUI_EXECUTION_CHAIN = (
+    (
+        "packages/tui/src/config/index.tsx",
+        "export const PluginSpec = Schema.Union([Schema.String, "
+        "Schema.mutable(Schema.Tuple([Schema.String, PluginOptions]))])",
+    ),
+    (
+        "packages/tui/src/config/index.tsx",
+        "plugin: Schema.optional(Schema.Array(PluginSpec)),",
+    ),
+    (
+        "packages/opencode/src/config/tui.ts",
+        "if (!data.plugin?.length) return",
+    ),
+    (
+        "packages/opencode/src/config/tui.ts",
+        "acc.plugin_origins = plugins",
+    ),
+    (
+        "packages/opencode/src/plugin/tui/runtime.ts",
+        "const pluginOrigins = config.plugin_origins ?? "
+        "(await TuiConfig.pluginOrigins())",
+    ),
+    (
+        "packages/opencode/src/plugin/tui/runtime.ts",
+        "const ready = await resolveExternalPlugins(records, () => "
+        "TuiConfig.waitForDependencies())",
+    ),
+    (
+        "packages/opencode/src/plugin/tui/runtime.ts",
+        "return PluginLoader.loadExternal({",
+    ),
+    (
+        "packages/opencode/src/plugin/loader.ts",
+        "mod = await import(row.entry)",
+    ),
+)
+
+#: The two gates that stand between the TUI document and that importer, carried
+#: so nobody re-derives the finding and concludes the guard was already safe.
+#:
+#: ``runtime.ts:1089`` reduces the origins to ``[]`` under
+#: ``Flag.OPENCODE_PURE``, and ``tui.ts:175`` skips the project-ancestor read
+#: under ``Flag.OPENCODE_DISABLE_PROJECT_CONFIG``.  The guard sets both.  That
+#: is exactly the argument live probe L4 falsified for the main config's
+#: ``plugin`` key — which is why D8 and D12 scan project roots redundantly
+#: despite D7, and why a provider-honoured flag is never accepted as the
+#: control.  A third consumer has no pure gate at all: ``tui.ts:224,236-247``
+#: runs ``npm.install`` in every discovered ``.opencode`` directory whenever the
+#: array is non-empty.  Exploitability under the shipped guard was neither
+#: established nor refuted — no live probe was run, scope forbade it — and the
+#: refusal is retained as fail-closed regardless, exactly as the plan records
+#: for ``provider``/``providers``.
+PINNED_TUI_GATES = (
+    ("packages/opencode/src/plugin/tui/runtime.ts", "Flag.OPENCODE_PURE ? [] : pluginOrigins"),
+    (
+        "packages/opencode/src/config/tui.ts",
+        "Flag.OPENCODE_DISABLE_PROJECT_CONFIG ? [] : yield* ConfigPaths.files",
+    ),
+)
+
+_CONFIG_READ_CALL = re.compile(
+    r"(?<![\w$])(?:\w+\.)?"
+    r"(loadFile|readConfigFile|loadDirectory|fileInDirectory"
+    r"|readManagedPreferences)\s*\("
+)
+
+
+def derived_document_stems(tree):
+    """Every ``name`` the provider passes to the ``<name>.{json,jsonc}`` builders.
+
+    ``ConfigPaths.fileInDirectory(dir, name)`` and ``ConfigPaths.files(name,
+    ...)`` are parameterised on the document stem, so the *set of documents*
+    the provider discovers is exactly the set of literals reaching them.  At
+    v1.18.12 that is ``opencode`` and ``tui`` — and it was reading this from
+    the tree in round 11, rather than trusting a transcript, that surfaced the
+    TUI document at all.  A release that adds a third document changes this set
+    with nobody editing this file.
+    """
+
+    stems = set()
+    for package in ("core", "opencode"):
+        base = tree / "packages" / package / "src"
+        for source in [*base.rglob("*.ts"), *base.rglob("*.tsx")]:
+            text = source.read_text(encoding="utf-8")
+            stems.update(
+                re.findall(r'fileInDirectory\([^,]+,\s*"([^"]+)"\)', text)
+            )
+            stems.update(re.findall(r'ConfigPaths\.files\(\s*"([^"]+)"', text))
+    return stems
+
+
+def derived_config_basenames(tree):
+    """Re-derive the discovered basenames from the pinned tree's own literals.
+
+    Not a transcript comparison: every name below is pulled out of the provider
+    source at read time, so a release that renames or adds one changes this set
+    without anybody editing this file.
+    """
+
+    names = set()
+
+    paths_source = (tree / "packages/opencode/src/config/paths.ts").read_text(
+        encoding="utf-8"
+    )
+    builder = re.search(
+        r"export function fileInDirectory\(.*?\n}", paths_source, re.DOTALL
+    )
+    assert builder, "the <dir>/<name>.{json,jsonc} builder moved"
+    extensions = set(re.findall(r"\$\{name\}\.(\w+)", builder.group(0)))
+    assert extensions, "fileInDirectory no longer interpolates literal extensions"
+    for stem in derived_document_stems(tree):
+        names.update(f"{stem}.{extension}" for extension in extensions)
+
+    core = (tree / "packages/core/src/config.ts").read_text(encoding="utf-8")
+    v2 = re.search(r"const names = \[([^\]]*)\]", core)
+    assert v2, "core/src/config.ts no longer declares a literal names array"
+    names.update(re.findall(r'"([^"]+)"', v2.group(1)))
+
+    v1 = (tree / "packages/opencode/src/config/config.ts").read_text(
+        encoding="utf-8"
+    )
+    names.update(
+        re.findall(r'loadFile\(path\.join\(Global\.Path\.config, "([^"]+)"\)', v1)
+    )
+    legacy = re.search(r'const legacy = path\.join\(Global\.Path\.config, "([^"]+)"\)', v1)
+    assert legacy, "the legacy TOML config path is no longer a literal join"
+    names.add(legacy.group(1))
+    for literal in re.findall(r'for \(const file of \[([^\]]*)\]\)', v1):
+        names.update(re.findall(r'"([^"]+)"', literal))
+
+    targets = re.search(r"targets: \[([^\]]*)\]", paths_source)
+    assert targets, "ConfigPaths.files no longer declares a literal target list"
+    walk_extensions = re.findall(r"\$\{name\}\.(\w+)", targets.group(1))
+    assert walk_extensions, "the ancestor walk no longer targets literal extensions"
+    for stem in derived_document_stems(tree):
+        names.update(f"{stem}.{extension}" for extension in walk_extensions)
+
+    managed = (tree / "packages/opencode/src/config/managed.ts").read_text(
+        encoding="utf-8"
+    )
+    domain = re.search(r'MANAGED_PLIST_DOMAIN = "([^"]+)"', managed)
+    assert domain, "the managed plist domain is no longer a literal"
+    assert "${MANAGED_PLIST_DOMAIN}.plist" in managed
+    names.add(f"{domain.group(1)}.plist")
+
+    return names
+
+
+@unittest.skipUnless(
+    os.environ.get(PINNED_SOURCE_ENV),
+    f"set {PINNED_SOURCE_ENV} to an extracted v{oc.OPENCODE_VERSION} tree",
+)
+class PinnedSourceConfigDiscoveryTest(unittest.TestCase):
+    """Check D12's config-discovery set against the real pinned tree.
+
+    Round 10 shipped a receipt digesting all three derived tables and disclosed
+    that only two of them had a class of this shape: ``EXECUTABLE_SCANS`` and
+    ``EXECUTION_KEYS`` each read the tree, while ``CONFIG_DISCOVERY_SOURCES``
+    was verified against a hand-written transcript only.  A receipt asserting
+    uniform verification over a non-uniform verification is a control implying
+    more than it delivers, which is the failure this project keeps paying for.
+    This class closes it, and the disclosure is what created the round.
+    """
+
+    def setUp(self):
+        self.tree = Path(os.environ[PINNED_SOURCE_ENV])
+        if not (self.tree / "packages/opencode/src").is_dir():
+            self.skipTest(f"{self.tree} is not an opencode source tree")
+
+    def source_files(self):
+        for package in ("core", "opencode"):
+            base = self.tree / "packages" / package / "src"
+            yield from sorted(
+                [*base.rglob("*.ts"), *base.rglob("*.tsx")]
+            )
+
+    def read_sites(self):
+        found = set()
+        for source in self.source_files():
+            relative = str(source.relative_to(self.tree))
+            for number, text in enumerate(
+                source.read_text(encoding="utf-8").splitlines(), start=1
+            ):
+                if text.lstrip().startswith("//"):
+                    continue
+                if _CONFIG_READ_CALL.search(text):
+                    found.add((relative, number))
+        return found
+
+    def test_every_transcribed_line_matches_the_pinned_source(self):
+        for path, line, text, _resolutions, _note in PINNED_CONFIG_READ_SITES:
+            with self.subTest(path=path, line=line):
+                actual = (self.tree / path).read_text(encoding="utf-8").splitlines()
+                self.assertEqual(text, actual[line - 1])
+
+    def test_pinned_source_contains_no_undocumented_config_read_sites(self):
+        """The ADDED direction, against the tree itself.
+
+        A release that gains a configuration read — a new file family, a new
+        root, a new document — gains a call site, and the site fails here until
+        a human resolves what it reads.  This is the check whose absence let
+        the TUI document go unnamed through five rounds.
+        """
+
+        transcribed = {
+            (path, line) for path, line, _t, _r, _n in PINNED_CONFIG_READ_SITES
+        }
+        found = self.read_sites()
+        self.assertEqual(set(), found - transcribed)
+        self.assertEqual(set(), transcribed - found)
+
+    def test_every_documented_source_is_reached_by_a_transcribed_site(self):
+        """No entry in the guard's table may be unsupported by a real read."""
+
+        resolved = {
+            resolution[len("source:") :]
+            for _p, _l, _t, resolutions, _n in PINNED_CONFIG_READ_SITES
+            for resolution in resolutions
+            if resolution.startswith("source:")
+        }
+        labels = {source.label for source in oc.CONFIG_DISCOVERY_SOURCES}
+        # The legacy TOML source is read by import(), not by these helpers, and
+        # is carried by PINNED_DYNAMIC_IMPORT_SITES instead.
+        self.assertEqual(set(), resolved - labels)
+        self.assertEqual({"global legacy toml config"}, labels - resolved)
+
+    def test_every_env_resolution_names_a_key_the_guard_refuses(self):
+        for _p, _l, _t, resolutions, _n in PINNED_CONFIG_READ_SITES:
+            for resolution in resolutions:
+                if not resolution.startswith("env:"):
+                    continue
+                with self.subTest(resolution=resolution):
+                    self.assertIn(
+                        resolution[len("env:") :], oc.CONFIG_SOURCE_FORBIDDEN_ENV
+                    )
+
+    def test_the_discovered_basenames_match_the_pinned_tree_directly(self):
+        """Derive the filenames from the tree, ignoring the transcript."""
+
+        self.assertEqual(
+            {
+                name
+                for source in oc.CONFIG_DISCOVERY_SOURCES
+                for name in source.filenames
+            },
+            derived_config_basenames(self.tree),
+        )
+
+    def test_the_managed_roots_match_the_pinned_tree_directly(self):
+        """The two roots a unit test cannot reach, re-derived from source."""
+
+        managed = (self.tree / "packages/opencode/src/config/managed.ts").read_text(
+            encoding="utf-8"
+        )
+        system = re.search(
+            r"function systemManagedConfigDir\(\).*?\n}", managed, re.DOTALL
+        )
+        self.assertIsNotNone(system, "systemManagedConfigDir no longer exists")
+        body = system.group(0)
+
+        with mock.patch.object(sys, "platform", "darwin"):
+            self.assertIn(f'"{oc.managed_config_dir()}"', body)
+        with mock.patch.object(sys, "platform", "linux"):
+            self.assertIn(f'"{oc.managed_config_dir()}"', body)
+
+        preferences = re.search(
+            r"const paths = \[(.*?)\]", managed, re.DOTALL
+        )
+        self.assertIsNotNone(preferences, "the managed-preferences list moved")
+        with mock.patch.object(sys, "platform", "darwin"):
+            for directory in oc._managed_preferences_dirs():
+                with self.subTest(directory=directory):
+                    self.assertIn('"/Library/Managed Preferences"', preferences.group(1))
+                    self.assertTrue(str(directory).startswith("/Library/Managed Preferences"))
+
+    def test_the_legacy_toml_source_is_derived_from_the_tree(self):
+        """The one read that is an import(), cross-checked against its own table."""
+
+        v1 = (self.tree / "packages/opencode/src/config/config.ts").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("import(pathToFileURL(legacy).href", v1)
+        self.assertIn(
+            "file:global legacy toml config",
+            {
+                origin
+                for _p, _l, _t, origins, _n in PINNED_DYNAMIC_IMPORT_SITES
+                for origin in origins
+            },
+        )
+
+    def test_the_tui_execution_chain_still_holds_on_this_tree(self):
+        """Round 12's determination, re-checked line by line against the tree.
+
+        The TUI families are in the guard's table because this chain exists.
+        If a release breaks a link, the finding needs re-deriving and possibly
+        retiring — so it fails here rather than decaying into a stale comment
+        that keeps four sources in the scan set for a reason that stopped being
+        true.
+        """
+
+        for relative, expected in PINNED_TUI_EXECUTION_CHAIN:
+            with self.subTest(path=relative, line=expected[:48]):
+                text = (self.tree / relative).read_text(encoding="utf-8")
+                self.assertIn(expected, text)
+
+    def test_the_tui_gates_are_the_ones_the_determination_names(self):
+        """The gates exist; they are recorded as gates, not as the control."""
+
+        for relative, expected in PINNED_TUI_GATES:
+            with self.subTest(path=relative):
+                text = (self.tree / relative).read_text(encoding="utf-8")
+                self.assertIn(expected, text)
+
+    def test_the_tui_npm_install_path_has_no_pure_gate(self):
+        """The consumer `--pure` does not reach, pinned so it stays visible."""
+
+        tui = (self.tree / "packages/opencode/src/config/tui.ts").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("dirs: result.plugin?.length ? dirs : []", tui)
+        install = re.search(r"const deps = yield\* Effect\.forEach\(\s*data\.dirs.*?\)", tui, re.DOTALL)
+        self.assertIsNotNone(install, "the tui npm.install fan-out moved")
+        self.assertNotIn("OPENCODE_PURE", install.group(0))
+
+    def test_every_tui_source_is_gated_on_execution_keys_only(self):
+        """The trap, asserted on the table rather than only on behaviour."""
+
+        tui_sources = [
+            source
+            for source in oc.CONFIG_DISCOVERY_SOURCES
+            if source.document == "tui"
+        ]
+        self.assertEqual(4, len(tui_sources))
+        for source in tui_sources:
+            with self.subTest(label=source.label):
+                self.assertEqual(("tui.json", "tui.jsonc"), source.filenames)
+                self.assertEqual("jsonc", source.parse)
+
+
+@unittest.skipUnless(
+    os.environ.get(PINNED_SOURCE_ENV),
+    f"set {PINNED_SOURCE_ENV} to an extracted v{oc.OPENCODE_VERSION} tree",
+)
+class PinnedSourceReceiptTest(unittest.TestCase):
+    """Write the receipt that binds ``OPENCODE_VERSION`` to its derived tables.
+
+    The two classes above are the actual verification; this one records that it
+    happened, so an always-on contract test can refuse a bump that skipped it.
+    The receipt is `tests/fixtures/opencode-pinned-surface.json` and
+    ``tests/opencode_surface.py`` states plainly what it does and does not
+    guarantee — chiefly that a maintainer can hand-edit it, which makes this a
+    forcing function rather than a proof.
+
+    Writing is conditional: the verification classes are re-run against this
+    tree first and the receipt is not written if any of them fails.  Otherwise a
+    red pinned-source run would still leave a green-looking receipt behind,
+    which is the exact shape of failure this whole mechanism exists to prevent.
+    """
+
+    def setUp(self):
+        self.tree = Path(os.environ[PINNED_SOURCE_ENV])
+        if not (self.tree / "packages/opencode/src").is_dir():
+            self.skipTest(f"{self.tree} is not an opencode source tree")
+
+    def test_the_supplied_tree_self_identifies_as_the_pinned_version(self):
+        """A receipt written from the wrong tree would be worse than none."""
+
+        manifest = json.loads(
+            (self.tree / "packages/opencode/package.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            oc.OPENCODE_VERSION,
+            manifest.get("version"),
+            f"{self.tree} is not a v{oc.OPENCODE_VERSION} tree; the receipt "
+            "must be written from the release the pin names",
+        )
+
+    def test_the_receipt_is_regenerated_from_a_verified_tree(self):
+        loader = unittest.TestLoader()
+        suite = unittest.TestSuite(
+            loader.loadTestsFromTestCase(case)
+            for case in (
+                PinnedSourceCompletenessTest,
+                PinnedSourceConfigDiscoveryTest,
+                PinnedSourceExecutionKeyTest,
+            )
+        )
+        buffer = io.StringIO()
+        result = unittest.TextTestRunner(stream=buffer, verbosity=0).run(suite)
+        self.assertTrue(
+            result.wasSuccessful(),
+            "refusing to write the pinned-surface receipt: the derivations do "
+            "not match this tree, so the guard is what has to change. See the "
+            "failures reported by PinnedSourceCompletenessTest and "
+            "PinnedSourceExecutionKeyTest.",
+        )
+
+        self.test_the_supplied_tree_self_identifies_as_the_pinned_version()
+        document = opencode_surface.write_fixture()
+        self.assertEqual(oc.OPENCODE_VERSION, document["opencode_version"])
+        self.assertEqual(opencode_surface.surface_digest(), document["surface_digest"])
+
+
 class WorktreeBoundTest(_WorktreeTestCase):
     """D8's stop bound must be a real Git worktree, never a silent cwd fallback.
 
@@ -495,9 +1918,213 @@ class TuiBackstopTest(_WorktreeTestCase):
                 oc.write_tui_backstop(xdg)
 
 
+#: The documented, source-derived D12 enumeration, restated independently of
+#: :data:`oc.CONFIG_DISCOVERY_SOURCES` as
+#: ``(label, root, filenames, parse, document)``.
+#: This is the drift anchor plan version 11 requires: the module's table is
+#: asserted to equal this literal, and the concrete scan set is asserted to
+#: expand from exactly these entries.  A provider bump that adds, moves, or
+#: renames a discovery path fails here rather than silently opening a hole.
+DOCUMENTED_CONFIG_SOURCES = (
+    (
+        "global config root",
+        "global-config",
+        ("config.json", "opencode.json", "opencode.jsonc"),
+        "jsonc",
+        "main",
+    ),
+    ("global legacy toml config", "global-config", ("config",), "opaque", "main"),
+    (
+        "ancestor project config",
+        "ancestor",
+        ("opencode.json", "opencode.jsonc"),
+        "jsonc",
+        "main",
+    ),
+    (
+        "ancestor .opencode config",
+        "ancestor-opencode",
+        ("opencode.json", "opencode.jsonc"),
+        "jsonc",
+        "main",
+    ),
+    (
+        "home-dot .opencode config",
+        "home-opencode",
+        ("opencode.json", "opencode.jsonc"),
+        "jsonc",
+        "main",
+    ),
+    (
+        "system managed config",
+        "managed",
+        ("opencode.json", "opencode.jsonc"),
+        "jsonc",
+        "main",
+    ),
+    (
+        "macOS managed preferences",
+        "managed-preferences",
+        ("ai.opencode.managed.plist",),
+        "opaque",
+        "main",
+    ),
+    # The TUI document, established as an executable surface in round 12.
+    # ``document`` is "tui", which is what keeps MIGRATION_KEYS off it and so
+    # keeps D10's own keybind backstop from refusing every launch.
+    ("global tui config", "global-config", ("tui.json", "tui.jsonc"), "jsonc", "tui"),
+    ("ancestor tui config", "ancestor", ("tui.json", "tui.jsonc"), "jsonc", "tui"),
+    (
+        "ancestor .opencode tui config",
+        "ancestor-opencode",
+        ("tui.json", "tui.jsonc"),
+        "jsonc",
+        "tui",
+    ),
+    (
+        "home-dot .opencode tui config",
+        "home-opencode",
+        ("tui.json", "tui.jsonc"),
+        "jsonc",
+        "tui",
+    ),
+)
+
+
+class ConfigDiscoveryEnumerationTest(_WorktreeTestCase):
+    """D12's scan set must equal the documented source-derived enumeration."""
+
+    def roots(self):
+        xdg = self.scratch / "xdg-config"
+        home = self.scratch / "opencode-home"
+        for directory in (xdg, home):
+            directory.mkdir(parents=True, exist_ok=True)
+        return xdg, home
+
+    def scan_paths(self, cwd=None):
+        xdg, home = self.roots()
+        return oc.config_scan_paths(
+            cwd=self.worktree if cwd is None else cwd,
+            xdg_config_home=xdg,
+            test_home=home,
+            environment={},
+        )
+
+    def test_the_table_matches_the_documented_enumeration(self):
+        actual = tuple(
+            (
+                source.label,
+                source.root,
+                source.filenames,
+                source.parse,
+                source.document,
+            )
+            for source in oc.CONFIG_DISCOVERY_SOURCES
+        )
+        self.assertEqual(DOCUMENTED_CONFIG_SOURCES, actual)
+
+    def test_every_entry_carries_a_pinned_source_citation(self):
+        for source in oc.CONFIG_DISCOVERY_SOURCES:
+            with self.subTest(label=source.label):
+                self.assertRegex(source.citation, r"packages/\S+\.ts:\d")
+
+    def test_the_scanned_set_equals_the_expansion_of_the_documented_set(self):
+        xdg, home = self.roots()
+        current = self.worktree.resolve()
+        ancestors = [current, *current.parents]
+        expected: list[Path] = []
+        for _label, root, filenames, _parse, _document in DOCUMENTED_CONFIG_SOURCES:
+            if root == "global-config":
+                directories = [xdg / "opencode"]
+            elif root == "home-opencode":
+                directories = [home / ".opencode"]
+            elif root == "managed":
+                directories = [oc.managed_config_dir()]
+            elif root == "managed-preferences":
+                base = Path("/Library/Managed Preferences")
+                directories = (
+                    [base / getpass.getuser(), base] if sys.platform == "darwin" else []
+                )
+            elif root == "ancestor":
+                directories = list(ancestors)
+            elif root == "ancestor-opencode":
+                directories = [ancestor / ".opencode" for ancestor in ancestors]
+            else:  # pragma: no cover - the table above is closed
+                self.fail(f"undocumented root family: {root}")
+            for directory in directories:
+                for name in filenames:
+                    candidate = directory / name
+                    if candidate not in expected:
+                        expected.append(candidate)
+        self.assertEqual(expected, [path for path, _ in self.scan_paths()])
+
+    def test_dropping_a_documented_path_is_detectable(self):
+        """The drift test bites: remove an entry and the scan set shrinks.
+
+        This is the property that makes the next vector impossible to introduce
+        silently.  Patching the table to omit the nested ``.opencode`` family
+        must both change the scanned set and make the equality assertion fail.
+        """
+
+        full = {path for path, _ in self.scan_paths()}
+        nested = self.worktree / ".opencode" / "opencode.json"
+        self.assertIn(nested, full)
+
+        trimmed = tuple(
+            source
+            for source in oc.CONFIG_DISCOVERY_SOURCES
+            if source.root != "ancestor-opencode"
+        )
+        with mock.patch.object(oc, "CONFIG_DISCOVERY_SOURCES", trimmed):
+            reduced = {path for path, _ in self.scan_paths()}
+            self.assertNotIn(nested, reduced)
+            with self.assertRaises(AssertionError):
+                self.test_the_table_matches_the_documented_enumeration()
+
+    def test_an_unknown_root_family_raises_rather_than_scanning_nothing(self):
+        rogue = oc.ConfigSource(
+            label="rogue",
+            root="not-a-root",
+            filenames=("opencode.json",),
+            parse="jsonc",
+            citation="packages/core/src/config.ts:1",
+        )
+        with mock.patch.object(oc, "CONFIG_DISCOVERY_SOURCES", (rogue,)):
+            with self.assertRaisesRegex(oc.GuardError, "unknown OpenCode config"):
+                self.scan_paths()
+
+    def test_each_forbidden_config_env_key_refuses(self):
+        xdg, home = self.roots()
+        for key in oc.CONFIG_SOURCE_FORBIDDEN_ENV:
+            with self.subTest(key=key):
+                with self.assertRaisesRegex(oc.GuardError, key):
+                    oc.config_scan_paths(
+                        cwd=self.worktree,
+                        xdg_config_home=xdg,
+                        test_home=home,
+                        environment={key: "/somewhere"},
+                    )
+
+
 class MigrationScanTest(_WorktreeTestCase):
+    def roots(self):
+        xdg = self.scratch / "xdg-config"
+        home = self.scratch / "opencode-home"
+        for directory in (xdg, home):
+            directory.mkdir(parents=True, exist_ok=True)
+        return xdg, home
+
+    def scan(self, cwd=None):
+        xdg, home = self.roots()
+        return oc.migration_scan(
+            self.worktree if cwd is None else cwd,
+            xdg_config_home=xdg,
+            test_home=home,
+            environment={},
+        )
+
     def test_a_clean_tree_passes(self):
-        oc.migration_scan(self.worktree)
+        self.scan()
 
     def test_each_migration_key_refuses_by_key_path(self):
         for name in ("opencode.json", "opencode.jsonc"):
@@ -507,7 +2134,7 @@ class MigrationScanTest(_WorktreeTestCase):
                     path.write_text(json.dumps({key: {}}), encoding="utf-8")
                     try:
                         with self.assertRaises(oc.GuardError) as caught:
-                            oc.migration_scan(self.worktree)
+                            self.scan()
                         self.assertIn(f"#{key}", str(caught.exception))
                     finally:
                         path.unlink()
@@ -516,7 +2143,7 @@ class MigrationScanTest(_WorktreeTestCase):
         path = self.root / "opencode.json"
         path.write_text(json.dumps({"theme": "dark"}), encoding="utf-8")
         with self.assertRaisesRegex(oc.GuardError, "migration key"):
-            oc.migration_scan(self.worktree)
+            self.scan()
 
     def test_comments_are_stripped_before_parsing_jsonc(self):
         path = self.worktree / "opencode.jsonc"
@@ -524,12 +2151,261 @@ class MigrationScanTest(_WorktreeTestCase):
             '// leading\n{"tui": {} /* trailing */}\n', encoding="utf-8"
         )
         with self.assertRaisesRegex(oc.GuardError, "migration key"):
-            oc.migration_scan(self.worktree)
+            self.scan()
 
     def test_unparseable_config_refuses(self):
         (self.worktree / "opencode.json").write_text("{", encoding="utf-8")
         with self.assertRaisesRegex(oc.GuardError, "cannot be parsed"):
-            oc.migration_scan(self.worktree)
+            self.scan()
+
+    def test_a_declared_plugin_at_cwd_refuses_by_key_path(self):
+        for name in ("opencode.json", "opencode.jsonc"):
+            for execution in oc.EXECUTION_KEYS:
+                key = execution.key
+                with self.subTest(name=name, key=key):
+                    path = self.worktree / name
+                    path.write_text(
+                        json.dumps({key: ["./declared.js"]}), encoding="utf-8"
+                    )
+                    try:
+                        with self.assertRaises(oc.GuardError) as caught:
+                            self.scan()
+                        message = str(caught.exception)
+                        self.assertIn("execution key", message)
+                        self.assertIn(f"#{key}", message)
+                        # Key-path only: the declared target never leaks.
+                        self.assertNotIn("declared.js", message)
+                    finally:
+                        path.unlink()
+
+    def test_a_declared_plugin_above_the_worktree_refuses(self):
+        path = self.root / "opencode.json"
+        path.write_text(json.dumps({"plugin": ["./declared.js"]}), encoding="utf-8")
+        with self.assertRaisesRegex(oc.GuardError, "execution key"):
+            self.scan()
+
+    def test_a_nested_opencode_config_refuses_at_cwd_and_at_an_ancestor(self):
+        """The fourth vector: ``.opencode/opencode.json`` declaring a plugin.
+
+        Both filenames, both spellings, at the worktree and above it.  Plugin
+        paths declared in a nested config resolve relative to that config's own
+        directory, which is why this location is reachable at all and why the
+        earlier ancestor-only walk never saw it.
+        """
+
+        for directory in (self.worktree, self.root):
+            for name in ("opencode.json", "opencode.jsonc"):
+                for execution in oc.EXECUTION_KEYS:
+                    key = execution.key
+                    with self.subTest(directory=directory, name=name, key=key):
+                        nested = directory / ".opencode"
+                        nested.mkdir(parents=True, exist_ok=True)
+                        path = nested / name
+                        path.write_text(
+                            json.dumps({key: ["./declared.js"]}), encoding="utf-8"
+                        )
+                        try:
+                            with self.assertRaises(oc.GuardError) as caught:
+                                self.scan()
+                            message = str(caught.exception)
+                            self.assertIn("execution key", message)
+                            self.assertIn(f"#{key}", message)
+                            self.assertIn(str(path), message)
+                            self.assertNotIn("declared.js", message)
+                        finally:
+                            path.unlink()
+
+    def test_a_nested_opencode_migration_key_refuses(self):
+        nested = self.worktree / ".opencode"
+        nested.mkdir(parents=True, exist_ok=True)
+        path = nested / "opencode.jsonc"
+        path.write_text('{"keybinds": {}}', encoding="utf-8")
+        with self.assertRaisesRegex(oc.GuardError, "migration key"):
+            self.scan()
+
+    def test_the_owned_global_root_is_scanned(self):
+        xdg, _home = self.roots()
+        target = xdg / "opencode"
+        target.mkdir(parents=True, exist_ok=True)
+        (target / "config.json").write_text(
+            json.dumps({"plugin": ["./declared.js"]}), encoding="utf-8"
+        )
+        with self.assertRaisesRegex(oc.GuardError, "execution key"):
+            self.scan()
+
+    def test_the_home_dot_root_is_scanned(self):
+        _xdg, home = self.roots()
+        target = home / ".opencode"
+        target.mkdir(parents=True, exist_ok=True)
+        (target / "opencode.json").write_text(
+            json.dumps({"tui": {}}), encoding="utf-8"
+        )
+        with self.assertRaisesRegex(oc.GuardError, "migration key"):
+            self.scan()
+
+    def test_an_uninspectable_source_refuses_on_mere_existence(self):
+        xdg, _home = self.roots()
+        target = xdg / "opencode"
+        target.mkdir(parents=True, exist_ok=True)
+        (target / "config").write_text("model = 'x'\n", encoding="utf-8")
+        with self.assertRaisesRegex(oc.GuardError, "cannot be inspected"):
+            self.scan()
+
+    def test_the_system_managed_root_is_scanned(self):
+        """The `managed` root is a real system path, so a fixture stands in.
+
+        `/Library/Application Support/opencode` (or `/etc/opencode`) is neither
+        owned nor writable by a unit test, so `managed_config_dir` is injected
+        the way `xdg_config_home`/`test_home` already are for the owned roots.
+        This source parses as JSONC, so its refusal is by key rather than by
+        mere existence; what is pinned here is that the root is scanned at all
+        and that both its filenames reach the key gates.
+        """
+
+        managed = self.scratch / "managed"
+        managed.mkdir(parents=True, exist_ok=True)
+        with mock.patch.object(oc, "managed_config_dir", lambda: managed):
+            for name in ("opencode.json", "opencode.jsonc"):
+                for payload, expected in (
+                    ({"tui": {}}, "migration key"),
+                    ({"plugin": ["./declared.js"]}, "execution key"),
+                ):
+                    with self.subTest(name=name, expected=expected):
+                        path = managed / name
+                        path.write_text(json.dumps(payload), encoding="utf-8")
+                        try:
+                            with self.assertRaises(oc.GuardError) as caught:
+                                self.scan()
+                            message = str(caught.exception)
+                            self.assertIn(expected, message)
+                            self.assertIn(str(path), message)
+                            self.assertNotIn("declared.js", message)
+                        finally:
+                            path.unlink()
+
+    def test_the_managed_preferences_source_refuses_on_mere_existence(self):
+        """The MDM plist is opaque, so presence alone must refuse.
+
+        `/Library/Managed Preferences` cannot be populated by a unit test, so
+        `_managed_preferences_dirs` is injected and a fixture directory carries
+        the planted plist.  This is the third opaque source; the other two are
+        covered by `test_an_uninspectable_source_refuses_on_mere_existence`.
+        """
+
+        preferences = self.scratch / "managed-preferences"
+        preferences.mkdir(parents=True, exist_ok=True)
+        with mock.patch.object(oc, "_managed_preferences_dirs", lambda: [preferences]):
+            self.scan()  # the fixture root alone is benign
+            planted = preferences / "ai.opencode.managed.plist"
+            planted.write_bytes(b"bplist00")
+            with self.assertRaises(oc.GuardError) as caught:
+                self.scan()
+        message = str(caught.exception)
+        self.assertIn("cannot be inspected", message)
+        self.assertIn(str(planted), message)
+
+    def test_a_tui_document_execution_key_refuses_at_every_root(self):
+        """Round 12's vector: `plugin` in tui.json reaches the same import().
+
+        `packages/tui/src/config/index.tsx:19,57` gives the TUI document a
+        `plugin` array of the same PluginSpec shape the main config uses, and
+        it lands at `plugin/loader.ts:139 await import(row.entry)` by way of
+        TuiConfig.pluginOrigins -> resolveExternalPlugins -> loadExternal.
+        """
+
+        xdg, home = self.roots()
+        roots = {
+            "global": xdg / "opencode",
+            "ancestor-cwd": self.worktree,
+            "ancestor-above": self.root,
+            "nested-opencode": self.worktree / ".opencode",
+            "home-dot": home / ".opencode",
+        }
+        for label, directory in roots.items():
+            directory.mkdir(parents=True, exist_ok=True)
+            for name in ("tui.json", "tui.jsonc"):
+                for execution in oc.EXECUTION_KEYS:
+                    key = execution.key
+                    with self.subTest(root=label, name=name, key=key):
+                        path = directory / name
+                        path.write_text(
+                            json.dumps({key: ["./declared.js"]}), encoding="utf-8"
+                        )
+                        try:
+                            with self.assertRaises(oc.GuardError) as caught:
+                                self.scan()
+                            message = str(caught.exception)
+                            self.assertIn("execution key", message)
+                            self.assertIn(f"#{key}", message)
+                            self.assertNotIn("declared.js", message)
+                        finally:
+                            path.unlink()
+
+    def test_the_owned_d10_keybind_backstop_survives_the_scan(self):
+        """The trap: D10 writes this file two steps before D12 reads it.
+
+        `write_tui_backstop` puts `{"keybinds": ...}` into the owned global
+        root, and `keybinds` is a MIGRATION_KEYS member.  Gating migration keys
+        on the TUI document would refuse the guard's own file and take every
+        launch with it, so migration keys apply to the main document only.
+        """
+
+        xdg, _home = self.roots()
+        backstop = oc.write_tui_backstop(xdg)
+        self.assertTrue(backstop.is_file())
+        self.assertIn(backstop, self.scan())
+
+    def test_presentation_state_on_a_tui_document_does_not_refuse(self):
+        """theme/keybinds are the TUI document's declared schema, not residue."""
+
+        xdg, _home = self.roots()
+        target = xdg / "opencode"
+        target.mkdir(parents=True, exist_ok=True)
+        for name in ("tui.json", "tui.jsonc"):
+            for key in oc.MIGRATION_KEYS:
+                with self.subTest(name=name, key=key):
+                    path = target / name
+                    path.write_text(json.dumps({key: {}}), encoding="utf-8")
+                    try:
+                        self.scan()
+                    finally:
+                        path.unlink()
+
+    def test_the_same_keys_still_refuse_on_the_main_document(self):
+        """The exemption is scoped to the TUI document and nothing else."""
+
+        xdg, _home = self.roots()
+        target = xdg / "opencode"
+        target.mkdir(parents=True, exist_ok=True)
+        for key in oc.MIGRATION_KEYS:
+            with self.subTest(key=key):
+                path = target / "opencode.json"
+                path.write_text(json.dumps({key: {}}), encoding="utf-8")
+                try:
+                    with self.assertRaisesRegex(oc.GuardError, "migration key"):
+                        self.scan()
+                finally:
+                    path.unlink()
+
+    def test_the_plugin_refusal_does_not_depend_on_the_merged_document(self):
+        """D12 sees what the loader sees, not what `debug config` reports.
+
+        `OPENCODE_DISABLE_PROJECT_CONFIG=true` keeps the project array out of the
+        merge, so the merged document reads `plugin: []` and passes D13's
+        allowlist unchanged.  The plugin loader reads the project file directly,
+        so D12's filesystem scan must still refuse.
+        """
+
+        (self.worktree / "opencode.json").write_text(
+            json.dumps({"plugin": ["./declared.js"]}), encoding="utf-8"
+        )
+        merged = final_config(self.agents_md)
+        self.assertEqual([], merged["plugin"])
+        oc.check_final_config(
+            merged, model=MODEL, variant=VARIANT, agents_md=self.agents_md
+        )
+        with self.assertRaisesRegex(oc.GuardError, "execution key"):
+            self.scan()
 
 
 class SkillPrecheckTest(unittest.TestCase):
@@ -807,6 +2683,39 @@ class PreflightOrderingTest(_WorktreeTestCase):
         self.assertEqual(list(oc.LAUNCH_ARGV), launch)
         self.assertEqual(["opencode", "--pure", "--agent", "brichan-primary"], launch)
 
+    def test_a_normal_launch_survives_the_tui_document_being_scanned(self):
+        """Round 12's lockout check, at the full-preflight level.
+
+        D10 writes `<XDG>/opencode/tui.json` at step `tui-backstop`, and D12
+        scans that exact path one step later now that the TUI family is in the
+        table.  A clean worktree must still reach launch, and the owned
+        backstop must still be on disk and intact afterwards.
+        """
+
+        trace: list[str] = []
+        launch, environment = self.run_preflight(trace=trace)
+        self.assertEqual(list(oc.LAUNCH_ARGV), launch)
+        self.assertIn("tui-backstop", trace)
+        self.assertIn("migration-scan", trace)
+        self.assertLess(trace.index("tui-backstop"), trace.index("migration-scan"))
+
+        backstop = Path(environment["XDG_CONFIG_HOME"]) / "opencode" / "tui.json"
+        self.assertTrue(backstop.is_file())
+        self.assertEqual(oc.TUI_BACKSTOP, backstop.read_text(encoding="utf-8"))
+
+    def test_a_launch_refuses_when_a_tui_document_declares_a_plugin(self):
+        """The same launch, with the round-12 vector planted at the worktree."""
+
+        (self.worktree / "tui.json").write_text(
+            json.dumps({"plugin": ["./declared.js"]}), encoding="utf-8"
+        )
+        with self.assertRaises(oc.GuardError) as caught:
+            self.run_preflight()
+        message = str(caught.exception)
+        self.assertIn("execution key", message)
+        self.assertIn("#plugin", message)
+        self.assertNotIn("declared.js", message)
+
     def test_both_final_config_runs_happen_and_the_version_gate_is_first(self):
         provider = FakeProvider(self.agents_md)
         self.run_preflight(provider=provider)
@@ -885,6 +2794,17 @@ class PreflightOrderingTest(_WorktreeTestCase):
         with self.assertRaisesRegex(oc.GuardError, "migration key"):
             self.run_preflight(provider=provider)
         self.assertNotIn(["opencode", "--pure", "debug", "skill"], provider.calls)
+
+    def test_a_config_declared_plugin_refuses_before_any_config_read(self):
+        (self.worktree / "opencode.json").write_text(
+            json.dumps({"plugin": ["./declared.js"]}), encoding="utf-8"
+        )
+        provider = FakeProvider(self.agents_md)
+        with self.assertRaisesRegex(oc.GuardError, "execution key"):
+            self.run_preflight(provider=provider)
+        # Only the D6 version gate ran; it exits inside yargs before any config
+        # merge, so no `Config.entries()` and no `ConfigExternalPlugin` import.
+        self.assertEqual([["opencode", "--version"]], provider.calls)
 
     def test_the_wrong_provider_version_refuses_before_any_isolated_write(self):
         provider = FakeProvider(self.agents_md, version="1.19.0")

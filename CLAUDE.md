@@ -37,6 +37,14 @@ remote state without explicit user authorization.
 - `make check` before calling any change done; `make test` for all layers,
   or `make test-unit` / `test-contract` / `test-integration` individually.
   Add/update regression tests for any executable-behavior change.
+- Changing `OPENCODE_VERSION` in `src/brichan/cli/opencode.py` requires the
+  pinned-source tree check first — the guard's scanned files, directory globs,
+  and execution keys are all derived from provider source, and the offline
+  tests only compare against a transcript. Extract the new release and run the
+  suite with `BRICHAN_OPENCODE_PINNED_SOURCE=<extracted tree>`. A failure means
+  the provider's surface moved; fix the guard, not the test. Procedure and
+  failure meanings: `docs/guides/model-routing.md`, "Moving the OpenCode
+  version pin".
 
 ## Environment warnings
 

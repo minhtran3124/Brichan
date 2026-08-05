@@ -19,12 +19,14 @@ diagnostic is not a place to leak it.
 
 from __future__ import annotations
 
+import getpass
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Mapping, Sequence
 
@@ -43,6 +45,27 @@ from brichan.orchestration.model_routing import (
 #: The exact OpenCode release this isolation contract was source-verified
 #: against.  D6 gates on equality because the boundary is line-level specific;
 #: any bump re-opens the isolation review before this pin moves.
+#:
+#: **Do not edit this constant alone.**  :data:`EXECUTABLE_SCANS`,
+#: :data:`CONFIG_DISCOVERY_SOURCES`, and :data:`EXECUTION_KEYS` are all derived
+#: from this release's source; the offline tests only compare them against a
+#: recorded transcript, so ``make check``/``make test`` pass unchanged after a
+#: bump that missed a provider-side addition.  Extract the new release and run:
+#:
+#: ``BRICHAN_OPENCODE_PINNED_SOURCE=<extracted tree> make test``
+#:
+#: Those checks skip silently when the variable is unset — an unset run is not
+#: evidence.  A failure means the provider's discovery surface moved: fix the
+#: derived table, not the test.  Procedure and per-failure meanings:
+#: ``docs/guides/model-routing.md``, "Moving the OpenCode version pin".
+#:
+#: You will not get far without doing that: this constant and the three tables
+#: are digested into ``tests/fixtures/opencode-pinned-surface.json``, which the
+#: pinned-source run is what writes.  An always-on contract test compares the
+#: digest offline, so editing this line alone fails ``make check`` with the
+#: command to run.  That receipt is a forcing function, not a proof — it can be
+#: hand-edited; ``tests/opencode_surface.py`` says so and says why it still
+#: helps.
 OPENCODE_VERSION = "1.18.12"
 
 GUARD_AGENT = "brichan-primary"
@@ -95,6 +118,181 @@ ALLOWED_PERMISSION_KEYS = frozenset({"task", "external_directory"})
 #: provider TUI migration rewrite config or drop a backup outside the owned
 #: isolated root.
 MIGRATION_KEYS = ("theme", "keybinds", "tui")
+
+@dataclass(frozen=True)
+class ExecutionKey:
+    """One top-level configuration key whose value becomes a module specifier.
+
+    ``key`` is the exact top-level name as it appears in a discovered
+    ``opencode.json``/``.jsonc``.  ``config_version`` is ``v1`` or ``v2``, the
+    two configuration systems v1.18.12 ships side by side.  ``specifier_path``
+    records where inside the key's value the module specifier sits, so a reader
+    can check the citation without re-deriving the shape.  ``merge_gated`` says
+    whether the loader that consumes it reads the *merged* document (which D13
+    can see, and which ``OPENCODE_DISABLE_PROJECT_CONFIG`` empties for project
+    files) or the per-file documents (which neither clause can see, which is why
+    D12 exists).  ``citation`` is the v1.18.12 source chain, in the same style
+    :data:`EXECUTABLE_SCANS` and :data:`CONFIG_DISCOVERY_SOURCES` use.
+    """
+
+    key: str
+    config_version: str
+    specifier_path: str
+    merge_gated: bool
+    citation: str
+
+
+#: **The D12 execution-key set, derived from an enumeration of every module
+#: specifier the pinned provider can import rather than hand-listed.**
+#:
+#: Plan version 13 applies to the key surface the discipline version 11 applied
+#: to the config-file surface and version 12 to the directory-glob surface.
+#: Until this round the set was the literal tuple ``("plugin", "plugins")``, and
+#: every hand-written set in this guard has eventually produced a vector.
+#:
+#: **The derivation, and its result: the hand-listed pair was not complete.**
+#: The closure argument is over ``import()`` call sites, not over config keys —
+#: a key can only execute code by reaching an import.  At v1.18.12 (tag
+#: ``v1.18.12`` = ``0dd6950d1b06958fbcdcadf0ad56258257ab7fdb``) exactly seven
+#: ``import()`` call sites in ``packages/{core,opencode}/src`` take a
+#: non-literal specifier; every other import in those packages names a bundled
+#: module literally and no configuration can redirect it.  Each of the seven was
+#: traced back to where its specifier comes from:
+#:
+#: - ``core/config/plugin/external.ts:80`` — ``entry.info.plugins[].package``
+#:   (**v2 key ``plugins``**) and the D8 ``{plugin,plugins}`` glob.
+#: - ``opencode/plugin/loader.ts:139`` — ``plugin_origins``, built from the
+#:   **v1 key ``plugin``** (``opencode/config/config.ts:344-348,432``) and the
+#:   same D8 glob (``ConfigPlugin.load`` at ``config/plugin.ts:18-30``).
+#: - ``core/plugin/provider/dynamic.ts:20`` and
+#:   ``core/plugin/provider/sap-ai-core.ts:25`` — ``evt.package``, which
+#:   ``core/aisdk.ts:208,215`` sets from ``model.api.package``
+#:   (**v2 key ``providers``**).
+#: - ``opencode/provider/provider.ts:1793`` — ``model.api.npm``, resolved at
+#:   ``:1440-1443`` from **v1 key ``provider``**.
+#: - ``opencode/tool/registry.ts:187`` — the D8 ``{tool,tools}`` glob only; no
+#:   configuration key reaches it.
+#: - ``opencode/config/config.ts:265`` — the legacy global TOML config *file*
+#:   itself, which :data:`CONFIG_DISCOVERY_SOURCES` already refuses on existence
+#:   because the guard cannot parse it.  No key names it.
+#:
+#: So the enumeration yields four top-level keys, not two.  ``provider`` and
+#: ``providers`` are **new in plan version 13** and were not previously refused
+#: by any clause.  Their reachability argument is the same one that makes
+#: ``plugin`` the fourth vector, and it is recorded here rather than smoothed
+#: over, because the two spellings differ in evidential status exactly as
+#: ``plugin`` and ``plugins`` do:
+#:
+#: * **``providers`` (v2) bypasses the merge, like ``plugins``.**
+#:   ``ConfigProviderPlugin`` (``core/config/plugin/provider.ts:15,43-44``) reads
+#:   ``Config.Service.entries()`` — the same per-file API ``ConfigExternalPlugin``
+#:   uses — and writes each file's ``providers.<id>.api`` and
+#:   ``providers.<id>.models.<id>.api`` straight into the catalog at ``:55,65``.
+#:   ``ProviderV2.AISDK`` carries ``package: Schema.String``
+#:   (``packages/schema/src/provider.ts:27-32``), which ``core/aisdk.ts:208,215``
+#:   hands to the SDK hook and ``dynamic.ts:14-24`` installs and ``import()``s.
+#:   Both that plugin and ``DynamicProviderPlugin`` are added unconditionally at
+#:   boot (``core/plugin/internal.ts:119-120``, ``core/plugin/provider.ts:70``)
+#:   and neither file contains a ``pure``/``RuntimeFlags`` reference — the same
+#:   ungated shape as ``ConfigExternalPlugin``.
+#: * **``provider`` (v1) reaches that same per-file reader by migration.**
+#:   ``ConfigMigrateV1.isV1`` lists ``provider`` as a v1 marker
+#:   (``core/v1/config/migrate.ts:10-27``), and ``migrate()`` rewrites
+#:   ``provider.<id>.npm`` into ``providers.<id>.api.package`` and
+#:   ``provider.<id>.models.<id>.provider.npm`` into
+#:   ``providers.<id>.models.<id>.api.package`` (``:165-233``); ``loadFile``
+#:   applies that migration to every discovered file
+#:   (``core/config.ts:147-162``).  Its *other* consumer,
+#:   ``opencode/provider/provider.ts:1336-1346``, reads the merged document and
+#:   so is gated by D13's top-level allowlist and by
+#:   ``OPENCODE_DISABLE_PROJECT_CONFIG``; the per-file consumer is not.
+#:
+#: ``merge_gated`` records that split.  It is documentation, not a switch: every
+#: entry is refused regardless, because D12's whole reason for existing is that a
+#: merge-gated conclusion has been wrong here before.
+#:
+#: The status of the two new keys is **fail-closed on a source argument that
+#: live testing has not exercised**, which is exactly the status the plan
+#: records for ``plugins``.  A coordinator probe found ``plugins`` alone did not
+#: execute on 1.18.12 while ``plugin`` did, so the v2 per-file reader may not be
+#: active in the probed configuration; if so ``providers`` inherits the same
+#: uncertainty.  Refusing costs two key names and fails closed either way.
+EXECUTION_KEYS: tuple[ExecutionKey, ...] = (
+    ExecutionKey(
+        key="plugin",
+        config_version="v1",
+        specifier_path="plugin[] (string, or [string, options] tuple)",
+        merge_gated=False,
+        citation=(
+            "schema packages/core/src/v1/config/config.ts:56 "
+            "(plugin: Array(ConfigPluginV1.Spec)); collected into plugin_origins "
+            "at packages/opencode/src/config/config.ts:344-348,432 and "
+            "import()ed at packages/opencode/src/plugin/loader.ts:139; also "
+            "migrated in memory to the v2 plugins field by "
+            "packages/core/src/v1/config/migrate.ts:10-27 and reaches "
+            "packages/core/src/config/plugin/external.ts:80.  Live-confirmed "
+            "vector: a project opencode.json carrying it executed the file "
+            "under the otherwise complete guard on 1.18.12."
+        ),
+    ),
+    ExecutionKey(
+        key="plugins",
+        config_version="v2",
+        specifier_path="plugins[].package (or plugins[] as a bare string)",
+        merge_gated=False,
+        citation=(
+            "schema packages/core/src/config.ts:102-104 (plugins: "
+            "ConfigPlugin.Plugins) with packages/core/src/config/plugin.ts:5-13 "
+            "(Entry.package: Schema.String); read per file from "
+            "Config.Service.entries() at "
+            "packages/core/src/config/plugin/external.ts:42-56 and import()ed "
+            "at :80 with no pure gate."
+        ),
+    ),
+    ExecutionKey(
+        key="provider",
+        config_version="v1",
+        specifier_path=(
+            "provider.<id>.npm and provider.<id>.models.<id>.provider.npm"
+        ),
+        merge_gated=False,
+        citation=(
+            "schema packages/core/src/v1/config/provider.ts:87 (Info.npm) and "
+            ":65 (Model.provider.npm), top-level at "
+            "packages/core/src/v1/config/config.ts:110; merged-document "
+            "consumer packages/opencode/src/provider/provider.ts:1440-1443 "
+            "resolves model.api.npm and import()s it at :1785-1793.  The "
+            "per-file consumer is the migration: "
+            "packages/core/src/v1/config/migrate.ts:10-27 treats a top-level "
+            "provider as a v1 marker and :165-233 rewrites npm into the v2 "
+            "providers.<id>.api.package field, applied to every discovered file "
+            "by packages/core/src/config.ts:147-162."
+        ),
+    ),
+    ExecutionKey(
+        key="providers",
+        config_version="v2",
+        specifier_path=(
+            "providers.<id>.api.package and "
+            "providers.<id>.models.<id>.api.package (api.type == \"aisdk\")"
+        ),
+        merge_gated=False,
+        citation=(
+            "schema packages/core/src/config.ts:106 (providers: "
+            "Record(ConfigProvider.Info)) with "
+            "packages/core/src/config/provider.ts:33-45,65-71 and "
+            "packages/schema/src/provider.ts:27-32 (AISDK.package: "
+            "Schema.String); read per file from Config.Service.entries() at "
+            "packages/core/src/config/plugin/provider.ts:15,43-44 and written "
+            "into the catalog at :55,65; packages/core/src/aisdk.ts:208,215 "
+            "passes model.api.package to the SDK hook, which "
+            "packages/core/src/plugin/provider/dynamic.ts:14-24 (and "
+            "sap-ai-core.ts:19-25) installs and import()s.  Both plugins boot "
+            "unconditionally at packages/core/src/plugin/internal.ts:119-120 "
+            "and packages/core/src/plugin/provider.ts:70, with no pure gate."
+        ),
+    ),
+)
 
 #: Byte-exact backstop written into the owned isolated config root.  Keybinds
 #: are not part of the ``OPENCODE_CONFIG_CONTENT`` surface, so unbinding the
@@ -395,17 +593,28 @@ def worktree_root(start: Path) -> Path:
     )
 
 
-def _scan_matches(root: Path, directories: Sequence[str]) -> list[Path]:
+def _scan_matches(
+    root: Path, directories: Sequence[str], extensions: Sequence[str]
+) -> list[Path]:
     """Mirror one ``Glob.scan*("{a,b}/*.{js,ts}", {symlink: true})`` call.
 
     Both executable-load classes below go through this one function so the tool
-    scan and the plugin scan cannot drift in extension set, symlink handling,
-    or ordering.
+    scan and the plugin scan cannot drift in symlink handling or ordering.  The
+    directory family and the extension set are supplied by the caller from
+    :data:`EXECUTABLE_SCANS` rather than written here, so the only place either
+    is stated is the source-cited table.
+
+    Extensions are iterated in sorted order, not in the order the provider
+    happens to spell them (``{js,ts}`` at ``tool/registry.ts:180`` versus
+    ``{ts,js}`` at ``config/plugin.ts:21``).  The provider's spelling has no
+    semantics — a brace alternation is a set — and sorting keeps the *first*
+    reported match stable across both families, which is what refusal
+    diagnostics name.
     """
 
     matches: list[Path] = []
     for directory in directories:
-        for extension in ("js", "ts"):
+        for extension in sorted(extensions):
             try:
                 candidates = sorted((root / directory).glob(f"*.{extension}"))
             except OSError:
@@ -418,57 +627,111 @@ def _scan_matches(root: Path, directories: Sequence[str]) -> list[Path]:
     return matches
 
 
-# Every directory under an OpenCode discovery root from which v1.18.12 will
-# dynamically ``import()`` project-supplied code, with the guard's own label.
-#
-# - ``{tool,tools}/*.{js,ts}`` — ``tool/registry.ts:180``.
-# - ``{plugin,plugins}/*.{ts,js}`` — ``config/plugin.ts:21``, reached through
-#   ``ConfigPlugin.load(dir)`` at ``config/config.ts:462-464``.  Added in plan
-#   version 9 after live probe L4 proved a project ``.opencode/plugin/evil.js``
-#   executes in a real TUI session despite ``--pure``.  This scan, not
-#   ``--pure`` and not config isolation, is the control for that vector.
-#
-# Plugin loading in 1.18.12 has three entry points, and only two of them are
-# ``--pure``-gated.  Do not relax this scan on the belief that the flag covers
-# the vector:
-#
-# - ``packages/opencode/src/plugin/index.ts:179`` — pure-gated
-#   (``const plugins = flags.pure ? [] : (cfg.plugin_origins ?? [])``).
-# - ``packages/opencode/src/plugin/tui/runtime.ts:1089`` — pure-gated
-#   (``const records = Flag.OPENCODE_PURE ? [] : pluginOrigins``).
-# - ``packages/core/src/config/plugin/external.ts`` (``ConfigExternalPlugin.Plugin``)
-#   — **not gated at all**: the file contains no ``flags.pure``/``RuntimeFlags``
-#   reference.  It globs the identical ``{plugin,plugins}/*.{ts,js}`` pattern
-#   over every ``entry.type === "directory"`` from ``Config.Service.entries()``
-#   and ``import()``s each match, and it is force-started from the boot layer in
-#   ``packages/core/src/plugin/internal.ts``.  This is the best available
-#   explanation for L4 — a real, unconditional import path — though it has not
-#   been proven live.  D8's own scan is what closes it: the roots that path draws
-#   from are ``Global.Path.config`` (the XDG root D7 owns and D8 scans first) and
-#   the ``.opencode`` walk from ``location.directory`` up to
-#   ``location.project.directory`` (``core/src/config.ts:178-183``), which is
-#   exactly the walk ``discovery_preflight`` repeats — see ``worktree_root`` for
-#   why that stop bound must be a real Git worktree.
-#
-# Every other per-root discovery in 1.18.12 loads markdown or config data, not
-# executable modules: ``{command,commands}/**/*.md``, ``{agent,agents}/**/*.md``,
-# ``{mode,modes}/*.md``, ``{skill,skills}/**/SKILL.md``.
-EXECUTABLE_SCANS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("executable custom tool", ("tool", "tools")),
-    ("executable plugin", ("plugin", "plugins")),
+@dataclass(frozen=True)
+class ExecutableScan:
+    """One per-root directory family the pinned provider imports code from.
+
+    ``directories`` are the brace alternatives of the provider's own glob and
+    ``extensions`` its extension alternatives, both carried as sets rather than
+    as the pattern string so a test can compare them against the provider's
+    spelling without re-parsing ours.  ``citation`` is the v1.18.12 source line
+    that establishes the scan, in the same style :data:`CONFIG_DISCOVERY_SOURCES`
+    uses for D12's config files.
+    """
+
+    label: str
+    directories: tuple[str, ...]
+    extensions: tuple[str, ...]
+    citation: str
+
+
+#: **The D8 directory-glob set, derived from the provider's own per-root
+#: executable-scan implementation at the pinned v1.18.12 rather than
+#: hand-listed.**
+#:
+#: Plan version 12 applies to D8 the discipline version 11 applied to D12.  The
+#: two families below were previously a hand-maintained tuple with no drift
+#: test, which is the exact shape that produced four separate plugin-execution
+#: vectors on the config surface.  ``tests/unit/test_opencode_commands.py``
+#: now asserts this table equals a documented enumeration transcribed verbatim
+#: from the pinned provider source, so a bump that adds a scanned directory
+#: family or a new executable extension fails a test.
+#:
+#: The enumeration is closed: at v1.18.12 (tag ``v1.18.12`` =
+#: ``0dd6950d1b06958fbcdcadf0ad56258257ab7fdb``) exactly three call sites glob a
+#: per-root directory for code and ``import()`` the matches, and they cover two
+#: families:
+#:
+#: - ``{tool,tools}/*.{js,ts}`` — ``packages/opencode/src/tool/registry.ts:180``,
+#:   imported at ``:187``.
+#: - ``{plugin,plugins}/*.{ts,js}`` — ``packages/opencode/src/config/plugin.ts:21``
+#:   (via ``ConfigPlugin.load(dir)`` at ``config/config.ts:462-464``) and
+#:   ``packages/core/src/config/plugin/external.ts:60``, imported at ``:80``.
+#:   Added in plan version 9 after live probe L4 proved a project
+#:   ``.opencode/plugin/evil.js`` executes in a real TUI session despite
+#:   ``--pure``.  This scan, not ``--pure`` and not config isolation, is the
+#:   control for that vector.
+#:
+#: Every other per-root glob in ``packages/*/src`` at that ref matches markdown,
+#: never code: ``{command,commands}/**/*.md``
+#: (``packages/opencode/src/config/command.ts:15``,
+#: ``packages/core/src/config/plugin/command.ts:55``), ``{agent,agents}/**/*.md``
+#: and ``{mode,modes}/*.md`` (``packages/opencode/src/config/agent.ts:13,36``;
+#: ``packages/core/src/config/plugin/agent.ts:21-22,143``), and the skill
+#: patterns ``skills/**/SKILL.md`` / ``{skill,skills}/**/SKILL.md`` /
+#: ``**/SKILL.md`` (``packages/opencode/src/skill/index.ts:23-25,150``,
+#: ``packages/core/src/skill.ts:79``).  The two variable-pattern call sites were
+#: resolved to their literals rather than assumed: ``config/plugin/agent.ts:143``
+#: takes ``source.pattern`` from ``legacySources`` at ``:21-22``, and
+#: ``skill/index.ts:150`` takes one of the three constants at ``:23-25``.
+#:
+#: Plugin loading in 1.18.12 has three entry points, and only two of them are
+#: ``--pure``-gated.  Do not relax this scan on the belief that the flag covers
+#: the vector:
+#:
+#: - ``packages/opencode/src/plugin/index.ts:179`` — pure-gated
+#:   (``const plugins = flags.pure ? [] : (cfg.plugin_origins ?? [])``).
+#: - ``packages/opencode/src/plugin/tui/runtime.ts:1089`` — pure-gated
+#:   (``const records = Flag.OPENCODE_PURE ? [] : pluginOrigins``).
+#: - ``packages/core/src/config/plugin/external.ts`` (``ConfigExternalPlugin.Plugin``)
+#:   — **not gated at all**: the file contains no ``flags.pure``/``RuntimeFlags``
+#:   reference.  It globs the identical ``{plugin,plugins}/*.{ts,js}`` pattern
+#:   over every ``entry.type === "directory"`` from ``Config.Service.entries()``
+#:   and ``import()``s each match, and it is force-started from the boot layer in
+#:   ``packages/core/src/plugin/internal.ts``.  This is the best available
+#:   explanation for L4 — a real, unconditional import path — though it has not
+#:   been proven live.  D8's own scan is what closes it: the roots that path draws
+#:   from are ``Global.Path.config`` (the XDG root D7 owns and D8 scans first) and
+#:   the ``.opencode`` walk from ``location.directory`` up to
+#:   ``location.project.directory`` (``core/src/config.ts:178-183``), which is
+#:   exactly the walk ``discovery_preflight`` repeats — see ``worktree_root`` for
+#:   why that stop bound must be a real Git worktree.
+EXECUTABLE_SCANS: tuple[ExecutableScan, ...] = (
+    ExecutableScan(
+        label="executable custom tool",
+        directories=("tool", "tools"),
+        extensions=("js", "ts"),
+        citation=(
+            'packages/opencode/src/tool/registry.ts:180 — Glob.scanSync("{tool,'
+            'tools}/*.{js,ts}", { cwd: dir, absolute: true, dot: true, symlink: '
+            "true }) over config.directories(); each match is import()ed at "
+            ":187."
+        ),
+    ),
+    ExecutableScan(
+        label="executable plugin",
+        directories=("plugin", "plugins"),
+        extensions=("ts", "js"),
+        citation=(
+            'packages/opencode/src/config/plugin.ts:21 — Glob.scan("{plugin,'
+            'plugins}/*.{ts,js}", { cwd: dir, dot: true, symlink: true }) via '
+            "ConfigPlugin.load(dir) at config/config.ts:462-464; and "
+            'packages/core/src/config/plugin/external.ts:60 — fs.glob("{plugin,'
+            'plugins}/*.{ts,js}", ...) over every entry.type === "directory", '
+            "import()ed at :80 with no pure gate."
+        ),
+    ),
 )
-
-
-def _tool_matches(root: Path) -> list[Path]:
-    """Mirror ``Glob.scanSync("{tool,tools}/*.{js,ts}", {symlink: true})``."""
-
-    return _scan_matches(root, ("tool", "tools"))
-
-
-def _plugin_matches(root: Path) -> list[Path]:
-    """Mirror ``Glob.scan("{plugin,plugins}/*.{ts,js}", {symlink: true})``."""
-
-    return _scan_matches(root, ("plugin", "plugins"))
 
 
 def _reject_symlinks(root: Path) -> None:
@@ -518,11 +781,11 @@ def discovery_preflight(
         _reject_symlinks(owned)
 
     for root in roots:
-        for label, directories in EXECUTABLE_SCANS:
-            matches = _scan_matches(root, directories)
+        for scan in EXECUTABLE_SCANS:
+            matches = _scan_matches(root, scan.directories, scan.extensions)
             if matches:
                 raise GuardError(
-                    f"{label} discovered in an OpenCode root: {matches[0]}"
+                    f"{scan.label} discovered in an OpenCode root: {matches[0]}"
                 )
     return roots
 
@@ -538,33 +801,433 @@ def write_tui_backstop(xdg_config_home: Path) -> Path:
     return target
 
 
-def migration_scan(cwd: Path) -> None:
-    """D12: refuse if any discoverable config could trigger a TUI migration.
+#: Environment keys that would relocate or add a configuration source the
+#: enumeration below cannot express as a path.  ``OPENCODE_CONFIG`` names an
+#: arbitrary config file (``packages/opencode/src/config/config.ts:401-403``);
+#: ``OPENCODE_CONFIG_DIR`` replaces the global config root and adds a fifth
+#: discovery root (``packages/core/src/global.ts:64``,
+#: ``packages/opencode/src/config/paths.ts:39``);
+#: ``OPENCODE_TEST_MANAGED_CONFIG_DIR`` relocates the managed root
+#: (``packages/opencode/src/config/managed.ts:32``).  The shim scrubs every
+#: inherited ``OPENCODE_*`` key, so none of these can legitimately be present;
+#: seeing one means the scrub did not hold and the scan set is wrong.
+CONFIG_SOURCE_FORBIDDEN_ENV = (
+    "OPENCODE_CONFIG",
+    "OPENCODE_CONFIG_DIR",
+    "OPENCODE_TEST_MANAGED_CONFIG_DIR",
+)
 
-    Runs after the D6 version gate, which is the one source-verified provider
-    spawn that cannot reach a migration path.
+
+@dataclass(frozen=True)
+class ConfigSource:
+    """One configuration-file family the pinned provider can read.
+
+    ``root`` names a directory family expanded by :func:`_config_source_roots`;
+    ``filenames`` are the exact basenames read inside it; ``parse`` is ``jsonc``
+    when the guard can read the file and gate its keys, or ``opaque`` when it
+    cannot and mere existence must refuse.  ``citation`` is the v1.18.12 source
+    line that establishes the read.
+
+    ``document`` names *which* configuration document the file decodes into,
+    and it changes which key sets apply.  The provider ships two side by side:
+
+    * ``"main"`` — the ``Config.Info`` document.  Both :data:`MIGRATION_KEYS`
+      and :data:`EXECUTION_KEYS` apply.
+    * ``"tui"`` — the ``TuiConfig.Info`` document (``tui.json``/``tui.jsonc``,
+      schema at ``packages/tui/src/config/index.tsx:44-66``).  Only
+      :data:`EXECUTION_KEYS` apply.  ``theme`` and ``keybinds`` are this
+      document's *legitimate content*, not migration residue — D10 writes a
+      keybind backstop into the owned root on purpose — so applying
+      :data:`MIGRATION_KEYS` here would refuse the guard's own file and every
+      launch with it.  The migration-key refusal exists to stop provider TUI
+      migration from rewriting the **main** config and dropping backups outside
+      the owned root, which is a statement about ``opencode.json``, not about
+      ``tui.json``.
     """
 
-    current = cwd.resolve()
-    for candidate in (current, *current.parents):
-        for name in ("opencode.json", "opencode.jsonc"):
-            path = candidate / name
-            if not path.is_file():
-                continue
-            try:
-                payload = json.loads(_strip_jsonc(path.read_text(encoding="utf-8")))
-            except (OSError, ValueError) as exc:
+    label: str
+    root: str
+    filenames: tuple[str, ...]
+    parse: str
+    citation: str
+    document: str = "main"
+
+
+#: **The D12 scan set, derived from the provider's own configuration-discovery
+#: implementation at the pinned v1.18.12 rather than hand-listed.**
+#:
+#: Plan version 11 restructured D12 after a fourth vector of one shape: versions
+#: 9 and 10 each patched whichever location had just been found, and a further
+#: one surfaced each time.  The table below is the enumeration; anything that
+#: scans must expand from it, and ``tests/unit/test_opencode_commands.py``
+#: asserts both that this table matches its documented contents and that the
+#: concrete paths scanned expand from exactly these entries.  A provider bump
+#: that adds a discovery path therefore fails a test instead of silently opening
+#: a hole.
+#:
+#: v1.18.12 ships two config systems and both were traced:
+#:
+#: * v1 — ``packages/opencode/src/config/config.ts``, whose discovery roots come
+#:   from ``packages/opencode/src/config/paths.ts``.
+#: * v2 — ``packages/core/src/config.ts``, whose walk and per-directory load are
+#:   at ``:177-200``.
+#:
+#: Both resolve to the same file families, so the union below is the scan set.
+#: The ancestor walk itself is ``FSUtil.up`` at
+#: ``packages/core/src/fs-util.ts:168-182`` — a plain parent walk that stops at
+#: ``stop`` if given and at the filesystem root otherwise.  D12 walks to the
+#: filesystem root unconditionally, which is a superset of both callers'
+#: bounds (v1 stops at ``ctx.worktree``, v2 at ``location.project.directory``),
+#: so no bound mismatch can narrow the scan.
+#:
+#: Sources deliberately **not** in this table, with the reason:
+#:
+#: * ``OPENCODE_CONFIG_CONTENT`` (``config.ts:468-475``) — Brichan authors it.
+#: * Authenticated org / well-known and remote account config
+#:   (``config.ts:505-514``) — fetched over the network, not a filesystem path.
+#:   D13's second ``debug config`` read against freshly merged provider output
+#:   is the control for those, as the plan records.
+CONFIG_DISCOVERY_SOURCES: tuple[ConfigSource, ...] = (
+    ConfigSource(
+        label="global config root",
+        root="global-config",
+        filenames=("config.json", "opencode.json", "opencode.jsonc"),
+        parse="jsonc",
+        citation=(
+            "v1 packages/opencode/src/config/config.ts:258-260 "
+            "(loadFile over Global.Path.config); "
+            "v2 packages/core/src/config.ts:142,173,186-187,200 "
+            "(loadDirectory over directories[0] = global.config, names = "
+            '["opencode.json", "opencode.jsonc"]). '
+            "Global.Path.config is <XDG_CONFIG_HOME>/opencode "
+            "(packages/core/src/global.ts:13,26)."
+        ),
+    ),
+    ConfigSource(
+        label="global legacy toml config",
+        root="global-config",
+        filenames=("config",),
+        parse="opaque",
+        citation=(
+            "v1 packages/opencode/src/config/config.ts:262-268 — "
+            "import(pathToFileURL(<Global.Path.config>/config), "
+            '{ with: { type: "toml" } }). Not JSON, so the guard cannot gate '
+            "its keys; presence alone refuses."
+        ),
+    ),
+    ConfigSource(
+        label="ancestor project config",
+        root="ancestor",
+        filenames=("opencode.json", "opencode.jsonc"),
+        parse="jsonc",
+        citation=(
+            "v1 packages/opencode/src/config/config.ts:406-409 via "
+            "ConfigPaths.files at packages/opencode/src/config/paths.ts:16-20 "
+            '(up targets ["opencode.jsonc", "opencode.json"]); '
+            "v2 packages/core/src/config.ts:179-185,195-196 "
+            "(up targets include names.toReversed(), loaded via loadFile)."
+        ),
+    ),
+    ConfigSource(
+        label="ancestor .opencode config",
+        root="ancestor-opencode",
+        filenames=("opencode.json", "opencode.jsonc"),
+        parse="jsonc",
+        citation=(
+            "v1 packages/opencode/src/config/config.ts:416,425-430 — for each "
+            'directory ending in ".opencode", loadFile of "opencode.json" and '
+            '"opencode.jsonc"; directories from '
+            "packages/opencode/src/config/paths.ts:28-33; "
+            "v2 packages/core/src/config.ts:164-171,186-192,200 "
+            "(loadDirectory over every discovered .opencode). "
+            "This is the fourth vector: D8 globs only this root's "
+            "{tool,tools}/{plugin,plugins} subdirectories, and D12 before "
+            "plan version 11 never appended the .opencode segment."
+        ),
+    ),
+    ConfigSource(
+        label="home-dot .opencode config",
+        root="home-opencode",
+        filenames=("opencode.json", "opencode.jsonc"),
+        parse="jsonc",
+        citation=(
+            "v1 packages/opencode/src/config/paths.ts:34-38 — up targets "
+            '[".opencode"] from Global.Path.home with stop = Global.Path.home, '
+            "so exactly <home>/.opencode; consumed by config.ts:425-430. "
+            "Global.Path.home honours OPENCODE_TEST_HOME "
+            "(packages/core/src/global.ts:18-20), which D7 owns."
+        ),
+    ),
+    ConfigSource(
+        label="system managed config",
+        root="managed",
+        filenames=("opencode.json", "opencode.jsonc"),
+        parse="jsonc",
+        citation=(
+            "v1 packages/opencode/src/config/config.ts:516-521 over "
+            "ConfigManaged.managedConfigDir() "
+            "(packages/opencode/src/config/managed.ts:20-33)."
+        ),
+    ),
+    ConfigSource(
+        label="macOS managed preferences",
+        root="managed-preferences",
+        filenames=("ai.opencode.managed.plist",),
+        parse="opaque",
+        citation=(
+            "v1 packages/opencode/src/config/config.ts:523-530 via "
+            "ConfigManaged.readManagedPreferences "
+            "(packages/opencode/src/config/managed.ts:8,43-68) — an MDM plist "
+            "that overrides everything.  It is a plist, not JSON, so the guard "
+            "cannot gate its keys; presence alone refuses."
+        ),
+    ),
+    # ---- The TUI document, added in round 12. -----------------------------
+    # Round 11 derived this surface from the tree instead of a transcript and
+    # found a config-file family the transcript had never named.  Round 12
+    # established it is an executable surface of the same class as the other
+    # four: ``plugin`` is a ``PluginSpec`` (``packages/tui/src/config/
+    # index.tsx:19,57``) — the same string-or-[string, options] shape the main
+    # config's ``plugin`` key uses — and it reaches the same importer.  The
+    # chain: ``config/tui.ts:157-168`` turns the array into
+    # ``ConfigPlugin.Origin`` records, ``tui.ts:223,253,274`` exposes them as
+    # ``TuiConfig.pluginOrigins()``, ``plugin/tui/runtime.ts:1088,1106`` passes
+    # them to ``resolveExternalPlugins``, ``:677`` hands them to
+    # ``PluginLoader.loadExternal``, and ``plugin/loader.ts:139`` runs
+    # ``await import(row.entry)``.  That is the identical import site
+    # ``EXECUTION_KEYS`` already refuses ``plugin`` for on the main document.
+    #
+    # ``Flag.OPENCODE_PURE`` gates that consumer at ``runtime.ts:1089``, and
+    # the guard sets ``--pure``.  That gate is not the control: live probe L4
+    # falsified exactly this argument for the main config's ``plugin`` key,
+    # which is why D8 and D12 scan project roots redundantly despite D7.  A
+    # second consumer has no pure gate at all — ``config/tui.ts:224,236-247``
+    # runs ``npm.install`` in every discovered ``.opencode`` directory whenever
+    # the array is non-empty.
+    ConfigSource(
+        label="global tui config",
+        root="global-config",
+        filenames=("tui.json", "tui.jsonc"),
+        parse="jsonc",
+        document="tui",
+        citation=(
+            "v1 packages/opencode/src/config/tui.ts:184 — "
+            'ConfigPaths.fileInDirectory(Global.Path.config, "tui"), expanded '
+            "by packages/opencode/src/config/paths.ts:43-45 into "
+            "<dir>/tui.json and <dir>/tui.jsonc.  This is the root D10 writes "
+            "its own keybind backstop into."
+        ),
+    ),
+    ConfigSource(
+        label="ancestor tui config",
+        root="ancestor",
+        filenames=("tui.json", "tui.jsonc"),
+        parse="jsonc",
+        document="tui",
+        citation=(
+            "v1 packages/opencode/src/config/tui.ts:175 — "
+            'ConfigPaths.files("tui", ctx.directory) via paths.ts:10-21, whose '
+            "targets are [`${name}.jsonc`, `${name}.json`].  Called without a "
+            "worktree argument, so stop is undefined and the walk reaches the "
+            "filesystem root.  Gated by OPENCODE_DISABLE_PROJECT_CONFIG, which "
+            "the guard sets and which D12 scans past on principle."
+        ),
+    ),
+    ConfigSource(
+        label="ancestor .opencode tui config",
+        root="ancestor-opencode",
+        filenames=("tui.json", "tui.jsonc"),
+        parse="jsonc",
+        document="tui",
+        citation=(
+            "v1 packages/opencode/src/config/tui.ts:203-209 — "
+            'ConfigPaths.fileInDirectory(dir, "tui") for every directory from '
+            "ConfigPaths.directories (paths.ts:23-41) ending in .opencode."
+        ),
+    ),
+    ConfigSource(
+        label="home-dot .opencode tui config",
+        root="home-opencode",
+        filenames=("tui.json", "tui.jsonc"),
+        parse="jsonc",
+        document="tui",
+        citation=(
+            "v1 packages/opencode/src/config/tui.ts:203-209 over the same "
+            "ConfigPaths.directories list, whose home-dot entry comes from "
+            "paths.ts:34-38 (up targets [\".opencode\"] bounded to "
+            "Global.Path.home)."
+        ),
+    ),
+)
+
+
+def managed_config_dir() -> Path:
+    """Mirror ``ConfigManaged.managedConfigDir`` (``managed.ts:20-33``).
+
+    ``OPENCODE_TEST_MANAGED_CONFIG_DIR`` is refused outright rather than
+    honoured, so only the platform default is expanded here.
+    """
+
+    if sys.platform == "darwin":
+        return Path("/Library/Application Support/opencode")
+    if os.name == "nt":  # pragma: no cover - the guard does not target Windows
+        return Path(os.environ.get("ProgramData", "C:\\ProgramData")) / "opencode"
+    return Path("/etc/opencode")
+
+
+def _managed_preferences_dirs() -> list[Path]:
+    """Mirror ``readManagedPreferences``' path list (``managed.ts:43-56``)."""
+
+    if sys.platform != "darwin":
+        return []
+    try:
+        user = getpass.getuser() or "user"
+    except Exception:  # pragma: no cover - matches the provider's own fallback
+        user = "user"
+    base = Path("/Library/Managed Preferences")
+    return [base / user, base]
+
+
+def _config_source_roots(
+    source: ConfigSource,
+    *,
+    cwd: Path,
+    xdg_config_home: Path,
+    test_home: Path,
+) -> list[Path]:
+    """Expand one :class:`ConfigSource` root family into directories.
+
+    An unrecognised ``root`` raises rather than being skipped: adding a source
+    to :data:`CONFIG_DISCOVERY_SOURCES` without teaching the expansion about it
+    must fail loudly, never scan nothing.
+    """
+
+    if source.root == "global-config":
+        return [xdg_config_home / "opencode"]
+    if source.root == "home-opencode":
+        return [test_home / ".opencode"]
+    if source.root == "managed":
+        return [managed_config_dir()]
+    if source.root == "managed-preferences":
+        return _managed_preferences_dirs()
+    if source.root in ("ancestor", "ancestor-opencode"):
+        current = cwd.resolve()
+        ancestors = [current, *current.parents]
+        if source.root == "ancestor":
+            return ancestors
+        return [ancestor / ".opencode" for ancestor in ancestors]
+    raise GuardError(  # pragma: no cover - guarded by the drift test
+        f"unknown OpenCode config discovery root: {source.root}"
+    )
+
+
+def config_scan_paths(
+    *,
+    cwd: Path,
+    xdg_config_home: Path,
+    test_home: Path,
+    environment: Mapping[str, str],
+) -> list[tuple[Path, ConfigSource]]:
+    """Expand :data:`CONFIG_DISCOVERY_SOURCES` into the concrete D12 scan set.
+
+    Order follows the table, then root order, then filename order, so the set is
+    deterministic and a test can assert it exactly.  Duplicates are collapsed on
+    first appearance.
+    """
+
+    for key in CONFIG_SOURCE_FORBIDDEN_ENV:
+        if key in environment:
+            raise GuardError(
+                f"{key} must be unset: it moves OpenCode configuration outside "
+                "the derived scan set"
+            )
+
+    paths: list[tuple[Path, ConfigSource]] = []
+    seen: set[Path] = set()
+    for source in CONFIG_DISCOVERY_SOURCES:
+        for root in _config_source_roots(
+            source, cwd=cwd, xdg_config_home=xdg_config_home, test_home=test_home
+        ):
+            for name in source.filenames:
+                path = root / name
+                if path in seen:
+                    continue
+                seen.add(path)
+                paths.append((path, source))
+    return paths
+
+
+def migration_scan(
+    cwd: Path,
+    *,
+    xdg_config_home: Path,
+    test_home: Path,
+    environment: Mapping[str, str],
+) -> list[Path]:
+    """D12: scan every config file the provider itself can read.
+
+    The scan set is not hand-listed.  It expands from
+    :data:`CONFIG_DISCOVERY_SOURCES`, which is derived from the pinned
+    provider's own discovery implementation and carries a source citation per
+    entry.  Neither is the key set: it expands from :data:`EXECUTION_KEYS`,
+    derived from every non-literal ``import()`` site at the pinned version.
+    Refuses if any discovered config could trigger a TUI migration and — for the
+    reason recorded on :data:`EXECUTION_KEYS` — if one names a module the
+    provider would load; refuses on the mere existence of a source the guard
+    cannot parse.
+    Runs after the D6 version gate, which is the one source-verified provider
+    spawn that cannot reach a migration path.
+
+    Returns the scanned paths so callers and tests can bind against the actual
+    set rather than a restatement of it.
+    """
+
+    scanned = config_scan_paths(
+        cwd=cwd,
+        xdg_config_home=xdg_config_home,
+        test_home=test_home,
+        environment=environment,
+    )
+    for path, source in scanned:
+        if source.parse == "opaque":
+            if path.exists() or os.path.lexists(path):
                 raise GuardError(
-                    f"discovered OpenCode config cannot be parsed: {path}"
-                ) from exc
-            if not isinstance(payload, dict):
-                continue
+                    "discovered OpenCode config source cannot be inspected and "
+                    f"must not exist: {path}"
+                )
+            continue
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(_strip_jsonc(path.read_text(encoding="utf-8")))
+        except (OSError, ValueError) as exc:
+            raise GuardError(
+                f"discovered OpenCode config cannot be parsed: {path}"
+            ) from exc
+        if not isinstance(payload, dict):
+            continue
+        # Migration keys are a statement about the *main* document only.  On
+        # the TUI document ``theme`` and ``keybinds`` are its declared schema
+        # (``packages/tui/src/config/index.tsx:54-56``) and its expected
+        # content — D10 writes a keybind backstop into the owned root two steps
+        # before this scan runs.  Gating them here would refuse the guard's own
+        # file and take every launch down with it.  Execution keys still apply
+        # to both documents, which is the entire reason the TUI family is in
+        # the table at all.
+        if source.document == "main":
             for key in MIGRATION_KEYS:
                 if key in payload:
                     raise GuardError(
                         "discovered OpenCode config carries a migration key: "
                         f"{path}#{key}"
                     )
+        for execution in EXECUTION_KEYS:
+            if execution.key in payload:
+                raise GuardError(
+                    "discovered OpenCode config carries an execution key: "
+                    f"{path}#{execution.key}"
+                )
+    return [path for path, _ in scanned]
 
 
 def _strip_jsonc(text: str) -> str:
@@ -888,7 +1551,12 @@ def preflight(
     write_tui_backstop(xdg_config_home)
     record.append("tui-backstop")
 
-    migration_scan(cwd)
+    migration_scan(
+        cwd,
+        xdg_config_home=xdg_config_home,
+        test_home=test_home,
+        environment=environment,
+    )
     record.append("migration-scan")
 
     skill_precheck(environment, execute)

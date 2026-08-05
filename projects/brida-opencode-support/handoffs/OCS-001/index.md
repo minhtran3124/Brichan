@@ -29,7 +29,7 @@ Projection of task state. It links canonical authorities and never copies their 
 - Canonical receipt path: `projects/brida-opencode-support/handoffs/OCS-001/receipt.md`
 - Project memory path: `projects/brida-opencode-support/current-state.md`
 - Accepted plan ID: `OCS-001-PLAN`
-- Accepted plan version: `9`
+- Accepted plan version: `13`
 - Review route strength: `stronger`
 - Review route override: `Fresh independent review sessions for both plan and code review, each a different model from the amending coordinator. The manifest review route Codex gpt-5.6-sol is unusable on this account (HTTP 400, model not supported with a ChatGPT account), so the version-8 plan review ran on a fresh claude-sonnet-5 high session; code review must likewise use a fresh independent session.`
 - Ship authorization: `not-requested`
@@ -46,9 +46,9 @@ Projection of task state. It links canonical authorities and never copies their 
 | `options` | `required` | `passed` | `options.md` |
 | `design` | `required` | `passed` | `design.md` |
 | `client-follow-up-questions` | `required` | `passed` | `client-follow-up-questions.md` |
-| `plan` | `required` | `passed` | `plan.md` |
-| `plan-review` | `required` | `passed` | `plan-review.md` |
-| `code-review` | `required` | `passed` | `code-review.md` |
+| `plan` | `required` | `active` | `plan.md` |
+| `plan-review` | `required` | `active` | `plan-review.md` |
+| `code-review` | `required` | `active` | `code-review.md` |
 | `pr-desc` | `required` | `pending` | `pr-desc.md` |
 
 ## Claim or decision

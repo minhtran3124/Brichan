@@ -7,6 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
+from tests import opencode_surface  # noqa: E402  (adds src/ to sys.path)
+from brichan.cli import opencode as oc  # noqa: E402
+
 
 class RepositoryContractTest(unittest.TestCase):
     def test_required_repository_files_exist(self):
@@ -381,6 +384,60 @@ class RepositoryContractTest(unittest.TestCase):
                 if "/Users/" in content or "/home/" in content:
                     offenders.append(str(path.relative_to(ROOT)))
         self.assertEqual([], offenders)
+
+
+class OpencodePinnedSurfaceReceiptTest(unittest.TestCase):
+    """The one always-on check that a version bump re-ran its derivations.
+
+    ``EXECUTABLE_SCANS``, ``CONFIG_DISCOVERY_SOURCES``, and ``EXECUTION_KEYS``
+    are derived from the pinned provider's own source.  Their drift tests are
+    offline and compare against a hand-written transcript, so they agree with
+    themselves after a bump and prove nothing about the new release; the checks
+    that read a real extracted tree are opt-in and skip when
+    ``BRICHAN_OPENCODE_PINNED_SOURCE`` is unset.  Before this test, editing
+    ``OPENCODE_VERSION`` alone left the whole suite green.
+
+    This runs in ``make check``, offline, with no network and no local tree: it
+    compares a digest of the live tables against the receipt the pinned-source
+    run wrote.  It is a forcing function, not a proof — the receipt can be
+    hand-edited, and ``tests/opencode_surface.py`` says so at length.
+    """
+
+    def test_the_receipt_matches_the_current_derived_surface(self):
+        recorded = opencode_surface.load_fixture()
+        if recorded.get("surface_digest") != opencode_surface.surface_digest() or (
+            recorded.get("opencode_version") != oc.OPENCODE_VERSION
+        ):
+            self.fail(opencode_surface.mismatch_message(recorded))
+
+    def test_the_receipt_records_the_entry_counts_a_reader_can_check(self):
+        """Cheap redundancy: a digest is opaque, a count is reviewable."""
+
+        recorded = opencode_surface.load_fixture()
+        self.assertEqual(
+            {
+                name: len(getattr(oc, name))
+                for name in opencode_surface.DERIVED_TABLES
+            },
+            recorded["entry_counts"],
+        )
+
+    def test_the_receipt_states_that_hand_editing_defeats_it(self):
+        """The honesty is part of the artifact, not only of the commit message."""
+
+        recorded = opencode_surface.load_fixture()
+        self.assertIn("Hand-editing", recorded["_comment"])
+
+    def test_the_failure_message_names_the_command_to_run(self):
+        message = opencode_surface.mismatch_message(
+            {"opencode_version": "0.0.0", "surface_digest": "sha256:stale"}
+        )
+        self.assertIn("BRICHAN_OPENCODE_PINNED_SOURCE=", message)
+        self.assertIn(f"tarball/v{oc.OPENCODE_VERSION}", message)
+        self.assertIn("docs/guides/model-routing.md", message)
+        self.assertIn("fix the derived table", message)
+        # And it must not imply the receipt is a proof.
+        self.assertIn("without verifying anything", message)
 
 
 if __name__ == "__main__":
