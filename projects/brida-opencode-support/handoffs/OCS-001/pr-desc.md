@@ -14,16 +14,16 @@ Regenerable description built only from verified evidence. It never authorizes o
 - Applicability: `required`
 - Applicability rationale: `null`
 - Authorship: `model`
-- Authoring session: `null`
-- Effective route: `null`
-- Effective model: `null`
-- Effective effort: `null`
+- Authoring session: `572900ac-b7e7-4d27-b84d-95dc731c8e6f`
+- Effective route: `coordinator`
+- Effective model: `claude-opus-5`
+- Effective effort: `high`
 - Reviewing session: `null`
 - Review verdict: `null`
 
 ## Remote action
 
-- Remote action authorized: `yes`
+- Remote action authorized: `no`
 
 ## Claim or decision
 
@@ -31,7 +31,7 @@ Regenerable description built only from verified evidence. It never authorizes o
 
 ## Evidence
 
-- Pull request: https://github.com/minhtran3124/Brichan/pull/26, opened on explicit user authorization.
+- Pull request: https://github.com/minhtran3124/Brichan/pull/26. The user authorized opening it in session; this artifact records that it exists and does not itself authorize any remote action.
 - Commits: `1c739f3` (feature) and `33c8c48` (six-vector fix), deliberately not squashed so the history records what the first commit got wrong.
 - Verification cited in the description: `make check` and `make test` green at 10/555/81/100; seven live acceptance probes; all six vectors re-probed live and refused; independent review PASS on plan v13 and code.
 - Residuals named in the description rather than omitted, including the open, unprobed `npm.install` subprocess question.
