@@ -4,8 +4,8 @@ Last updated: 2026-08-05
 
 ## Summary
 
-Status: **Stage 1 fixed, verified, and committed in two commits on
-`feature/opencode-stage1`; nothing pushed.** Plan v13. The combined independent
+Status: **Stage 1 fixed, verified, and committed and pushed as two
+commits on `feature/opencode-stage1` (`1c739f3` then `33c8c48`); no PR opened.** Plan v13. The combined independent
 review returned PASS on both the plan and the code and recommended shipping,
 after re-deriving all three enumerations itself against a freshly downloaded
 pinned tree and widening the sweep to the shipped package's full 11-package
@@ -136,7 +136,8 @@ version pin alone fails `make check` offline.
 1. Settle the open `npm.install` question with a live probe: can project-controlled
    configuration that is not already refused trigger a package install, whose
    lifecycle scripts execute by subprocess rather than by `import()`?
-2. Decide whether to push and open a PR.
+2. Decide whether to open a PR. The branch is pushed; the `npm.install` question
+   should be named in the PR description if one is opened.
 3. Optional hardening the reviewer left as accepted residual: the authenticated
    org/well-known/managed network config source, and the closure argument's
    method boundary.
