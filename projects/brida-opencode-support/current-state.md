@@ -4,24 +4,32 @@ Last updated: 2026-08-05
 
 ## Summary
 
-Status: **Stage 1 fixed, verified, and committed and pushed as two
-commits on `feature/opencode-stage1` (`1c739f3` then `33c8c48`); no PR opened.** Plan v13. The combined independent
-review returned PASS on both the plan and the code and recommended shipping,
-after re-deriving all three enumerations itself against a freshly downloaded
-pinned tree and widening the sweep to the shipped package's full 11-package
-dependency closure — wider than any implementation round went.
+Status: **Stage 1 complete. No open questions remain against OCS-001.**
+Plan v13, committed and pushed on `feature/opencode-stage1` as `1c739f3`
+(feature), `33c8c48` (six-vector fix) and two docs commits. PR 26 is open:
+https://github.com/minhtran3124/Brichan/pull/26. Merging is the user's decision.
+
+The combined independent review returned PASS on both the plan and the code and
+recommended shipping, after re-deriving all three enumerations itself against a
+freshly downloaded pinned tree and widening the sweep to the shipped package's
+full 11-package dependency closure — wider than any implementation round went.
 
 Six executable-surface vectors were found in total. The first four were each
 found by something outside the guard's own logic: a live probe, an independent
 review, post-commit instrumentation. The last two were found by the derivation's
 own closure argument before any failure — `provider`/`providers` in round 8, and
-the TUI document in round 12. That shift is the reason the reviewer judged the
+the TUI document in round 12. That shift is why the reviewer judged the
 discipline sufficient rather than hopeful.
 
 Every executable surface is now derived from the provider's own implementation,
 carried in code with source citations, drift-tested in the ADDED direction
 against real mutated trees, and bound to a committed fixture so editing the
 version pin alone fails `make check` offline.
+
+The last open question, whether the npm install fan-out was a seventh vector,
+is closed: NO. A source determination and a live probe with a firing control
+agree, and it is closed for two independent reasons either of which would be
+sufficient.
 
 ## Verified environment
 
@@ -133,9 +141,9 @@ version pin alone fails `make check` offline.
 
 ## Next actions
 
-1. Settle the open `npm.install` question with a live probe: can project-controlled
-   configuration that is not already refused trigger a package install, whose
-   lifecycle scripts execute by subprocess rather than by `import()`?
+1. The `npm.install` question is closed: NO, not a further vector, agreed by an
+   independent source determination and a live probe with a firing control.
+   Nothing is open against OCS-001.
 2. PR 26 is open: https://github.com/minhtran3124/Brichan/pull/26. Merging is the
    user's decision; the `npm.install` residual is named in its description.
 3. Optional hardening the reviewer left as accepted residual: the authenticated
