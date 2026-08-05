@@ -136,8 +136,8 @@ version pin alone fails `make check` offline.
 1. Settle the open `npm.install` question with a live probe: can project-controlled
    configuration that is not already refused trigger a package install, whose
    lifecycle scripts execute by subprocess rather than by `import()`?
-2. Decide whether to open a PR. The branch is pushed; the `npm.install` question
-   should be named in the PR description if one is opened.
+2. PR 26 is open: https://github.com/minhtran3124/Brichan/pull/26. Merging is the
+   user's decision; the `npm.install` residual is named in its description.
 3. Optional hardening the reviewer left as accepted residual: the authenticated
    org/well-known/managed network config source, and the closure argument's
    method boundary.

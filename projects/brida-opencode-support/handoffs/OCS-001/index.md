@@ -49,7 +49,7 @@ Projection of task state. It links canonical authorities and never copies their 
 | `plan` | `required` | `active` | `plan.md` |
 | `plan-review` | `required` | `active` | `plan-review.md` |
 | `code-review` | `required` | `active` | `code-review.md` |
-| `pr-desc` | `required` | `pending` | `pr-desc.md` |
+| `pr-desc` | `required` | `passed` | `pr-desc.md` |
 
 ## Claim or decision
 
