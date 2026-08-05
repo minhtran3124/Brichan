@@ -11,10 +11,19 @@ from typing import Any, Mapping
 
 
 SCHEMA_VERSION = 1
-SUPPORTED_RUNTIMES = frozenset({"codex", "claude"})
+SUPPORTED_RUNTIMES = frozenset({"codex", "claude", "opencode"})
+#: Coordinator entries that every schema-v1 manifest must carry.  The OpenCode
+#: coordinator entry stays optional so existing manifests keep parsing and an
+#: absent entry produces an owned error at resolution time rather than a schema
+#: failure that would break Codex and Claude too.
+REQUIRED_COORDINATOR_RUNTIMES = frozenset({"codex", "claude"})
 SUPPORTED_EFFORTS = {
     "codex": frozenset({"low", "medium", "high", "xhigh", "max"}),
     "claude": frozenset({"low", "medium", "high", "xhigh", "max"}),
+    # OpenCode calls this a variant.  Validation is syntactic only: the name
+    # must be a supported effort, not one the provider is known to accept for
+    # the routed model.  See docs/policy/model-catalog.md for what was verified.
+    "opencode": frozenset({"low", "medium", "high", "xhigh", "max"}),
 }
 REQUIRED_ROUTES = frozenset({"plan", "implement", "review", "scan"})
 MODEL_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]*$")
@@ -138,11 +147,18 @@ def parse_settings(payload: Any) -> RoutingSettings:
         coordinator["runtimes"],
         "settings.coordinator.runtimes",
     )
-    _expect_exact_keys(
-        runtime_values,
-        SUPPORTED_RUNTIMES,
-        "settings.coordinator.runtimes",
-    )
+    missing = sorted(REQUIRED_COORDINATOR_RUNTIMES - set(runtime_values))
+    if missing:
+        raise RoutingError(
+            "settings.coordinator.runtimes is missing required keys: "
+            + ", ".join(missing)
+        )
+    unexpected = sorted(set(runtime_values) - SUPPORTED_RUNTIMES)
+    if unexpected:
+        raise RoutingError(
+            "settings.coordinator.runtimes contains unsupported keys: "
+            + ", ".join(unexpected)
+        )
     coordinators: dict[str, ResolvedRoute] = {}
     for runtime, value in runtime_values.items():
         location = f"settings.coordinator.runtimes.{runtime}"
@@ -275,6 +291,11 @@ def resolve_coordinator(
 ) -> ResolvedRoute:
     resolved_runtime = settings.default_runtime if runtime is None else runtime
     validate_runtime(resolved_runtime, "coordinator runtime")
+    if resolved_runtime not in settings.coordinators:
+        raise RoutingError(
+            f"routing settings declare no {resolved_runtime} coordinator entry; "
+            f"add settings.coordinator.runtimes.{resolved_runtime}"
+        )
     return _apply_overrides(
         settings.coordinators[resolved_runtime],
         runtime=resolved_runtime,

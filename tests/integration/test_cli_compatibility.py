@@ -208,6 +208,109 @@ class CliCompatibilityTest(unittest.TestCase):
         self.assertIn("agents.enabled=false", codex["argv"])
         self.assertIn("--disallowed-tools=Task", claude["argv"])
 
+    def test_codex_and_claude_argv_is_byte_identical_across_the_addition(self):
+        """AC8: adding a third runtime must not shift one byte of the others."""
+
+        codex = self.run_launcher("brichan-codex")
+        claude = self.run_launcher("brichan-claude")
+        self.assertEqual(
+            [
+                "-C",
+                str(ROOT),
+                "-c",
+                "agents.enabled=false",
+                "--disable",
+                "multi_agent",
+                "--disable",
+                "multi_agent_v2",
+                "--model",
+                CODEX_COORDINATOR["model"],
+                "-c",
+                f"model_reasoning_effort={CODEX_COORDINATOR['effort']}",
+            ],
+            codex["argv"],
+        )
+        self.assertEqual(
+            [
+                "--model",
+                CLAUDE_COORDINATOR["model"],
+                "--effort",
+                CLAUDE_COORDINATOR["effort"],
+                "--disallowed-tools=Task",
+            ],
+            claude["argv"],
+        )
+
+    def test_dispatcher_routes_the_opencode_runtime_to_its_own_wrapper(self):
+        """AC1: --runtime opencode and BRICHAN_RUNTIME reach one guarded adapter.
+
+        The wrapper is invoked with --version so the run stops inside Brichan and
+        never spawns a provider.
+        """
+
+        for arguments, environment in (
+            (["--runtime", "opencode", "--version"], {}),
+            (["--runtime=opencode", "--version"], {}),
+        ):
+            with self.subTest(arguments=arguments, environment=environment):
+                result = subprocess.run(
+                    [str(ROOT / "bin" / "brichan"), *arguments],
+                    cwd=ROOT,
+                    env={**os.environ, **environment},
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertTrue(
+                    result.stdout.startswith("brichan-opencode "), result.stdout
+                )
+
+        # A bare --version in a checkout is a question about Brichan and never
+        # reaches a runtime, so BRICHAN_RUNTIME is probed with an argument the
+        # OpenCode adapter itself has to answer.
+        result = subprocess.run(
+            [str(ROOT / "bin" / "brichan"), "coordinate something"],
+            cwd=ROOT,
+            env={**os.environ, "BRICHAN_RUNTIME": "opencode"},
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(2, result.returncode, result.stdout)
+        self.assertIn("brichan-opencode: ", result.stderr)
+
+    def test_the_opencode_console_takes_no_provider_arguments(self):
+        result = subprocess.run(
+            [str(ROOT / "bin" / "brichan-opencode"), "--agent", "general"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("takes no provider arguments", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_the_opencode_shim_refuses_forbidden_argv_before_any_spawn(self):
+        for arguments in (
+            ["run", "do the thing"],
+            ["--pure", "--agent", "general"],
+            ["--model", "opencode-go/gpt-5.6-luna"],
+            ["--model", "opencode-go/gpt-5.6-luna", "--variant", "ultra"],
+        ):
+            with self.subTest(arguments=arguments):
+                result = subprocess.run(
+                    [str(ROOT / "bin" / "brichan-opencode-exec"), *arguments],
+                    cwd=ROOT,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(2, result.returncode, result.stdout)
+                self.assertIn("brichan-opencode-exec:", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+
     def test_checkout_dispatch_works_from_descendant_directory(self):
         result = self.run_launcher(
             "brichan",

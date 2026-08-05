@@ -346,11 +346,70 @@ def claude_command(
     return command
 
 
+def _opencode_shim_command(route: ResolvedRoute) -> list[str]:
+    # Imported lazily so the OpenCode guard module (and its provider-process
+    # machinery) is loaded only when an OpenCode launch is actually selected.
+    from .opencode import shim_command
+
+    return shim_command(route)
+
+
+def opencode_command(argv: list[str]) -> list[str]:
+    """Validate the legacy explicit OpenCode shape into a guarded shim launch.
+
+    Legacy ``-m``/``--model`` and ``--variant`` are consumed here and become
+    ``agent.brichan-primary.model``/``.variant`` inside the shim's inline
+    config; nothing from this argv is ever forwarded as provider argv.
+    """
+
+    from .opencode import GuardError, shim_executable
+
+    model: str | None = None
+    variant: str | None = None
+    index = 0
+    while index < len(argv):
+        item = argv[index]
+        if item in {"-m", "--model", "--variant"}:
+            if index + 1 >= len(argv):
+                raise GuardError(f"{item} requires a value")
+            value = argv[index + 1]
+            index += 2
+        else:
+            attached = None
+            for name in ("-m", "--model", "--variant"):
+                attached = _option_value(item, name)
+                if attached is not None:
+                    item, value = name, attached
+                    break
+            if attached is None:
+                raise GuardError(
+                    f"OpenCode argument is forbidden in legacy commands: {item}"
+                )
+            if not value:
+                raise GuardError(f"{item} requires a value")
+            index += 1
+        if item == "--variant":
+            if variant is not None:
+                raise GuardError("--variant may be given only once")
+            variant = validate_effort("opencode", value, "legacy OpenCode variant")
+        else:
+            if model is not None:
+                raise GuardError("model may be given only once")
+            model = validate_model(value, "legacy OpenCode model")
+    if model is None or variant is None:
+        raise GuardError(
+            "legacy OpenCode commands require a model and a --variant"
+        )
+    return [shim_executable(), "--model", model, "--variant", variant]
+
+
 def worker_command(route: ResolvedRoute) -> list[str]:
     if route.runtime == "codex":
         return codex_command(route)
     if route.runtime == "claude":
         return claude_command(route, worker=True)
+    if route.runtime == "opencode":
+        return _opencode_shim_command(route)
     raise RoutingError(f"unsupported worker runtime: {route.runtime}")
 
 
@@ -399,6 +458,10 @@ def secure_legacy_command(argv: list[str]) -> list[str]:
         command.extend(arguments)
         return command
 
+    if runtime == "opencode":
+        return opencode_command(arguments)
+
     raise RoutingError(
-        f"unsupported legacy worker runtime {runtime!r}; expected codex or claude"
+        f"unsupported legacy worker runtime {runtime!r}; "
+        "expected codex, claude, or opencode"
     )

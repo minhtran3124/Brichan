@@ -7,6 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
+from tests import opencode_surface  # noqa: E402  (adds src/ to sys.path)
+from brichan.cli import opencode as oc  # noqa: E402
+
 
 class RepositoryContractTest(unittest.TestCase):
     def test_required_repository_files_exist(self):
@@ -22,6 +25,8 @@ class RepositoryContractTest(unittest.TestCase):
             "bin/brichan",
             "bin/brichan-codex",
             "bin/brichan-claude",
+            "bin/brichan-opencode",
+            "bin/brichan-opencode-exec",
             "bin/brichan-herdr-agent-start",
             "scripts/install-brichan",
             "CLAUDE.md",
@@ -37,6 +42,7 @@ class RepositoryContractTest(unittest.TestCase):
             "src/brichan/orchestration/worker_launch.py",
             "src/brichan/orchestration/model_routing.py",
             "src/brichan/cli/provider_commands.py",
+            "src/brichan/cli/opencode.py",
             "src/brichan/cli/runtime.py",
             "config/model-routing.json",
             ".codex/config.toml",
@@ -152,6 +158,8 @@ class RepositoryContractTest(unittest.TestCase):
             "bin/brichan",
             "bin/brichan-codex",
             "bin/brichan-claude",
+            "bin/brichan-opencode",
+            "bin/brichan-opencode-exec",
             "scripts/install-brichan",
         ):
             launcher = ROOT / name
@@ -192,10 +200,48 @@ class RepositoryContractTest(unittest.TestCase):
             ROOT / "src/brichan/orchestration/model_routing.py"
         ).read_text(encoding="utf-8")
         self.assertIn('environment.get("BRICHAN_RUNTIME") or default_runtime', dispatcher)
+        self.assertIn('{"codex", "claude", "opencode"}', routing)
         self.assertIn('{"codex", "claude"}', routing)
         self.assertIn("settings.default_runtime", dispatcher)
         self.assertIn('f"brichan-{runtime}"', dispatcher)
         self.assertIn("unsupported runtime", dispatcher)
+
+    def test_opencode_adapter_states_its_fail_closed_boundary(self):
+        adapter = (ROOT / "src/brichan/cli/opencode.py").read_text(encoding="utf-8")
+        # The exact six-key guard environment, and nothing else.
+        for key in (
+            "OPENCODE_CONFIG_CONTENT",
+            "OPENCODE_DISABLE_AUTOUPDATE",
+            "OPENCODE_DISABLE_PROJECT_CONFIG",
+            "OPENCODE_DISABLE_CLAUDE_CODE",
+            "OPENCODE_TEST_HOME",
+            "XDG_CONFIG_HOME",
+        ):
+            self.assertIn(key, adapter, key)
+        # HOME and the data/state/cache roots are never repurposed, so the real
+        # OpenCode credential file keeps resolving.
+        self.assertNotIn('"HOME":', adapter)
+        self.assertNotIn('"XDG_DATA_HOME":', adapter)
+        self.assertIn('OPENCODE_VERSION = "1.18.12"', adapter)
+        self.assertIn('LAUNCH_ARGV = ("opencode", "--pure", "--agent"', adapter)
+        self.assertIn("--variant", adapter)
+
+    def test_the_three_checkout_runtimes_have_matching_wrappers(self):
+        dispatcher = (ROOT / "src/brichan/cli/runtime.py").read_text(encoding="utf-8")
+        self.assertIn('{"codex", "claude", "opencode"}', dispatcher)
+        for runtime in ("codex", "claude", "opencode"):
+            wrapper = ROOT / "bin" / f"brichan-{runtime}"
+            self.assertTrue(wrapper.is_file(), runtime)
+            self.assertIn(f"brichan.cli.{runtime}", wrapper.read_text(encoding="utf-8"))
+
+    def test_opencode_documentation_states_its_known_limitations(self):
+        routing_guide = (ROOT / "docs/guides/model-routing.md").read_text(
+            encoding="utf-8"
+        )
+        catalog = (ROOT / "docs/policy/model-catalog.md").read_text(encoding="utf-8")
+        for needle in ("syntactic", "screen", "AGENTS.md"):
+            self.assertIn(needle, routing_guide, needle)
+        self.assertIn("opencode", catalog.lower())
 
     def test_claude_launcher_keeps_herdr_as_worker_control_plane(self):
         adapter = (ROOT / "src/brichan/cli/claude.py").read_text(encoding="utf-8")
@@ -338,6 +384,60 @@ class RepositoryContractTest(unittest.TestCase):
                 if "/Users/" in content or "/home/" in content:
                     offenders.append(str(path.relative_to(ROOT)))
         self.assertEqual([], offenders)
+
+
+class OpencodePinnedSurfaceReceiptTest(unittest.TestCase):
+    """The one always-on check that a version bump re-ran its derivations.
+
+    ``EXECUTABLE_SCANS``, ``CONFIG_DISCOVERY_SOURCES``, and ``EXECUTION_KEYS``
+    are derived from the pinned provider's own source.  Their drift tests are
+    offline and compare against a hand-written transcript, so they agree with
+    themselves after a bump and prove nothing about the new release; the checks
+    that read a real extracted tree are opt-in and skip when
+    ``BRICHAN_OPENCODE_PINNED_SOURCE`` is unset.  Before this test, editing
+    ``OPENCODE_VERSION`` alone left the whole suite green.
+
+    This runs in ``make check``, offline, with no network and no local tree: it
+    compares a digest of the live tables against the receipt the pinned-source
+    run wrote.  It is a forcing function, not a proof — the receipt can be
+    hand-edited, and ``tests/opencode_surface.py`` says so at length.
+    """
+
+    def test_the_receipt_matches_the_current_derived_surface(self):
+        recorded = opencode_surface.load_fixture()
+        if recorded.get("surface_digest") != opencode_surface.surface_digest() or (
+            recorded.get("opencode_version") != oc.OPENCODE_VERSION
+        ):
+            self.fail(opencode_surface.mismatch_message(recorded))
+
+    def test_the_receipt_records_the_entry_counts_a_reader_can_check(self):
+        """Cheap redundancy: a digest is opaque, a count is reviewable."""
+
+        recorded = opencode_surface.load_fixture()
+        self.assertEqual(
+            {
+                name: len(getattr(oc, name))
+                for name in opencode_surface.DERIVED_TABLES
+            },
+            recorded["entry_counts"],
+        )
+
+    def test_the_receipt_states_that_hand_editing_defeats_it(self):
+        """The honesty is part of the artifact, not only of the commit message."""
+
+        recorded = opencode_surface.load_fixture()
+        self.assertIn("Hand-editing", recorded["_comment"])
+
+    def test_the_failure_message_names_the_command_to_run(self):
+        message = opencode_surface.mismatch_message(
+            {"opencode_version": "0.0.0", "surface_digest": "sha256:stale"}
+        )
+        self.assertIn("BRICHAN_OPENCODE_PINNED_SOURCE=", message)
+        self.assertIn(f"tarball/v{oc.OPENCODE_VERSION}", message)
+        self.assertIn("docs/guides/model-routing.md", message)
+        self.assertIn("fix the derived table", message)
+        # And it must not imply the receipt is a proof.
+        self.assertIn("without verifying anything", message)
 
 
 if __name__ == "__main__":

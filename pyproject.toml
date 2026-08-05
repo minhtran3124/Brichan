@@ -32,6 +32,8 @@ dependencies = []
 brichan = "brichan.cli.runtime:main"
 brichan-codex = "brichan.cli.codex:main"
 brichan-claude = "brichan.cli.claude:main"
+brichan-opencode = "brichan.cli.opencode:main"
+brichan-opencode-exec = "brichan.cli.opencode:exec_main"
 brichan-herdr-agent-start = "brichan.orchestration.worker_launch:main"
 brichan-validate-receipts = "brichan.contracts.receipts.validation:main"
 

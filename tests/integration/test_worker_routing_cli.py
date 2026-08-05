@@ -274,6 +274,150 @@ class WorkerRoutingCliTest(unittest.TestCase):
         command = start[start.index("--") + 1 :]
         self.assertIn("legacy-model", command)
 
+    def test_named_opencode_route_launches_the_guarded_shim(self):
+        result = self.run_launcher(
+            *self.common_arguments(),
+            "--route",
+            "implement",
+            "--runtime",
+            "opencode",
+            "--model",
+            "opencode-go/gpt-5.6-luna",
+            "--effort",
+            "high",
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        start = next(call for call in self.calls() if call[:2] == ["agent", "start"])
+        command = start[start.index("--") + 1 :]
+        self.assertTrue(command[0].endswith("brichan-opencode-exec"), command)
+        self.assertEqual(
+            ["--model", "opencode-go/gpt-5.6-luna", "--variant", "high"],
+            command[1:],
+        )
+        # Nothing OpenCode-native ever reaches Herdr's argv.
+        self.assertNotIn("--pure", command)
+        self.assertNotIn("--agent", command)
+
+    def test_legacy_opencode_command_launches_the_guarded_shim(self):
+        result = self.run_launcher(
+            *self.common_arguments(),
+            "--",
+            "opencode",
+            "-m",
+            "opencode-go/gpt-5.6-luna",
+            "--variant",
+            "medium",
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        start = next(call for call in self.calls() if call[:2] == ["agent", "start"])
+        command = start[start.index("--") + 1 :]
+        self.assertTrue(command[0].endswith("brichan-opencode-exec"), command)
+        self.assertEqual(
+            ["--model", "opencode-go/gpt-5.6-luna", "--variant", "medium"],
+            command[1:],
+        )
+
+    def test_forbidden_opencode_arguments_fail_before_herdr(self):
+        cases = (
+            ("opencode",),
+            ("opencode", "run", "do the thing"),
+            ("opencode", "--pure"),
+            ("opencode", "--agent", "general"),
+            ("opencode", "-m", "opencode-go/gpt-5.6-luna"),
+            ("opencode", "-m", "opencode-go/gpt-5.6-luna", "--variant", "ultra"),
+            (
+                "opencode",
+                "-m",
+                "opencode-go/gpt-5.6-luna",
+                "--variant",
+                "medium",
+                "serve",
+            ),
+        )
+        for command in cases:
+            with self.subTest(command=command):
+                result = self.run_launcher(*self.common_arguments(), "--", *command)
+                self.assertNotEqual(0, result.returncode)
+                self.assertEqual([], self.calls())
+
+    def test_explicit_opencode_environment_overrides_fail_before_herdr(self):
+        for entry in (
+            "OPENCODE_CONFIG_DIR=/evil",
+            "OPENCODE_CONFIG_CONTENT={}",
+            "OPENCODE_PURE=0",
+        ):
+            with self.subTest(entry=entry):
+                result = self.run_launcher(
+                    *self.common_arguments(),
+                    "--env",
+                    entry,
+                    "--",
+                    "opencode",
+                    "-m",
+                    "opencode-go/gpt-5.6-luna",
+                    "--variant",
+                    "medium",
+                )
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn("forbidden", result.stderr)
+                self.assertEqual([], self.calls())
+
+    def test_opencode_workers_fail_before_herdr_against_installed_targets(self):
+        for state in ("healthy", "malformed", "dangling"):
+            with self.subTest(state=state):
+                target = self.temp_path / f"target-{state}"
+                target.mkdir()
+                if state == "dangling":
+                    (target / ".brichan").symlink_to(
+                        self.temp_path / "missing", target_is_directory=True
+                    )
+                else:
+                    (target / ".brichan").mkdir()
+                    if state == "healthy":
+                        config = target / ".brichan" / "config"
+                        config.mkdir()
+                        (config / "model-routing.json").write_text(
+                            json.dumps(self.manifest), encoding="utf-8"
+                        )
+
+                named = self.run_launcher(
+                    "brichan-test-worker",
+                    "--anchor-pane",
+                    "p1",
+                    "--cwd",
+                    str(target),
+                    "--route",
+                    "implement",
+                    "--runtime",
+                    "opencode",
+                    "--model",
+                    "opencode-go/gpt-5.6-luna",
+                    "--effort",
+                    "medium",
+                )
+                self.assertNotEqual(0, named.returncode)
+                self.assertIn("OpenCode workers are not supported", named.stderr)
+                self.assertEqual([], self.calls())
+
+                legacy = self.run_launcher(
+                    "brichan-test-worker",
+                    "--anchor-pane",
+                    "p1",
+                    "--cwd",
+                    str(target),
+                    "--",
+                    "opencode",
+                    "-m",
+                    "opencode-go/gpt-5.6-luna",
+                    "--variant",
+                    "medium",
+                )
+                self.assertNotEqual(0, legacy.returncode)
+                self.assertIn("OpenCode workers are not supported", legacy.stderr)
+                self.assertEqual([], self.calls())
+
     def test_legacy_claude_deny_flag_precedes_argument_separator(self):
         result = self.run_launcher(
             *self.common_arguments(),

@@ -186,6 +186,18 @@
       "policy": "stable-wrapper"
     },
     {
+      "path": "bin/brichan-opencode",
+      "kind": "file",
+      "category": "runtime-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
+      "path": "bin/brichan-opencode-exec",
+      "kind": "file",
+      "category": "runtime-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
       "path": "bin/brichan-herdr-agent-start",
       "kind": "file",
       "category": "runtime-entrypoint",
@@ -349,6 +361,12 @@
     },
     {
       "path": "src/brichan/cli/claude.py",
+      "kind": "file",
+      "category": "provider-adapter",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/cli/opencode.py",
       "kind": "file",
       "category": "provider-adapter",
       "policy": "canonical"
@@ -607,6 +625,11 @@
       "needle": "brichan-{runtime}"
     },
     {
+      "source": "src/brichan/cli/runtime.py",
+      "target": "bin/brichan-opencode",
+      "needle": "brichan-{runtime}"
+    },
+    {
       "source": "bin/brichan-codex",
       "target": "src/brichan/cli/codex.py",
       "needle": "brichan.cli.codex"
@@ -615,6 +638,26 @@
       "source": "bin/brichan-claude",
       "target": "src/brichan/cli/claude.py",
       "needle": "brichan.cli.claude"
+    },
+    {
+      "source": "bin/brichan-opencode",
+      "target": "src/brichan/cli/opencode.py",
+      "needle": "brichan.cli.opencode"
+    },
+    {
+      "source": "bin/brichan-opencode-exec",
+      "target": "src/brichan/cli/opencode.py",
+      "needle": "brichan.cli.opencode"
+    },
+    {
+      "source": "src/brichan/cli/opencode.py",
+      "target": "config/model-routing.json",
+      "needle": "model-routing.json"
+    },
+    {
+      "source": "src/brichan/cli/provider_commands.py",
+      "target": "src/brichan/cli/opencode.py",
+      "needle": "from .opencode import"
     },
     {
       "source": "bin/brichan-herdr-agent-start",
@@ -668,6 +711,14 @@
     {
       "source": "tests/contract/test_repository_contract.py",
       "target": "bin/brichan-claude"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "bin/brichan-opencode"
+    },
+    {
+      "source": "tests/contract/test_repository_contract.py",
+      "target": "bin/brichan-opencode-exec"
     },
     {
       "source": "tests/contract/test_repository_contract.py",
