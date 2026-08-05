@@ -22,10 +22,31 @@ class PackagingMetadataTest(unittest.TestCase):
             'brichan = "brichan.cli.runtime:main"',
             'brichan-codex = "brichan.cli.codex:main"',
             'brichan-claude = "brichan.cli.claude:main"',
+            'brichan-opencode = "brichan.cli.opencode:main"',
+            'brichan-opencode-exec = "brichan.cli.opencode:exec_main"',
             'brichan-herdr-agent-start = "brichan.orchestration.worker_launch:main"',
             'brichan-validate-receipts = "brichan.contracts.receipts.validation:main"',
         ):
             self.assertIn(entry_point, pyproject)
+
+    def test_the_installer_exposes_every_declared_console_script(self):
+        """AC9: a script that pyproject declares but the installer never links
+        is installed-but-unreachable, which is the failure this catches."""
+
+        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        scripts = pyproject.split("[project.scripts]", 1)[1].split("\n[", 1)[0]
+        declared = {
+            line.split("=", 1)[0].strip()
+            for line in scripts.splitlines()
+            if "=" in line
+        }
+        installer = (ROOT / "scripts/install-brichan").read_text(encoding="utf-8")
+        commands = set(
+            installer.split('COMMANDS="', 1)[1].split('"', 1)[0].split()
+        )
+        self.assertEqual(declared, commands)
+        self.assertIn("brichan-opencode", commands)
+        self.assertIn("brichan-opencode-exec", commands)
 
     def test_import_package_remains_brichan(self):
         self.assertTrue((ROOT / "src/brichan/__init__.py").is_file())

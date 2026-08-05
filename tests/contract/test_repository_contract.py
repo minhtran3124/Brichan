@@ -22,6 +22,8 @@ class RepositoryContractTest(unittest.TestCase):
             "bin/brichan",
             "bin/brichan-codex",
             "bin/brichan-claude",
+            "bin/brichan-opencode",
+            "bin/brichan-opencode-exec",
             "bin/brichan-herdr-agent-start",
             "scripts/install-brichan",
             "CLAUDE.md",
@@ -37,6 +39,7 @@ class RepositoryContractTest(unittest.TestCase):
             "src/brichan/orchestration/worker_launch.py",
             "src/brichan/orchestration/model_routing.py",
             "src/brichan/cli/provider_commands.py",
+            "src/brichan/cli/opencode.py",
             "src/brichan/cli/runtime.py",
             "config/model-routing.json",
             ".codex/config.toml",
@@ -152,6 +155,8 @@ class RepositoryContractTest(unittest.TestCase):
             "bin/brichan",
             "bin/brichan-codex",
             "bin/brichan-claude",
+            "bin/brichan-opencode",
+            "bin/brichan-opencode-exec",
             "scripts/install-brichan",
         ):
             launcher = ROOT / name
@@ -192,10 +197,48 @@ class RepositoryContractTest(unittest.TestCase):
             ROOT / "src/brichan/orchestration/model_routing.py"
         ).read_text(encoding="utf-8")
         self.assertIn('environment.get("BRICHAN_RUNTIME") or default_runtime', dispatcher)
+        self.assertIn('{"codex", "claude", "opencode"}', routing)
         self.assertIn('{"codex", "claude"}', routing)
         self.assertIn("settings.default_runtime", dispatcher)
         self.assertIn('f"brichan-{runtime}"', dispatcher)
         self.assertIn("unsupported runtime", dispatcher)
+
+    def test_opencode_adapter_states_its_fail_closed_boundary(self):
+        adapter = (ROOT / "src/brichan/cli/opencode.py").read_text(encoding="utf-8")
+        # The exact six-key guard environment, and nothing else.
+        for key in (
+            "OPENCODE_CONFIG_CONTENT",
+            "OPENCODE_DISABLE_AUTOUPDATE",
+            "OPENCODE_DISABLE_PROJECT_CONFIG",
+            "OPENCODE_DISABLE_CLAUDE_CODE",
+            "OPENCODE_TEST_HOME",
+            "XDG_CONFIG_HOME",
+        ):
+            self.assertIn(key, adapter, key)
+        # HOME and the data/state/cache roots are never repurposed, so the real
+        # OpenCode credential file keeps resolving.
+        self.assertNotIn('"HOME":', adapter)
+        self.assertNotIn('"XDG_DATA_HOME":', adapter)
+        self.assertIn('OPENCODE_VERSION = "1.18.12"', adapter)
+        self.assertIn('LAUNCH_ARGV = ("opencode", "--pure", "--agent"', adapter)
+        self.assertIn("--variant", adapter)
+
+    def test_the_three_checkout_runtimes_have_matching_wrappers(self):
+        dispatcher = (ROOT / "src/brichan/cli/runtime.py").read_text(encoding="utf-8")
+        self.assertIn('{"codex", "claude", "opencode"}', dispatcher)
+        for runtime in ("codex", "claude", "opencode"):
+            wrapper = ROOT / "bin" / f"brichan-{runtime}"
+            self.assertTrue(wrapper.is_file(), runtime)
+            self.assertIn(f"brichan.cli.{runtime}", wrapper.read_text(encoding="utf-8"))
+
+    def test_opencode_documentation_states_its_known_limitations(self):
+        routing_guide = (ROOT / "docs/guides/model-routing.md").read_text(
+            encoding="utf-8"
+        )
+        catalog = (ROOT / "docs/policy/model-catalog.md").read_text(encoding="utf-8")
+        for needle in ("syntactic", "screen", "AGENTS.md"):
+            self.assertIn(needle, routing_guide, needle)
+        self.assertIn("opencode", catalog.lower())
 
     def test_claude_launcher_keeps_herdr_as_worker_control_plane(self):
         adapter = (ROOT / "src/brichan/cli/claude.py").read_text(encoding="utf-8")

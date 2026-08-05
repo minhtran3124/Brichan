@@ -20,7 +20,8 @@ their evidence, and records durable project state outside of chat history.
 
 - Importable Python package and console commands: `brichan`, `brichan-*`.
 - Distribution name on PyPI: `brichan`.
-- Supported runtimes: Codex and Claude Code.
+- Supported runtimes: Codex, Claude Code, and — checkout-only, guarded, and
+  version-pinned — OpenCode.
 - Worker control plane: Herdr.
 - Runtime dependencies: none beyond the Python standard library (3.10+).
 
@@ -105,6 +106,19 @@ the number of agents that were running.
 Launch with `bin/brichan` or `bin/brichan --runtime claude`. Policy, project
 memory, and configuration are repository-owned.
 
+`bin/brichan --runtime opencode` is a checkout-only Stage 1 addition. OpenCode
+has no equivalent of the flag-level delegation and permission guards the other
+two adapters use, so the whole boundary is moved into a launch shim: the
+process starts with every inherited `OPENCODE_*` variable removed, exactly six
+guard keys set, isolated per-launch configuration roots, a pinned provider
+version, and a single primary agent carrying the routed model and effort. The
+routed values never reach provider argv. Installed-project OpenCode is a
+non-goal for this stage. Its accepted limits — syntactic-only variant
+validation, screen-manifest worker state because the Herdr plugin cannot load
+under `--pure`, and repository `AGENTS.md` plus the project orchestration skill
+treated as trusted user-authorized input — are documented in the model-routing
+guide rather than argued away.
+
 **Installed-project mode** — the current dogfood product shape. Brichan is
 installed as a package and initializes an existing top-level Git repository:
 
@@ -163,7 +177,7 @@ PRODUCT.md             this file: product intent and guardrails
 docs/policy/           normative runtime policy (canonical)
 docs/guides/           model routing, installed Codex dogfood
 docs/architecture/     module boundaries
-src/brichan/cli/         runtime dispatch and Codex/Claude adapters
+src/brichan/cli/         runtime dispatch and Codex/Claude/OpenCode adapters
 src/brichan/orchestration/  Herdr layout, launch, model routing
 src/brichan/contracts/   receipt schema, parser, discovery, validation
 src/brichan/resources/   packaged dogfood_v1 policy, skills, memory templates
@@ -229,6 +243,11 @@ Before proposing or merging a change, confirm all of the following:
       claims as durable memory.
 - [ ] It keeps policy canonical in one place (no duplicated active defaults in
       runtime instruction files).
+- [ ] If it touches a guarded provider launch, it keeps the boundary
+      fail-closed: no provider argument surface widens, refusals still name key
+      paths only and never print resolved configuration or provider output, and
+      any pinned provider version stays pinned until its isolation contract is
+      re-verified.
 - [ ] It updates documentation and tests, and `make check` passes.
 - [ ] Material changes to orchestration, permissions, security, routing, or
       public contracts received an independent review.

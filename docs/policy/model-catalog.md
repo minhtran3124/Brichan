@@ -64,13 +64,37 @@ standard `claude` CLI. When the active manifest places review on the same
 provider or model as the implementer or coordinator, the independence rules in
 [reviewer policy](reviewer.md) still apply.
 
+## OpenCode
+
+- CLI: installed, version `1.18.12` (verified 2026-08-04).
+- Routable as a Stage 1 guarded, checkout-oriented coordinator and worker only.
+  Installed-project targets are out of scope.
+- The version is pinned exactly. The isolation contract is source-line specific
+  against this release and its pinned `yargs` dependency, so any upgrade
+  re-opens the isolation review before the pin moves.
+- Herdr integration: the Herdr plugin does not load under `--pure`, so worker
+  state falls back to the screen manifest and is coarser than Codex or Claude
+  worker state.
+- Model and variant are pinned onto a single guarded primary agent; all five
+  built-in primaries are disabled. Variant validation is syntactic only: only
+  locally verified `opencode-go/gpt-5.6-luna` variants are documented, and
+  Brichan does not verify that a provider accepts a given variant for a given
+  model.
+- Repository trust boundary: exactly one absolute `AGENTS.md` path plus the
+  project `herdr-orchestration` skill are treated as user-authorized repository
+  input. Every other skill is denied and the global configuration roots are
+  hidden.
+
+| Model | Verified variants | Suggested uses |
+|---|---|---|
+| `opencode-go/gpt-5.6-luna` | `low` through `max` | Guarded Stage 1 coordinator and worker sessions in the Brichan source checkout |
+
 ## Unavailable providers
 
 The following CLIs were not found and must not be routed:
 
 - Gemini
 - Grok
-- OpenCode
 - Aider
 
 ## Routing policy

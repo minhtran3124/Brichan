@@ -7,6 +7,53 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+### Added
+
+- Stage 1 OpenCode support: a guarded, checkout-only coordinator and worker
+  runtime. `bin/brichan --runtime opencode`, `BRICHAN_RUNTIME=opencode`, and the
+  new `brichan-opencode` console command all reach one adapter, which resolves
+  the routed model and effort and hands off to the new `brichan-opencode-exec`
+  shim. The shim owns the whole boundary: it removes every inherited
+  `OPENCODE_*` variable without inspecting it, sets exactly six guard keys,
+  creates and independently preflights isolated per-launch configuration roots,
+  gates on OpenCode `1.18.12` exactly, and validates the complete merged
+  configuration against a positive allowlist twice — once after a
+  migration-write scan and again immediately before launch. The routed model and
+  effort become `agent.brichan-primary.model`/`.variant`; they never appear in
+  provider argv, and a legacy `-m` is validated into that configuration rather
+  than forwarded. All five built-in primary agents are disabled, leaving exactly
+  one primary. `HOME` and the XDG data, state, and cache roots are never touched,
+  so the existing OpenCode credential file keeps resolving.
+- The shim independently scans all four OpenCode discovery roots for executable
+  extensions before any provider process starts, globbing `{tool,tools}` and
+  `{plugin,plugins}` for `.js`/`.ts` and following symlinks. Any match refuses
+  with a diagnostic naming only the discovered path. This scan, not the
+  provider's `--pure` flag, is what keeps a project-local plugin from executing:
+  a live probe showed `--pure` alone does not suppress one.
+- An optional `coordinator.runtimes.opencode` entry in schema-v1
+  `config/model-routing.json`. Manifests without it keep parsing unchanged;
+  requesting OpenCode without one produces an owned error naming the missing key.
+
+### Known limitations
+
+- OpenCode variant validation is syntactic only: Brichan checks the value is a
+  supported effort name, not that the provider accepts it for the routed model.
+- The Herdr plugin does not load under `--pure`, so OpenCode worker state falls
+  back to the screen manifest and is coarser than Codex or Claude worker state.
+- Repository `AGENTS.md` and the project `herdr-orchestration` skill are treated
+  as trusted, user-authorized repository input; `AGENTS.md` auto-discovery has no
+  provider disable switch. Every other skill is denied and the global
+  configuration roots are hidden.
+- The OpenCode runtime refuses to launch when no `.git` exists at or above the
+  working directory. The scan above is bounded by the enclosing Git worktree,
+  while the provider's own lookup walks to the filesystem root when there is no
+  repository, so outside a worktree the scan could miss an ancestor directory.
+  Refusing keeps the boundary honest for a checkout-oriented launcher; a future
+  stage that relaxes the checkout orientation will have to revisit it.
+- Installed-project OpenCode is out of scope. Workers and direct console
+  launches against a target containing `.brichan` refuse before Herdr is
+  contacted and before any provider starts.
+
 ## [0.11.0] - 2026-08-03
 
 ### Changed

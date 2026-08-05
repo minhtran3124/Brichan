@@ -90,7 +90,12 @@ $ brichan run --project <repo> -- --review the auth module
   review, and scan work may each use a different model.
 - **Guarded launches.** Brichan rejects native delegation, permission
   bypasses, cwd/scope widening, profiles, remote execution, and arbitrary
-  runtime configuration before launching.
+  runtime configuration before launching. Where a runtime offers no flag-level
+  guard, the boundary moves into a launch shim instead: the guarded OpenCode
+  runtime (source-checkout development only, not installed-project mode) starts
+  with a scrubbed environment, isolated per-launch configuration roots, a pinned
+  provider version, and a single pinned agent, and refuses on any mismatch
+  before the provider starts.
 - **Strict state diagnostics.** Malformed, dangling, symlinked, inaccessible,
   or incompatible `.brichan/` state is reported, never silently repaired.
   Schema v1 has no automatic migration: a package-version change requires

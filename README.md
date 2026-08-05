@@ -122,6 +122,7 @@ Claude Code:
 ```bash
 bin/brichan
 bin/brichan --runtime claude
+bin/brichan --runtime opencode
 ```
 
 From a checkout, `brichan --help` and `brichan --version` report Brichan
@@ -156,12 +157,25 @@ one-file edit instead of also rewriting prose. See the
 [model-routing guide](docs/guides/model-routing.md) to change defaults, select
 a named route, or use a one-off override.
 
-The `brichan-codex` and `brichan-claude` console commands installed by
-`brichan` remain checkout-oriented: `brichan-codex` resolves coordinator
+`--runtime opencode` is a Stage 1 guarded, checkout-oriented runtime. It needs
+an optional `coordinator.runtimes.opencode` entry in the manifest; without one,
+Brichan reports an owned error naming the missing key. The launch is fully
+guarded: OpenCode starts under an isolated per-launch configuration environment
+with a single pinned primary agent, and the routed model and effort travel as
+agent configuration rather than as provider arguments. Its known limits are
+stated in the [model-routing guide](docs/guides/model-routing.md) — variant
+validation is syntactic only, worker state falls back to the screen manifest
+because the Herdr plugin cannot load under `--pure`, and installed-project
+targets are out of scope.
+
+The `brichan-codex`, `brichan-claude`, and `brichan-opencode` console commands
+installed by `brichan` remain checkout-oriented: `brichan-codex` resolves coordinator
 routing from a Brichan source checkout (or `BRICHAN_ROOT`) or from an
 already-initialized project's `.brichan/` state, while `brichan-claude`
-resolves only from a checkout or `BRICHAN_ROOT`. Both are for development and
-checkout use, not standalone installed-project launches. `--help`/`--version`
+resolves only from a checkout or `BRICHAN_ROOT`. `brichan-opencode` resolves
+only from a checkout and refuses outright against any directory that carries
+`.brichan` state. All three are for development and checkout use, not
+standalone installed-project launches. `--help`/`--version`
 work from any directory; the
 [installed Codex dogfood guide](docs/guides/installable-dogfood.md) has the
 exact boundary.

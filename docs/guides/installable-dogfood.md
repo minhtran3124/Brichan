@@ -270,8 +270,9 @@ directory for the user to inspect and remove deliberately.
 ## Compatibility boundary
 
 The checkout workflow remains supported: `bin/brichan` sets `BRICHAN_ROOT` and
-continues dispatching through repository `bin/brichan-codex` or
-`bin/brichan-claude`. Installed-project mode is Codex-only. Schema-v1 has no
+continues dispatching through repository `bin/brichan-codex`,
+`bin/brichan-claude`, or `bin/brichan-opencode`. Installed-project mode is
+Codex-only. Schema-v1 has no
 automatic migration or repair: malformed managed resources and package-version
 mismatches require deliberate reinitialization in a disposable or backed-up
 repository.
@@ -285,3 +286,15 @@ path and is not part of the Codex-first installed-project workflow. Outside
 those contexts, both commands' `--help`/`--version` work everywhere and report
 this plainly instead of raising a Python traceback; any other invocation
 outside those contexts is rejected with an actionable, owned error.
+
+`brichan-opencode` and its launch shim `brichan-opencode-exec` are packaged and
+symlinked by `scripts/install-brichan` alongside the others, but they are
+deliberately narrower. `brichan-opencode` is checkout-only and takes no provider
+arguments at all. Any invocation other than `--help`/`--version` whose resolved
+target contains `.brichan` refuses before any preflight and before any provider
+process starts, unless the running package positively identifies itself as the
+Brichan source checkout by package marker — a `pyproject.toml` naming the
+`brichan` project plus an `src/brichan` layout at the resolved root. The
+`AGENTS.md`-plus-`bin/` heuristic is not accepted here, because an initialized
+target has both. An OpenCode worker launched through Herdr against such a
+target fails the same way, before Herdr is contacted.

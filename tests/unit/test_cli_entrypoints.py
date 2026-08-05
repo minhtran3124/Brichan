@@ -15,6 +15,7 @@ from brichan import __version__
 from brichan.cli._root import exec_runtime
 from brichan.cli import claude as claude_cli
 from brichan.cli import codex as codex_cli
+from brichan.cli import opencode as opencode_cli
 from brichan.cli import runtime as runtime_cli
 from brichan.lifecycle import initialize_project
 from brichan.project import project_paths
@@ -209,6 +210,58 @@ class ClaudeEntrypointOutsideCheckoutTest(_OutsideCheckoutTestCase):
         self.assertEqual("", out)
         self.assertIn("brichan-claude:", err)
         self.assertNotIn("Traceback", err)
+
+
+class OpencodeEntrypointOutsideCheckoutTest(_OutsideCheckoutTestCase):
+    def setUp(self):
+        super().setUp()
+        patcher = mock.patch.object(
+            opencode_cli, "repository_root", side_effect=_NOT_A_CHECKOUT
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_help_has_no_traceback_and_exits_zero(self):
+        code, out, err = self._run(opencode_cli.main, ["--help"])
+        self.assertEqual(0, code)
+        self.assertIn("usage: brichan-opencode", out)
+        self.assertIn("checkout-oriented", out)
+        self.assertEqual("", err)
+
+    def test_version_has_no_traceback_and_exits_zero(self):
+        code, out, err = self._run(opencode_cli.main, ["--version"])
+        self.assertEqual(0, code)
+        self.assertEqual(f"brichan-opencode {__version__}\n", out)
+        self.assertEqual("", err)
+
+    def test_unsupported_invocation_is_an_owned_error_not_a_traceback(self):
+        code, out, err = self._run(opencode_cli.main, ["do something"])
+        self.assertEqual(2, code)
+        self.assertEqual("", out)
+        self.assertIn("brichan-opencode:", err)
+        self.assertNotIn("Traceback", err)
+
+
+class RuntimeDispatchTest(unittest.TestCase):
+    """--runtime opencode reaches one guarded adapter, and only in a checkout."""
+
+    def test_select_runtime_accepts_all_three_runtimes(self):
+        for source in (
+            (["--runtime", "opencode"], {}),
+            (["--runtime=opencode"], {}),
+            ([], {"BRICHAN_RUNTIME": "opencode"}),
+        ):
+            argv, environment = source
+            with self.subTest(argv=argv, environment=environment):
+                runtime, remaining = runtime_cli.select_runtime(
+                    argv, environment, "codex"
+                )
+                self.assertEqual("opencode", runtime)
+                self.assertEqual([], remaining)
+
+    def test_an_unsupported_runtime_still_names_the_three_it_knows(self):
+        with self.assertRaisesRegex(ValueError, "codex, claude, or opencode"):
+            runtime_cli.select_runtime(["--runtime", "gemini"], {}, "codex")
 
 
 class ExecRuntimeTest(unittest.TestCase):

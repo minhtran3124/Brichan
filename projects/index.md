@@ -35,6 +35,11 @@
 - Summary: Evaluate an adaptive per-task dossier spanning intake, exploration, design, planning, implementation, review, and ship evidence.
 - Memory: projects/brida-task-dossier-workflow/
 
+## Brida OpenCode support
+- Status: active
+- Summary: Add guarded OpenCode checkout coordinator and Herdr worker support while preserving Herdr-only delegation and existing runtimes.
+- Memory: projects/brida-opencode-support/
+
 ## Entry template
 
 ```text

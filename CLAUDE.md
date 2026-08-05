@@ -26,9 +26,11 @@ remote state without explicit user authorization.
 
 ## Run commands
 
-- Checkout: `bin/brichan --runtime claude|codex`. Installed: `brichan run
-  --project <path> -- <runtime args>`. Model/effort routing comes from
-  `config/model-routing.json`, not flags or env vars.
+- Checkout: `bin/brichan --runtime claude|codex|opencode`. The OpenCode runtime
+  is checkout-only, version-pinned, and launches through a guarded shim; it
+  never accepts provider arguments and refuses against any `.brichan` target.
+  Installed: `brichan run --project <path> -- <runtime args>`. Model/effort
+  routing comes from `config/model-routing.json`, not flags or env vars.
 
 ## Test instructions
 

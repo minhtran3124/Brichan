@@ -324,13 +324,49 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return args
 
 
+def _reject_opencode_installed_target(target_root: Path) -> None:
+    """D4: an OpenCode worker never runs against an initialized target.
+
+    Checked before Herdr is contacted and before project health is inspected,
+    so a malformed or dangling ``.brichan`` refuses the same way a healthy one
+    does.  Installed OpenCode is out of Stage 1 scope entirely.
+    """
+
+    if os.path.lexists(target_root / ".brichan"):
+        raise RoutingError(
+            "OpenCode workers are not supported against an initialized Brichan "
+            f"project: {target_root}"
+        )
+
+
+def _reject_opencode_environment_overrides(entries: list[str]) -> None:
+    """AC2: an explicit ``--env OPENCODE_*`` cannot reach the guarded shim."""
+
+    for item in entries:
+        if item.split("=", 1)[0].startswith("OPENCODE_"):
+            raise RoutingError(
+                "explicit OpenCode environment overrides are forbidden: "
+                f"{item.split('=', 1)[0]}"
+            )
+
+
 def _resolve_launch(args: argparse.Namespace) -> LaunchResolution:
+    target_root = Path(args.cwd).expanduser().resolve()
+    if not args.route and args.argv[:1] == ["opencode"]:
+        _reject_opencode_installed_target(target_root)
+        _reject_opencode_environment_overrides(args.env)
     if args.route:
         # Keep the orchestration package provider-neutral at import time.  The
         # CLI adapter is needed only after a named route has been resolved.
         from brichan.cli.provider_commands import worker_command
 
-        target_root = Path(args.cwd).expanduser().resolve()
+        # An explicit OpenCode request refuses before the project state is even
+        # inspected, so a malformed target fails as an OpenCode refusal rather
+        # than as a state error.  A manifest-routed OpenCode worker is caught
+        # after resolution, below.
+        if args.runtime == "opencode":
+            _reject_opencode_installed_target(target_root)
+            _reject_opencode_environment_overrides(args.env)
         target_state = target_root / ".brichan"
         if os.path.lexists(target_state):
             from brichan.lifecycle import StateKind, inspect_project
@@ -355,6 +391,9 @@ def _resolve_launch(args: argparse.Namespace) -> LaunchResolution:
             model=args.model,
             effort=args.effort,
         )
+        if route.runtime == "opencode":
+            _reject_opencode_installed_target(target_root)
+            _reject_opencode_environment_overrides(args.env)
         return LaunchResolution(
             command=tuple(worker_command(route)),
             route_name=args.route,

@@ -10,6 +10,10 @@
       "claude": {
         "model": "claude-fable-5",
         "effort": "medium"
+      },
+      "opencode": {
+        "model": "opencode-go/gpt-5.6-luna",
+        "effort": "medium"
       }
     }
   },

@@ -41,9 +41,60 @@ class ModelRoutingTest(unittest.TestCase):
         )
         for name in settings.routes:
             route = resolve_route(settings, name)
-            self.assertIn(route.runtime, {"codex", "claude"})
+            self.assertIn(route.runtime, {"codex", "claude", "opencode"})
             self.assertTrue(route.model)
             self.assertIn(route.effort, {"low", "medium", "high", "xhigh", "max"})
+
+    def test_the_opencode_coordinator_entry_is_optional_in_schema_v1(self):
+        """Existing manifests must keep parsing without an OpenCode entry."""
+
+        payload = manifest_payload()
+        del payload["coordinator"]["runtimes"]["opencode"]
+        settings = parse_settings(payload)
+        self.assertEqual({"codex", "claude"}, set(settings.coordinators))
+        for runtime in ("codex", "claude"):
+            self.assertTrue(resolve_coordinator(settings, runtime).model)
+        with self.assertRaisesRegex(
+            RoutingError, "no opencode coordinator entry"
+        ):
+            resolve_coordinator(settings, "opencode")
+
+    def test_codex_and_claude_coordinator_entries_stay_required(self):
+        for runtime in ("codex", "claude"):
+            payload = manifest_payload()
+            del payload["coordinator"]["runtimes"][runtime]
+            with self.subTest(runtime=runtime):
+                with self.assertRaisesRegex(
+                    RoutingError, f"missing required keys: {runtime}"
+                ):
+                    parse_settings(payload)
+
+    def test_an_unknown_coordinator_runtime_is_still_rejected(self):
+        payload = manifest_payload()
+        payload["coordinator"]["runtimes"]["gemini"] = {
+            "model": "whatever",
+            "effort": "medium",
+        }
+        with self.assertRaisesRegex(RoutingError, "unsupported keys: gemini"):
+            parse_settings(payload)
+
+    def test_opencode_runtime_and_variant_validation(self):
+        payload = manifest_payload()
+        settings = parse_settings(payload)
+        route = resolve_coordinator(settings, "opencode")
+        self.assertEqual("opencode", route.runtime)
+        self.assertIn(route.effort, {"low", "medium", "high", "xhigh", "max"})
+
+        with self.assertRaisesRegex(RoutingError, "unsupported for opencode"):
+            resolve_route(
+                settings,
+                "implement",
+                runtime="opencode",
+                model="opencode-go/test",
+                effort="impossible",
+            )
+        with self.assertRaisesRegex(RoutingError, "model override is required"):
+            resolve_route(settings, "implement", runtime="opencode")
 
     def test_coordinator_defaults_come_from_manifest(self):
         payload = manifest_payload()
@@ -161,7 +212,12 @@ class ModelRoutingTest(unittest.TestCase):
         settings = parse_settings(manifest_payload())
         codex = worker_command(resolve_coordinator(settings, "codex"))
         claude = worker_command(resolve_coordinator(settings, "claude"))
+        opencode = worker_command(resolve_coordinator(settings, "opencode"))
 
+        # OpenCode never reaches provider argv: delegation is denied by the
+        # shim's inline agent config, not by a flag.
+        self.assertTrue(opencode[0].endswith("brichan-opencode-exec"))
+        self.assertNotIn("opencode", opencode[1:])
         self.assertIn("agents.enabled=false", codex)
         self.assertEqual(2, codex.count("--disable"))
         self.assertIn("--disallowed-tools=Task", claude)

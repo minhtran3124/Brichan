@@ -510,6 +510,89 @@ class InstalledDogfoodTest(unittest.TestCase):
         self.assertEqual("gpt-5.6-luna", route["resolved"]["model"])
         self.assertNotIn("external-checkout-model", route["command"])
 
+    def test_installed_opencode_consoles_are_packaged_but_gated(self):
+        """AC7/AC9: both scripts install, and neither reaches an installed target.
+
+        The lookalike target carries everything a heuristic would accept —
+        `.brichan`, `AGENTS.md`, `bin/` — plus a hand-edited optional OpenCode
+        coordinator routing entry, so only the positive package-marker check can
+        tell it apart from the real source checkout.
+        """
+
+        console = self.venv / "bin" / "brichan-opencode"
+        shim = self.venv / "bin" / "brichan-opencode-exec"
+        for path in (console, shim):
+            self.assertTrue(path.is_file(), path)
+
+        # A fake provider that records any spawn.  It must never run.
+        provider_marker = self.temp_path / "opencode-ran"
+        fake_opencode = self.fake_bin / "opencode"
+        fake_opencode.write_text(
+            f"#!/bin/sh\nprintf OPENCODE_SPAWNED > '{provider_marker}'\nexit 0\n",
+            encoding="utf-8",
+        )
+        fake_opencode.chmod(fake_opencode.stat().st_mode | stat.S_IXUSR)
+
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
+        self.assertEqual(0, result.returncode, result.stderr)
+        routing_path = self.target / ".brichan/config/model-routing.json"
+        routing = json.loads(routing_path.read_text(encoding="utf-8"))
+        routing["coordinator"]["runtimes"]["opencode"] = {
+            "model": "opencode-go/gpt-5.6-luna",
+            "effort": "medium",
+        }
+        routing_path.write_text(json.dumps(routing), encoding="utf-8")
+
+        direct = subprocess.run(
+            [str(console)],
+            cwd=self.target,
+            env=self.environment(),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(2, direct.returncode, direct.stdout)
+        self.assertIn("initialized Brichan project", direct.stderr)
+        self.assertNotIn("Traceback", direct.stderr)
+        self.assertFalse(provider_marker.exists())
+        self.assertFalse(self.hostile_marker.exists())
+
+        # The installed dispatcher stays Codex-only.
+        dispatched = subprocess.run(
+            [str(self.brichan), "--runtime", "opencode"],
+            cwd=self.target,
+            env=self.environment(),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(2, dispatched.returncode, dispatched.stdout)
+        self.assertIn("only the codex runtime", dispatched.stderr)
+        self.assertFalse(provider_marker.exists())
+
+        # --help/--version still work outside any checkout.
+        for flag, prefix in (("--help", "usage: brichan-opencode"),
+                             ("--version", "brichan-opencode ")):
+            for path in (console, shim):
+                probe = subprocess.run(
+                    [str(path), flag],
+                    cwd=self.temp_path,
+                    env=self.environment(),
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(0, probe.returncode, probe.stderr)
+                self.assertTrue(
+                    probe.stdout.startswith(
+                        prefix if path == console else prefix.replace(
+                            "brichan-opencode", "brichan-opencode-exec"
+                        )
+                    ),
+                    probe.stdout,
+                )
+        self.assertFalse(provider_marker.exists())
+
     def test_installed_status_reports_malformed_and_incompatible(self):
         result = self.run_brichan("init", "--apply", "--project", str(self.target))
         self.assertEqual(0, result.returncode, result.stderr)

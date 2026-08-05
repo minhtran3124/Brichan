@@ -43,15 +43,17 @@ def select_runtime(
     remaining = list(argv)
     if remaining[:1] == ["--runtime"]:
         if len(remaining) < 2:
-            raise ValueError("usage: brichan [--runtime codex|claude] [arguments...]")
+            raise ValueError(
+                "usage: brichan [--runtime codex|claude|opencode] [arguments...]"
+            )
         runtime = remaining[1]
         remaining = remaining[2:]
     elif remaining and remaining[0].startswith("--runtime="):
         runtime = remaining[0].split("=", 1)[1]
         remaining = remaining[1:]
-    if runtime not in {"codex", "claude"}:
+    if runtime not in {"codex", "claude", "opencode"}:
         raise ValueError(
-            f"unsupported runtime: {runtime} (expected codex or claude)"
+            f"unsupported runtime: {runtime} (expected codex, claude, or opencode)"
         )
     return runtime, remaining
 
@@ -167,7 +169,7 @@ def _checkout_root() -> Path | None:
 
 def _global_help_lines() -> list[str]:
     return [
-        "usage: brichan [--runtime codex|claude] [prompt...]",
+        "usage: brichan [--runtime codex|claude|opencode] [prompt...]",
         "       brichan init|status|doctor [--project PATH] [--apply|--dry-run]",
         "       brichan run --project PATH -- <codex arguments>",
         "",
