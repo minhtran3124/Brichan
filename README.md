@@ -2,221 +2,216 @@
 
 ![Brichan coordinating a team of AI workers](assets/brichan-hero.png)
 
-Brichan is an AI Chief of Staff for Codex and Claude Code. Give it a project
-goal; it keeps the necessary context, coordinates independent workers through
-Herdr, checks their evidence, and records useful project state outside chat.
+[![PyPI version](https://img.shields.io/pypi/v/brichan.svg)](https://pypi.org/project/brichan/)
+[![Python versions](https://img.shields.io/pypi/pyversions/brichan.svg)](https://pypi.org/project/brichan/)
+[![CI](https://github.com/minhtran3124/Brichan/actions/workflows/ci.yml/badge.svg)](https://github.com/minhtran3124/Brichan/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/minhtran3124/Brichan)](LICENSE)
 
-## Requirements
+Brichan is an open-source AI Chief of Staff for coding agents. Give it a
+project outcome and it preserves the relevant context, coordinates independent
+workers through [Herdr](https://herdr.dev), verifies their evidence, and keeps
+decisions and project status in your repository instead of a chat window.
 
-Brichan coordinates independent worker sessions through
-[Herdr](https://herdr.dev), the approved worker-control plane. A single
-coordinator session runs without it, but Herdr is required as soon as Brichan
-hands off bounded tasks to workers.
+Brichan is useful when work spans multiple agent sessions and you need more
+than a stream of generated code: clear task boundaries, durable memory,
+independent review, and evidence that the requested outcome was actually met.
 
-Install it on Linux or macOS:
+> [!IMPORTANT]
+> Brichan is pre-1.0 software. The current installed workflow supports Codex on
+> Linux and macOS, and upgrades may require reinitializing managed state. See
+> the [changelog](CHANGELOG.md) before upgrading.
 
-```bash
-curl -fsSL https://herdr.dev/install.sh | sh
-```
+## Why Brichan?
 
-or via Homebrew on macOS:
+- **Durable project memory.** Stable facts, current status, decisions, tasks,
+  and references live as Markdown in the repository.
+- **Independent workers.** Planning, implementation, review, and research run
+  in separate agent sessions with bounded assignments.
+- **Evidence before completion.** A worker reporting `done` is not enough;
+  Brichan checks acceptance criteria, tests, diffs, sources, and review
+  findings as appropriate.
+- **Controlled context.** The coordinator loads project information
+  progressively and keeps detailed execution work out of its own context.
+- **Guarded execution.** Brichan refuses permission bypasses, hidden scope
+  widening, native delegation, and unsupported runtime configuration.
 
-```bash
-brew install herdr
-```
+## Compatibility
 
-Then install the integration for your runtime, e.g.:
+| Workflow | Codex | Claude Code |
+| --- | --- | --- |
+| Installed into another repository | Supported | Not yet supported |
+| Run from a Brichan source checkout | Supported | Supported |
 
-```bash
-herdr integration install claude
-herdr integration install codex
-```
+The installed workflow requires:
 
-See the [Herdr documentation](https://herdr.dev/docs/) for other install
-methods (mise, Nix, Windows preview) and integration options.
+- Linux or macOS;
+- Python 3.10 or newer;
+- an existing top-level Git repository;
+- the `codex` CLI on `PATH`;
+- Herdr when Brichan delegates work to independent agents.
 
-## Current dogfood scope
+Brichan has no third-party Python runtime dependencies.
 
-The primary one-user dogfood path is now an installed Python package running
-inside an existing top-level Git repository. Installed-project mode currently
-supports Codex on POSIX-compatible systems with Python 3.10+. Herdr is needed
-only when Brichan coordinates independent worker sessions.
+## Quick start
 
-Brichan is published to PyPI as `brichan`, and every console command keeps
-its existing name:
+Install Brichan from PyPI:
 
 ```bash
 pip install brichan
 ```
 
-To install from this repository instead — for development, or to run a change
-that is not released yet — use the installer. It can be invoked from any
-directory and does not activate or modify the target project's virtual
-environment:
+Install Herdr and its Codex integration:
 
 ```bash
-/absolute/path/to/brichan/scripts/install-brichan
+curl -fsSL https://herdr.dev/install.sh | sh
+herdr integration install codex
 ```
 
-By default, the script creates a dedicated environment at
-`$HOME/.local/share/brichan/venv` and command symlinks in `$HOME/.local/bin`.
-It automatically selects an available Python 3.10+ interpreter with `pip`,
-`setuptools`, `venv`, and `wheel`, builds from a temporary source snapshot,
-and installs all Brichan console commands. No virtualenv activation is
-required. If the command directory is not on `PATH`, the installer prints
-the exact export to add to the shell profile.
+On macOS, Herdr is also available through Homebrew:
 
-## Initialize a project
+```bash
+brew install herdr
+herdr integration install codex
+```
 
-Preview the complete footprint before writing:
+Preview the files Brichan would add to your project, then initialize it:
 
 ```bash
 brichan init --project /absolute/path/to/repository
 brichan init --apply --project /absolute/path/to/repository
 ```
 
-`init` defaults to dry-run and performs zero writes. `--apply` creates a
-versioned `.brichan/` directory containing managed policy, model routing,
-Herdr skill resources, and mutable project memory, plus root `AGENTS.md` and
-`CLAUDE.md` pointers when the repository does not already have them. Adding
-`--init-agents` also exports the Herdr skill to `.agents/skills/` so `codex`
-sessions started without `brichan run` discover it. Existing files are never
-modified. Repeating it against healthy state is idempotent.
-
-Diagnose and launch from any directory with an explicit target:
+Initialization is a dry run by default and performs zero writes. Once the
+project is initialized, check its health and launch the coordinator:
 
 ```bash
-brichan status --project /absolute/path/to/repository
 brichan doctor --project /absolute/path/to/repository
-brichan run --project /absolute/path/to/repository -- <codex arguments>
+brichan run --project /absolute/path/to/repository
 ```
 
-`doctor --json` emits the same diagnostics as machine-readable JSON for
-scripts and CI. The default text output groups findings into a compact
-callout with route and dependency summaries.
-
-From inside a healthy initialized repository, bare `brichan` also launches
-Codex. The installed entrypoint:
-
-- leaves `AGENTS.md`, `CLAUDE.md`, `.codex/`, and provider configuration
-  untouched;
-- launches external `codex` directly at the target root and never executes
-  target-owned `bin/brichan-*` wrappers;
-- injects package-owned Brichan policy and Herdr skill discovery;
-- rejects native delegation, permission bypasses, cwd/scope widening, profiles,
-  remote execution, and arbitrary Codex configuration before `--`;
-- treats option-looking text after `--` as literal prompt content.
-
-State diagnostics reject malformed, dangling, symlinked, inaccessible, or
-incompatible `.brichan/` state without silently repairing it. Schema v1 has no
-automatic migration: package-version changes require deliberate backup and
-reinitialization. See the
-[installed Codex dogfood guide](docs/guides/installable-dogfood.md) for the
-exact footprint, exit codes, safeguards, and compatibility boundary.
-
-## Checkout compatibility and development
-
-The original checkout workflow remains available for development and for
-Claude Code:
+From inside a healthy initialized repository, you can simply run:
 
 ```bash
+brichan
+```
+
+Then describe the outcome, constraints, and definition of done as you would to
+a technical project lead. Brichan will decide how to split the work, coordinate
+the required workers, verify their output, and maintain project memory.
+
+## What initialization changes
+
+`brichan init --apply` creates a versioned `.brichan/` directory containing
+managed policy, model routing, the Herdr orchestration skill, and mutable
+project memory. If the repository does not already contain root `AGENTS.md` or
+`CLAUDE.md` files, Brichan creates small pointers that direct coding agents to
+the managed policy.
+
+Existing files are never modified or overwritten. Repeating initialization
+against healthy state is idempotent. Use `--init-agents` to additionally export
+the Herdr skill to `.agents/skills/` for Codex sessions started directly rather
+than through `brichan run`.
+
+Useful commands:
+
+```bash
+brichan status --project <repo>              # concise state verdict
+brichan doctor --project <repo>              # dependency and state diagnostics
+brichan doctor --json --project <repo>       # machine-readable diagnostics
+brichan run --project <repo> -- <arguments>  # launch Codex with arguments
+```
+
+Arguments after `--` are treated as literal prompt content, including text
+that begins with a dash.
+
+## How it works
+
+```text
+You
+  └── Brichan coordinator
+        ├── planning worker
+        ├── implementation worker
+        ├── review worker
+        └── research or scan worker
+```
+
+1. Brichan turns your request into scope, deliverables, acceptance criteria,
+   constraints, and escalation conditions.
+2. It launches independent main-agent sessions through Herdr with bounded task
+   packets.
+3. Workers return artifacts and evidence; Brichan checks the result and asks
+   for remediation when needed.
+4. Verified facts, decisions, status, references, and task ownership are
+   recorded as durable project memory.
+
+Herdr provides the visible worker control plane. Native runtime delegation
+remains disabled so worker ownership, evidence, and cleanup stay auditable.
+
+## Configuration and safety
+
+Coordinator defaults and worker routes are settings-driven. Planning,
+implementation, review, and scan work can each use a different supported
+runtime, model, and reasoning effort. See the
+[model-routing guide](docs/guides/model-routing.md) for the configuration
+contract.
+
+The installed launcher leaves existing agent instructions and provider
+configuration untouched. It rejects native delegation, permission bypasses,
+working-directory or scope widening, profiles, remote execution, and arbitrary
+provider configuration before launching Codex.
+
+State diagnostics report malformed, dangling, symlinked, inaccessible, or
+incompatible `.brichan/` state rather than silently repairing it. Managed state
+currently has no automatic migration; follow the upgrade notes in the
+[changelog](CHANGELOG.md) when package versions change.
+
+## Using a source checkout
+
+The checkout workflow is intended for contributors and for Claude Code users:
+
+```bash
+git clone https://github.com/minhtran3124/Brichan.git
+cd Brichan
 bin/brichan
 bin/brichan --runtime claude
 ```
 
-From a checkout, `brichan --help` and `brichan --version` report Brichan
-itself; a checkout has no project state to launch into. Name a runtime to
-reach its own help instead, with `brichan --runtime codex --help` or
-`bin/brichan-codex --help`.
+Checkout mode reads routing from
+[`config/model-routing.json`](config/model-routing.json). The
+`brichan-codex` and `brichan-claude` console commands are also
+checkout-oriented; the regular `brichan` command is the entry point for an
+initialized external project.
 
-Checkout mode uses package-owned `bin/brichan-*` wrappers. Installed-project
-mode does not. Coordinator defaults and worker routes are settings-driven, so
-the coordinator and implementation, review, planning, or scan workers may use
-different runtimes.
+## Contributing
 
-[`config/model-routing.json`](config/model-routing.json) is the single source
-of truth for active model selection in a checkout. It maps a runtime, model,
-and reasoning effort to the coordinator and to each named worker route
-(`plan`, `implement`, `review`, `scan`):
+Contributions are welcome. Bug reports, documentation improvements, focused
+feature proposals, tests, and pull requests all help the project mature.
 
-```json
-{
-  "coordinator": {
-    "default_runtime": "<runtime>",
-    "runtimes": { "<runtime>": { "model": "<model-id>", "effort": "<effort>" } }
-  },
-  "routes": {
-    "<route>": { "runtime": "<runtime>", "model": "<model-id>", "effort": "<effort>" }
-  }
-}
-```
-
-Docs deliberately don't restate the active values, so a routing change stays a
-one-file edit instead of also rewriting prose. See the
-[model-routing guide](docs/guides/model-routing.md) to change defaults, select
-a named route, or use a one-off override.
-
-The `brichan-codex` and `brichan-claude` console commands installed by
-`brichan` remain checkout-oriented: `brichan-codex` resolves coordinator
-routing from a Brichan source checkout (or `BRICHAN_ROOT`) or from an
-already-initialized project's `.brichan/` state, while `brichan-claude`
-resolves only from a checkout or `BRICHAN_ROOT`. Both are for development and
-checkout use, not standalone installed-project launches. `--help`/`--version`
-work from any directory; the
-[installed Codex dogfood guide](docs/guides/installable-dogfood.md) has the
-exact boundary.
-
-## How it works
-
-1. You describe the outcome and constraints.
-2. Brichan reads only the project context needed for that work.
-3. Brichan gives bounded tasks to independent workers through Herdr.
-4. Brichan verifies results, records decisions and status, then reports back.
-
-Herdr is the worker control plane. Native runtime delegation stays disabled so
-worker ownership, evidence, and cleanup remain visible.
-
-Project context lives in `projects/<project-slug>/` as a small set of Markdown
-files for overview, current state, tasks, decisions, and references. Read the
-[project memory policy](docs/policy/memory-policy.md) for the contract.
-
-## Development
-
-Run the complete local validation suite before sharing a change:
+Before opening a pull request:
 
 ```bash
 make check
 ```
 
-You can also run individual layers while iterating:
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and
+review expectations. Use [GitHub Issues](https://github.com/minhtran3124/Brichan/issues)
+for bugs and proposals. For vulnerabilities or reports involving credentials,
+command execution, private project memory, or provider access, follow
+[SECURITY.md](SECURITY.md) instead of opening a public issue.
 
-```bash
-make test-unit
-make test-contract
-make test-integration
-make package-check
-```
+The importable implementation lives in `src/brichan/`; tests are split across
+unit, contract, and integration suites. See the
+[repository layout](docs/architecture/repository-layout.md) before changing
+module boundaries.
 
-The importable implementation is in `src/brichan/`; stable command wrappers are
-in `bin/` and `scripts/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the change
-workflow and [the repository layout](docs/architecture/repository-layout.md)
-for module boundaries.
+## Documentation
 
-Tasks tracked in this checkout follow the task dossier workflow: a fixed set
-of eleven handoff artifacts per task (request, requirements, brief, options,
-design, plan, plan review, code review, PR description, index, and receipt),
-scaffolded, generated, summarized, and validated by
-`scripts/{scaffold,generate,summarize,validate}_task_dossier.py`. See
-[the task dossier workflow](docs/workflows/task-dossier.md).
-
-## Learn more
-
-- [Model routing and worker launch settings](docs/guides/model-routing.md)
-- [Installed Codex dogfood](docs/guides/installable-dogfood.md)
-- [Task dossier workflow](docs/workflows/task-dossier.md)
 - [Documentation index](docs/index.md)
 - [Operating principles](docs/policy/operating-principles.md)
-- [Security policy](SECURITY.md)
+- [Project memory policy](docs/policy/memory-policy.md)
+- [Model routing](docs/guides/model-routing.md)
+- [Task dossier workflow](docs/workflows/task-dossier.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 
