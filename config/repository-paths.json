@@ -216,6 +216,12 @@
       "policy": "stable-path"
     },
     {
+      "path": "scripts/check_project_memory.py",
+      "kind": "file",
+      "category": "structure-guard",
+      "policy": "stable-path"
+    },
+    {
       "path": "scripts/build_pypi_readme.py",
       "kind": "file",
       "category": "structure-guard",
@@ -569,6 +575,10 @@
     {
       "source": "Makefile",
       "target": "scripts/check_repository_paths.py"
+    },
+    {
+      "source": "Makefile",
+      "target": "scripts/check_project_memory.py"
     },
     {
       "source": "Makefile",

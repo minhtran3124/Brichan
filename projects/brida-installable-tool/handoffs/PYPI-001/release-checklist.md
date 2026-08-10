@@ -33,6 +33,11 @@ manually while the publisher configuration was incomplete.
       `src/brichan.egg-info/`, or `build/` artifacts first — the contract and
       integration suites fail on leftovers.
 - [ ] Commit the bump as `chore(release): bump version to X.Y.Z` on `main`.
+- [ ] Reconcile durable memory with the release before tagging: `PRODUCT.md`
+      (`Last verified:` and `Latest published version:`),
+      `projects/brida-installable-tool/current-state.md`, the seven
+      `projects/<slug>/overview.md` lifecycle values, and `projects/index.md`
+      statuses. Then run `PYTHONDONTWRITEBYTECODE=1 make memory-check`.
 - [ ] Push a `vX.Y.Z` tag matching `pyproject.toml`'s `version`; the tag push
       is the only trigger for `.github/workflows/publish.yml`, and the
       workflow refuses a tag that does not match the package version.

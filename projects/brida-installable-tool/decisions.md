@@ -72,7 +72,7 @@
 
 ## 2026-07-29 — Brichan distribution identity with stable Brida runtime API
 
-- Status: accepted
+- Status: superseded
 - Context: The tool needs a future pip/PyPI distribution identity while the
   owner relies on the existing `brida` imports and `brida-*` commands.
 - Decision: Use `brichan` as the distribution and public repository-facing
@@ -86,3 +86,27 @@
 - Owner: User.
 - Evidence: `pyproject.toml`; `.github/workflows/publish.yml`;
   `handoffs/PYPI-001/receipt.md`; independent Claude Opus review `PASS`.
+
+## 2026-08-09 — Brida → Brichan rename completed; project slugs retained
+
+- Status: accepted
+- Context: The earlier decision kept the `brida` Python package and `brida-*`
+  commands while only the distribution was named `brichan`. That split is gone:
+  the runtime package, console commands, `.brichan/` footprint, and installer
+  are all `brichan`, and the distribution is published.
+- Decision: `brichan` is the single name for the distribution, the importable
+  package, the console commands, and the installed-project directory. The
+  `projects/brida-*` memory slugs are deliberately retained, because renaming
+  them would rewrite recorded history and every receipt pointer for no runtime
+  benefit. Historical wording in `CHANGELOG.md`, existing receipts, and
+  evidence files is preserved as written.
+- Rationale: One runtime name removes the dual-identity trap the previous
+  decision accepted as a temporary cost, while frozen slugs keep the audit
+  trail intact.
+- Trade-offs: Memory slugs and project titles read `brida` while the runtime
+  reads `brichan`, so readers must know the slugs are historical labels.
+- Owner: User.
+- Evidence: `README.md`; `VERSION`; `scripts/install-brichan`;
+  `src/brichan/`; `handoffs/MEMORY-001/receipt.md`.
+- Supersedes: 2026-07-29 — Brichan distribution identity with stable Brida
+  runtime API.

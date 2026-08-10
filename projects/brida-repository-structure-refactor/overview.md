@@ -1,5 +1,7 @@
 # Brida repository structure refactor
 
+- Lifecycle status: complete
+
 ## Objective
 
 Create an evidence-backed refactor plan that reduces root-level Markdown

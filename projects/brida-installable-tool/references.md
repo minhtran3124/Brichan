@@ -1,5 +1,7 @@
 # References
 
+- `projects/brida-installable-tool/handoffs/PYPI-003/receipt.md` — accepted Level 2 public PyPI README rendering task; implementation and final review pending
+- `projects/brida-installable-tool/handoffs/MEMORY-001/receipt.md` — reviewed Level 2 durable-memory consistency repair with final PASS; local work only, no remote action authorized
 - `projects/brida-installable-tool/handoffs/DOGFOOD-006/receipt.md` — user-requested read-only JSON doctor diagnostics; no remote action authorized
 - `projects/brida-installable-tool/handoffs/DOGFOOD-005/receipt.md` — bounded Claude implementation and review receipt for installer prerequisite hardening
 - `projects/brida-installable-tool/handoffs/PYPI-001/receipt.md` — Brichan PyPI-readiness implementation and review receipt
@@ -11,7 +13,7 @@
 | Existing agent instructions/config compatibility | `projects/brida-installable-tool/existing-instructions-compatibility-assessment.md`; official provider docs linked there | 2026-07-30 | Filesystem coexistence verified; runtime coexistence remains conditional pending live Codex skill/precedence probes |
 | Rust performance migration | `projects/brida-installable-tool/rust-migration-assessment.md`; official sources linked there | 2026-07-30 | Current Brida-owned command overhead is approximately 50 ms and external agent work dominates |
 | Current package metadata | `pyproject.toml` | 2026-07-29 | Python package and five console entrypoints are declared |
-| Current public setup | `README.md` | 2026-07-29 | Getting started currently uses clone, `make check`, and `bin/brida` |
+| Current public setup | `README.md` | 2026-08-09 | Quick start leads with `pip install brichan` (line 60); the clone-and-`make check` flow is now the contributor path only |
 | Module boundaries | `docs/architecture/repository-layout.md` | 2026-07-29 | Importable core is separated from repository-owned durable data |
 | Current runtime root coupling | `src/brida/cli/_root.py`; `src/brida/cli/runtime.py`; `src/brida/orchestration/model_routing.py` | 2026-07-29 | Startup requires Brida-root markers, local wrappers, and root-relative routing config |
 | Local verification | `PYTHONDONTWRITEBYTECODE=1 make check` | 2026-07-29 | 121 tests and all durable-data, repository, package-import, and shell checks passed |
@@ -33,7 +35,7 @@
 | Installed-wheel verification | `tests/integration/test_installed_dogfood.py`; `PYTHONDONTWRITEBYTECODE=1 make check` | 2026-07-29 | Five wheel tests and 152 total checks passed; fake Codex verified direct launch and adversarial boundaries |
 | Implementation review | `brida-dogfood-codex-review` / `w1X:p3B` | 2026-07-29 | Initial and focused re-reviews found seven bounded defects; all remediated; final verdict `PASS` |
 | Claude implementation stabilization | `brida-dogfood-claude-stabilize` / `w1X:p3C`; `config/model-routing.json` | 2026-07-29 | User-requested re-check confirmed `implement` → Claude Sonnet medium; worker found no new defect, changed no files, and passed wheel probes plus 152 checks |
-| External installer | `scripts/install-brida`; `tests/integration/test_installed_dogfood.py` | 2026-07-29 | Dedicated external venv, safe command shims, no activation, and outside-checkout installation verified |
+| External installer | `scripts/install-brichan`; `tests/integration/test_installed_dogfood.py` | 2026-08-09 | Dedicated external venv, safe command shims, no activation, and outside-checkout installation verified; the installer was renamed from `install-brida` with the runtime rename |
 | Installer hardening and review | `brida-installer-pip-fix` / `w1X:p3E`; `brida-installer-review` / `w1X:p3D`; `projects/brida-installable-tool/handoffs/DOGFOOD-005/receipt.md` | 2026-07-29 | Claude Sonnet implementation; Claude Opus final `PASS`; 155 checks and 34 canonical receipts passed |
 | Brichan PyPI readiness | `pyproject.toml`; `.github/workflows/ci.yml`; `.github/workflows/publish.yml`; `projects/brida-installable-tool/handoffs/PYPI-001/receipt.md` | 2026-07-29 | Claude Sonnet implementation and Claude Opus independent review `PASS`; artifacts, metadata, install smoke, and full checks passed; external publishing setup remains deferred |
 | Claude canonical model IDs | `config/model-routing.json`; `docs/policy/model-catalog.md`; `claude --help`; [Claude Code model configuration](https://code.claude.com/docs/en/model-config) | 2026-07-29 | Local Claude Code 2.1.220 accepted `claude-fable-5`, `claude-sonnet-5`, and `claude-opus-5`; Brida pins these IDs instead of mutable aliases |

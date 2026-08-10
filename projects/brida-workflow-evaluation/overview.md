@@ -4,7 +4,7 @@
 - Slug: brida-workflow-evaluation
 - Repository/path: repository root (`.`)
 - Owner: Brida
-- Lifecycle status: active
+- Lifecycle status: complete
 - Last verified: 2026-07-27
 
 ## Purpose

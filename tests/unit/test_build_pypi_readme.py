@@ -132,6 +132,19 @@ class ConfigTest(unittest.TestCase):
         config = build_pypi_readme.load_config()
         self.assertEqual(config["source"], "packaging/pypi-readme.md")
 
+    def test_shipped_config_is_public_with_the_verified_base_urls(self):
+        """PYPI-003: a silent revert to private mode must fail here, not ship."""
+        config = build_pypi_readme.load_config()
+        self.assertIs(config["public_repository"], True)
+        self.assertEqual(
+            config["asset_base_url"],
+            "https://raw.githubusercontent.com/minhtran3124/Brichan/main",
+        )
+        self.assertEqual(
+            config["link_base_url"],
+            "https://github.com/minhtran3124/Brichan/blob/main",
+        )
+
     def test_public_mode_requires_https_base_urls(self):
         broken = {**PUBLIC, "asset_base_url": "assets"}
         with self.assertRaises(build_pypi_readme.ReadmeConfigError):
