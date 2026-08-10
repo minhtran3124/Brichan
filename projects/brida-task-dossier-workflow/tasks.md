@@ -14,6 +14,7 @@
 
 | ID | Outcome | Evidence | Completed |
 |---|---|---|---|
+| TDW-010 | Made new checkout task dossiers local-only while preserving on-disk agent/validator discovery and Git-visible canonical project memory | local dossier and receipt; reviewer `019fead4-08b4-7361-bf19-237f0a95ec53` PASS with no findings; 8 focused tests; 401 unit, 82 contract, 90 integration tests; full repository gates | 2026-08-10 |
 | TDW-001 | Audited repository fit, all screenshot artifacts/phases, and checkout/installed feasibility | `brichan-task-dossier-repo-fit` / `w2D:p2`; `research.md` | 2026-08-02 |
 | TDW-002 | Produced severity-ranked critique and adaptive Level 0/1/2 alternative | `brichan-task-dossier-critique` / `w2D:p3`; `research.md` | 2026-08-02 |
 | TDW-003 | Verified routing remains mechanically valid and defined routing-neutral workflow constraints | `brichan-task-dossier-routing-audit` / `w2D:p4`; `routing-impact.md`; 44 focused tests; disposable installed probe | 2026-08-02 |

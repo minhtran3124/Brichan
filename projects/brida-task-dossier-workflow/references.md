@@ -14,6 +14,7 @@
 | TDW-005 task packet | `projects/brida-task-dossier-workflow/handoffs/TDW-005/task-packet.md` | 2026-08-02 | Accepted-plan implementation assignment |
 | TDW-005 receipt | `projects/brida-task-dossier-workflow/handoffs/TDW-005/receipt.md` | 2026-08-02 | Canonical implementation and review evidence |
 | Task dossier contract | `docs/workflows/task-dossier.md` | 2026-08-02 | Canonical checkout-mode full-document workflow |
+| TDW-010 receipt | `projects/brida-task-dossier-workflow/handoffs/TDW-010/receipt.md` | 2026-08-10 | Local-only dossier Git boundary; independent review PASS; no remote action authorized |
 | TDW-005 implementation worker | `brichan-full-doc-workflow-implement` / `w2D:p5` / `429445d9-3f2a-4d3c-9c87-63f51755a9a7` | 2026-08-02 | Claude Opus medium implementation and two remediation rounds |
 | TDW-005 independent reviewer | `brichan-full-doc-workflow-review` / `w2D:p6` / `019fc0a4-188e-7e91-91b1-22436b4fd951` | 2026-08-02 | Codex Sol high; adversarial review, two CHANGES REQUIRED rounds, final PASS |
 | TDW-006 receipt | `projects/brida-task-dossier-workflow/handoffs/TDW-006/receipt.md` | 2026-08-02 | Canonical Level 0 pilot lifecycle and evidence |

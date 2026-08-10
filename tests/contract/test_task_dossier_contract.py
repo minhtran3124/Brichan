@@ -1,5 +1,6 @@
 import json
 import re
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -157,6 +158,29 @@ class TaskDossierDocumentationContractTest(unittest.TestCase):
             line for line in makefile.splitlines() if line.startswith("check:")
         )
         self.assertIn("dossiers", check)
+
+    def test_new_dossiers_are_gitignored_without_hiding_project_memory(self):
+        gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("/projects/*/handoffs/*/", gitignore)
+
+        dossier = "projects/example/handoffs/TASK-999/index.md"
+        memory = "projects/example/current-state.md"
+        for path, expected in ((dossier, 0), (memory, 1)):
+            with self.subTest(path=path):
+                result = subprocess.run(
+                    [
+                        "git",
+                        "-c",
+                        "core.excludesFile=/dev/null",
+                        "check-ignore",
+                        "--no-index",
+                        "--quiet",
+                        path,
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                )
+                self.assertEqual(expected, result.returncode)
 
     def test_repository_manifest_inventories_the_new_boundaries(self):
         manifest = json.loads(

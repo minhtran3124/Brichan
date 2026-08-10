@@ -20,6 +20,20 @@ suffix of at least three digits, such as `TDW-005`. Renaming a branch, moving to
 a detached worktree, or reusing a checkout does not change task identity. The
 directory name is authoritative; every artifact repeats it and must agree.
 
+## Local Git boundary
+
+Task dossiers are durable local workflow state, not repository deliverables.
+New directories matching `projects/*/handoffs/*/` are ignored by Git by
+default. Ignoring changes only Git visibility: the directories remain on disk,
+and Brichan, worker agents, scaffolders, validators, and later sessions continue
+to read and update them through normal filesystem paths.
+
+The project index and the canonical project-memory files directly under each
+`projects/<project-slug>/` directory remain visible to Git. Dossier paths that
+were already tracked before this rule remain tracked because Git ignore rules
+do not retroactively remove files from the index. Sharing a new dossier is an
+explicit opt-in with `git add -f`; no workflow may force-add one implicitly.
+
 ## Standard artifacts
 
 | Artifact | Writer | Mutability |

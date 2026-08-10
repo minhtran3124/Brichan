@@ -62,3 +62,6 @@ internal-docs/
 *.bak
 *.orig
 *.rej
+
+# Local Brichan task dossiers (kept on disk for agent continuity)
+/projects/*/handoffs/*/

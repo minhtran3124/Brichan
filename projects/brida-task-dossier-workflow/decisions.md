@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-08-10 — New checkout task dossiers are local-only
+
+- Status: accepted and implemented
+- Context: Per-feature and per-bug dossiers are internal workflow state that
+  must survive across local agent sessions without entering ordinary commits.
+- Decision: Git ignores new `projects/*/handoffs/*/` directories while the
+  project index and canonical direct project-memory files remain visible.
+- Rationale: Git visibility is independent from filesystem availability, so
+  agents and validators retain continuity without adding dossier churn to PRs.
+- Guardrail: Existing tracked dossiers are not removed; force-adding a new
+  dossier remains an explicit user action and no workflow does it implicitly.
+- Owner: User
+
 ## 2026-08-02 — Full dossier for every task level
 
 - Status: accepted by user
