@@ -1,12 +1,14 @@
 # Current state
 
-Last updated: 2026-08-02
+Last updated: 2026-08-10
 
 ## Summary
 
 Status: checkout full-document dossiers, concise Level 0/1 generation, and
 deterministic summaries are implemented, independently reviewed, and passing.
-Every lane retains the same eleven-artifact evidence contract.
+Every lane retains the same eleven-artifact evidence contract. New checkout
+task dossiers are local-only by default: they remain on disk and discoverable
+by agents and validators, while Git ignores `projects/*/handoffs/*/`.
 
 ## Completed recently
 
@@ -55,6 +57,9 @@ Every lane retains the same eleven-artifact evidence contract.
   implementation: current checkout routes plan to Claude Opus high, implement
   to Claude Fable medium, review to Codex Sol medium, and scan to Claude Sonnet
   medium.
+- Made new checkout task dossier directories local-only without hiding the
+  project index or canonical direct project-memory files; focused and full
+  verification passed, and independent review found no defects.
 
 ## Blockers
 
@@ -69,6 +74,9 @@ Every lane retains the same eleven-artifact evidence contract.
 - The closed index projection and single-table rule may create pilot friction.
 - The exact TDW-009 opaque-snapshot exception must remain task-specific and
   coupled to authenticated capture evidence.
+- Historical dossier files already tracked by Git remain tracked; the ignore
+  rule intentionally affects only new untracked dossier directories unless a
+  user explicitly force-adds one.
 
 ## Next actions
 
