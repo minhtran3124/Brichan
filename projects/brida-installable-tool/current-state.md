@@ -1,139 +1,79 @@
 # Current state
 
-Last updated: 2026-08-03
+Last updated: 2026-08-10
 
 ## Summary
 
-Status: active. Research, Stage 1 implementation, disposable installed-wheel
-verification, and independent review are complete. The next stage is one-owner
-dogfood in a selected real repository, followed later by 3–5 trusted users.
+Status: active. `brichan` is published on PyPI and releases are automated. The
+installed Codex vertical slice, the external installer, read-only `doctor`
+diagnostics, and the mandatory worker lifecycle are all in place. The open gate
+is dogfood in an external owner repository with real Codex and real Herdr.
 
-## Completed recently
+## Distribution and release
 
-- Audited coexistence with existing target `.claude`, `.agents`, `.codex`,
-  instruction files, skills, hooks, and wrappers. `init` is byte-preserving
-  outside `.brida/`, but runtime compatibility is conditional: `AGENTS.md` and
-  trusted `.codex/config.toml` can participate in Codex, while `.agents/skills`
-  discovery and `skills.config` array layering still need a live-provider probe.
-- Assessed a Rust migration for performance using local Python 3.10.11
-  benchmarks and an independent read-only worker. Current Brida commands are
-  approximately 48–54 ms median; retain Python unless a measured CPU gate is
-  crossed.
-- Compared six products/mechanisms using reverified official sources.
-- Audited current package readiness, repository coupling, lifecycle options,
-  security/compatibility risks, positioning, advantages, and disadvantages.
-- Verified the baseline complete suite: 121 tests plus metrics, 33 receipts,
-  repository paths, compatibility, package imports, and shell checks passed.
-- Added policy/skill-loading alternatives, the Herdr skill lifecycle, path
-  migration inventory, scoped risks/guardrails, and sequenced evidence gates.
-- Replaced market-oriented gates with three dogfood stages: disposable
-  technical proof, one-user owner workflow, then 3–5 trusted users.
-- Independent Codex Sol review initially returned `CHANGES REQUIRED`; nine
-  bounded primary and consistency findings were remediated and final re-review
-  returned `PASS`.
-- All six Brida-owned research/review panes (`w1X:p34`–`w1X:p39`) were closed;
-  the coordinator and unrelated workspaces were preserved.
-- Implemented package-owned `brida init`, `status`, `doctor`, and direct Codex
-  project launch with a versioned `.brida/` footprint.
-- Preserved checkout mode while preventing target repositories from spoofing
-  clone markers or executing target-owned `bin/brida-*` wrappers.
-- Added no-follow state validation, deterministic malformed/incompatible
-  diagnostics, target-local Herdr routing, and a narrow installed-project
-  Codex option allowlist.
-- Built and installed a wheel outside the checkout; verified init idempotency,
-  exact resource packaging, hostile wrappers, routing contamination,
-  symlink/dangling/inaccessible state, and literal `--` prompt boundaries with
-  fake Codex.
-- Independent Codex Sol implementation review required two remediation rounds
-  and returned final `PASS`.
-- Final coordinator and reviewer verification passed 152 tests plus metrics,
-  receipts, repository-path, compatibility, import, shell, diff, and artifact
-  checks.
-- Re-checked `config/model-routing.json` at the user's request: the named
-  `implement` route resolves to Claude Sonnet medium and Claude authentication
-  is available.
-- A Claude Sonnet implementation stabilization worker independently rebuilt
-  and installed the wheel, reran adversarial probes and all 152 checks, found
-  no reproducible defect, and made no code changes.
-- Added `scripts/install-brida`: it can run from any directory, builds from a
-  temporary source snapshot, installs into a dedicated external virtual
-  environment, and exposes commands through safe symlinks without activation.
-- Verified the installer from a disposable target repository with no
-  `VIRTUAL_ENV`; `brida init --apply` succeeded through the installed command
-  shim and left no checkout build artifacts.
-- Hardened interpreter selection and dedicated-environment reuse so missing
-  `pip` fails early with clear, non-destructive recovery guidance.
-- Claude Sonnet implementation and Claude Opus independent review closed all
-  installer prerequisite and local-venv scan findings with final verdict
-  `PASS`.
-- Final independent verification passed 155 checks, including 32 integration
-  tests, 34 canonical receipts, shell parsing, and outside-checkout installation
-  without activation.
-- Prepared the future `brichan` `0.5.0` distribution without publishing it:
-  wheel/sdist metadata, clean-artifact CI, tag/version validation, and an OIDC
-  Trusted Publishing workflow are in place while `brida` imports and commands
-  remain unchanged.
-- Re-checked and pinned model routing: Claude coordinator uses
-  `claude-fable-5` low, implementation uses `claude-sonnet-5` medium, and
-  review uses `claude-opus-5` high. The canonical IDs and their aliases
-  completed live probes. Claude Sonnet implementation and Claude Opus
-  independent review returned `PASS`.
-- Implemented `bin/brichan doctor --json` for source checkouts and installed
-  projects. It reports repository, Git, policy, model-routing, project-memory,
-  and dependency checks with deterministic JSON, preserves lifecycle exits, and
-  never invokes Herdr or mutates Git/filesystem state.
-- DOGFOOD-006 plan v3 passed independent plan review; H1 symlink traversal and
-  M1 invalid-UTF-8 traceback were found by code review, remediated with
-  regressions, and passed independent remediation re-review.
+- The `brichan` distribution is published on PyPI; `pip install brichan` is the
+  documented entry point (`README.md`).
+- Releases are tag-triggered: pushing `vX.Y.Z` runs
+  `.github/workflows/publish.yml`, which builds, validates, and publishes
+  through PyPI Trusted Publishing. The first fully automated publish was
+  `v0.9.0` on 2026-08-03. Current version: see `VERSION`.
+- `scripts/install-brichan` installs the tool from any directory into a
+  dedicated external virtual environment and exposes commands through guarded
+  symlinks, with no virtualenv activation and no checkout build artifacts.
+- `make check` includes a read-only, offline durable-memory consistency gate.
 
-## In progress
+## Installed-project shape
 
-- Select one owner repository and run the documented dogfood workflow with
-  explicit backup/reinitialization expectations.
-- Before the first PyPI release, confirm the public repository URL, configure
-  the PyPI trusted publisher and GitHub `pypi` environment, fix the PyPI README
-  image URL, then explicitly authorize upload.
+- Commands: `brichan init` (dry-run by default, `--apply` to write),
+  `brichan status`, `brichan doctor` (text plus `--json`), and `brichan run`.
+- `init` writes only a versioned `.brichan/` directory — manifest, managed
+  policy, model routing, Herdr skill resources, and mutable project memory —
+  and leaves every pre-existing target file untouched.
+- `run` launches external `codex` directly at the target root through a narrow
+  option allowlist; text after `--` is literal prompt content. Target-owned
+  `bin/brichan-*` wrappers are never executed.
+- State diagnostics refuse malformed, dangling, symlinked, inaccessible, or
+  incompatible `.brichan/` state instead of repairing it.
+- Installed mode supports Codex on POSIX with Python 3.10+.
 
-## Blockers
+## Policy in installed mode
 
-- None.
+- The packaged policy mandates the **mandatory plan/implement/review lifecycle**:
+  every task that creates, edits, or deletes repository files runs
+  `plan` → `implement` → independent `review`, with no bounded-edit exception,
+  and the coordinator writes only under `.brichan/project-memory/`.
+- Policy resources are hash-managed, so an existing `.brichan/` reports
+  `incompatible` after a package upgrade or a deliberate policy change. Recovery
+  is a deliberate backup of `project-memory/`, deleting `.brichan/`, and
+  re-running `brichan init --apply`. Schema v1 is migration-free by design.
+
+## Open gates
+
+- Run the documented dogfood workflow in one external owner repository with real
+  Codex and real Herdr, with explicit backup and reinitialization expectations,
+  and record friction and defects before considering 3–5 trusted users.
+- Confirm the public repository URL and fix the PyPI README image URL; flip
+  `public_repository` in `config/pypi-readme.json` when the repository is
+  public.
+- No TestPyPI rehearsal environment, workflow, or Trusted Publisher exists.
 
 ## Risks
 
-- Schema v1 intentionally has no repair or migration; package-version changes
-  require deliberate backup and reinitialization.
-- Abrupt process or machine termination may leave `.brida-stage-*` for manual
-  inspection and removal.
-- The installed-project Codex allowlist intentionally blocks advanced
+- Schema v1 has no repair or migration path; version changes require deliberate
+  backup and reinitialization.
+- Abrupt process or machine termination may leave `.brichan-stage-*` directories
+  for manual inspection and removal.
+- The installed-project Codex allowlist deliberately blocks advanced
   subcommands and arbitrary configuration; option-like prompt text must follow
   `--`.
-- Real Codex and real Herdr execution in an owner repository remains the next
-  dogfood evidence gate. Disposable acceptance used fake Codex and Herdr
-  dry-run only.
-- The gitignored Brida-checkout `.venv/` contains an unexplained Unicode
-  `𝜋thon` alias and packaging utilities. It is excluded from source scans and
-  cannot enter the installer wheel snapshot, but its provenance should be
-  resolved before any future publishing step.
-- `make check` for DOGFOOD-006 passes from a clean generated-artifact state;
-  the dossier validator and focused doctor/remediation tests also pass.
-- The default `doctor` text view now includes configured route models with
-  purposes and required policy files as bullets; `doctor --json` remains the
-  complete machine-readable contract. Repository/Git/dependency summaries are
-  expanded, and Herdr is a required dependency for a healthy checkout.
-
-## Next actions
-
-1. Choose one non-critical owner repository and back up any existing `.brida/`.
-2. Run `/absolute/path/to/brida/scripts/install-brida`, then run `init`,
-   `status`, `doctor`, direct
-   Codex launch, and one bounded Herdr worker lifecycle.
-3. Record friction and defects; only then decide whether to expand to 3–5
-   trusted users.
+- The gitignored checkout `.venv/` contains an unexplained Unicode `𝜋thon`
+  alias and packaging utilities. It is excluded from source scans and cannot
+  enter the installer wheel snapshot, but its provenance is unresolved.
 
 ## Unverified assumptions
 
-- Real Codex accepts the generated `developer_instructions` and
-  `skills.config` CLI overrides in the owner environment exactly as validated
-  by current official documentation and command construction.
+- Real Codex accepts the generated `developer_instructions` and `skills.config`
+  CLI overrides in the owner environment exactly as validated against current
+  official documentation.
 - The narrow one-user allowlist is sufficient for the owner's first real
-  workflow.
+  external workflow.

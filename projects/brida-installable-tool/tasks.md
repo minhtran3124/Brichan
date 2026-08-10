@@ -4,17 +4,25 @@
 
 | ID | Task | Owner/session | Model | Status | Acceptance criteria |
 |---|---|---|---|---|---|
-|---|---|---|---|---|---|
 
 ## Blocked
 
 | ID | Blocker | Decision needed from | Next check |
 |---|---|---|---|
 
+## Recovery evidence
+
+- `MEMORY-001` attempt 1: session `49c52563-1557-4351-ae69-8c36c8594bf6`, pane `w34:p9`.
+- 2026-08-09T16:34:32Z: Herdr `blocked`; unchanged Claude subscription-limit prompt after the checker body was written.
+- 2026-08-09T16:35:09Z: Herdr `blocked`; same prompt and no material progress.
+- 2026-08-09T16:35:45Z: Herdr `blocked`; same prompt and no material progress.
+- Decision: attempt 1 is stale and abandoned; preserve its whitespace-clean partial diff and use the one bounded replacement allowed by worker-recovery policy.
+
 ## Completed
 
 | ID | Outcome | Evidence | Completed |
 |---|---|---|---|
+| MEMORY-001 | Repaired product/project memory, installed-policy and wheel-guide drift; added the offline read-only memory checker to `make check`; remediated all three implementation-review findings | `handoffs/MEMORY-001/receipt.md`; code review v2 `PASS`; 27 focused tests; full gate with 400 unit, 79 contract, and 90 integration tests | 2026-08-10 |
 | COMPAT-001 | Audited coexistence with target `.claude`, `.agents`, `.codex`, instruction files, skills, hooks, and wrappers; filesystem-safe but runtime compatibility remains conditional pending live Codex probes | `brida-existing-instructions-compat` / `w27:p5`; `existing-instructions-compatibility-assessment.md`; focused tests and disposable coexistence probe | 2026-07-30 |
 | ARCH-001 | Rust performance migration assessed; recommendation is to retain Python and gate any future selective prototype on measured bottlenecks | `brida-rust-rewrite-research` / `w27:p3`; `rust-migration-assessment.md`; local benchmarks and official sources | 2026-07-30 |
 | INSTALL-001 | Comparable-product and adjacent-tool research | `brida-install-landscape` / `w1X:p34` / Codex Luna; six reverified official comparisons | 2026-07-29 |
@@ -30,3 +38,7 @@
 | DOGFOOD-005 | Installer prerequisite and reused-environment hardening | `brida-installer-pip-fix` / `w1X:p3E`; Claude Sonnet medium; pip-specific regressions, docs alignment, local-venv scan fix, and full suite passed | 2026-07-29 |
 | PYPI-001 | `brichan` `0.5.0` PyPI release preparation, independently reviewed | `brida-brichan-pypi-implement` / `w1X:p3F` (Claude Sonnet medium); `brida-brichan-pypi-review` / `w1X:p3G` (Claude Opus high); receipt, clean artifacts, OIDC workflow, and full checks | 2026-07-29 |
 | DOGFOOD-006 | Read-only JSON doctor diagnostics plus compact text summary with route models, policy bullets, repository/Git/dependency details, and required Herdr | `handoffs/DOGFOOD-006/receipt.md`; plan review PASS v3; code review PASS v2; focused/full tests, direct JSON/text probes, symlink/UTF-8 adversarial probes; full check passes from clean generated-artifact state | 2026-08-03 |
+| RENAME-001 | Runtime rename from Brida to Brichan completed: importable package, console commands, installed-project directory, and installer all read `brichan`; `projects/brida-*` memory slugs deliberately retained | `src/brichan/`; `scripts/install-brichan`; `Rename package` commit; decision `2026-08-09 — Brida → Brichan rename completed; project slugs retained` | 2026-07-30 |
+| PYPI-002 | `brichan` published on PyPI with tag-triggered Trusted Publishing; a `vX.Y.Z` tag push is the only publish trigger and the first fully automated publish was `v0.9.0` | `handoffs/PYPI-001/release-checklist.md`; `.github/workflows/publish.yml`; <https://pypi.org/project/brichan/> | 2026-08-03 |
+| INIT-001 | `init` creates missing root `AGENTS.md`/`CLAUDE.md` pointers to `.brichan/` without editing pre-existing ones, and the `.agents/` skill export is gated behind the opt-in `--init-agents` flag | `feat: create missing root AGENTS.md/CLAUDE.md pointers during init` and `feat: gate the .agents/ skill export behind an opt-in --init-agents flag` commits; PRs #22 and #23; focused init tests | 2026-08-03 |
+| POLICY-001 | The installed-project policy mandates the mandatory plan/implement/review lifecycle with no bounded-edit exception; the coordinator writes only under `.brichan/project-memory/` | `src/brichan/resources/dogfood_v1/policy/operating-principles.md`; `tests/contract/test_dogfood_policy_contract.py`; PR #25; `CHANGELOG.md` `[0.11.0]` | 2026-08-09 |

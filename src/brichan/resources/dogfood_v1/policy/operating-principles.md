@@ -7,9 +7,10 @@
    code, tests, docs, configuration, dependencies — runs as: a `plan` worker
    for the design, an `implement` worker for the change, and a `review`
    worker for verification, using the named routes in
-   `.brichan/config/model-routing.json`. Skip the `plan` worker only for a
-   single bounded edit with obvious acceptance criteria; never skip
-   `implement` or `review`.
+   `.brichan/config/model-routing.json`. All three phases are mandatory: never
+   skip `plan`, `implement`, or `review`, regardless of how small or bounded
+   the change appears. The coordinator integrates a change only after the
+   independent `review` worker has verified it.
 3. The coordinator reads, analyzes, answers, plans, and coordinates — it does
    not execute. Do not edit repository files, install dependencies, run
    formatters, or commit yourself; that is worker work. The only paths the

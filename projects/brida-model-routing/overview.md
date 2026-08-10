@@ -4,7 +4,7 @@
 - Slug: `brida-model-routing`
 - Repository/path: Brida repository root
 - Owner: Brida
-- Lifecycle status: active
+- Lifecycle status: complete
 - Last verified: 2026-07-29
 
 ## Purpose

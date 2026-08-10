@@ -2,7 +2,7 @@
 
 ## Brida installable repository tool
 - Status: active
-- Summary: Codex-first installed vertical slice passed disposable wheel tests and independent review; next validate in one real owner repository.
+- Summary: `brichan` is published on PyPI with tag-triggered Trusted Publishing; installed mode mandates the plan/implement/review lifecycle, and external owner-repository dogfood is the open gate.
 - Memory: projects/brida-installable-tool/
 
 ## Brida system validation
@@ -21,17 +21,17 @@
 - Memory: projects/brida-claude-code-support/
 
 ## Brida repository structure refactor
-- Status: active
+- Status: complete
 - Summary: Plan a scalable modular repository layout, migration path, and multi-agent-safe operating contracts.
 - Memory: projects/brida-repository-structure-refactor/
 
 ## Brida settings-driven model routing
-- Status: active
+- Status: complete
 - Summary: Move coordinator and worker role model selection into validated repository settings with safe per-launch overrides.
 - Memory: projects/brida-model-routing/
 
 ## Brida task dossier workflow
-- Status: proposed
+- Status: active
 - Summary: Evaluate an adaptive per-task dossier spanning intake, exploration, design, planning, implementation, review, and ship evidence.
 - Memory: projects/brida-task-dossier-workflow/
 

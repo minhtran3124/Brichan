@@ -9,7 +9,7 @@ It is descriptive of product intent. It is not runtime policy. The normative
 runtime policy lives under `docs/policy/`; see
 [Durable contracts](#7-durable-contracts) for the exact files.
 
-Last verified: 2026-07-29 (package version 0.5.0).
+Last verified: 2026-08-09 (package version 0.11.0).
 
 ## 1. What Brichan is
 
@@ -88,8 +88,16 @@ the number of agents that were running.
 
 1. Convert the request into objective, scope, deliverables, acceptance
    criteria, constraints, and escalation conditions.
-2. Decide whether to delegate at all. Small, sequential, tightly coupled work
-   is done directly.
+2. Decide whether to delegate — a decision that exists in checkout mode only.
+   In checkout mode, delegation is discretionary
+   ([`docs/policy/operating-principles.md`](docs/policy/operating-principles.md)
+   §2): small, sequential, tightly coupled work is done directly. In
+   installed-project mode delegation is mandatory and unconditional — every
+   task that creates, edits, or deletes repository files runs the full `plan` →
+   `implement` → independent `review` worker lifecycle, with no bounded-edit
+   exception. That mandate is stated by the packaged policy resource
+   [`operating-principles.md`](src/brichan/resources/dogfood_v1/policy/operating-principles.md),
+   which is normative for installed projects.
 3. Resolve a named worker route from settings
    ([`config/model-routing.json`](config/model-routing.json)).
 4. Launch each worker through Herdr with a complete task packet.
@@ -116,6 +124,10 @@ brichan status  --project /absolute/path/to/repository
 brichan doctor  --project /absolute/path/to/repository
 brichan run     --project /absolute/path/to/repository -- <codex arguments>
 ```
+
+In installed-project mode the delegated worker lifecycle is unconditional: every
+repository-changing task runs `plan` → `implement` → independent `review`, and
+the coordinator integrates only after that reviewer has verified the change.
 
 Installed mode currently supports **Codex on POSIX with Python 3.10+**. It
 writes only a versioned `.brichan/` directory (manifest, managed policy, model
@@ -195,20 +207,27 @@ documentation updates in the same change. See
 
 ## 10. Current status and direction
 
-Verified as of 2026-07-29:
+Verified as of 2026-08-09:
+
+Latest published version: 0.11.0
 
 - The installed Codex vertical slice passed disposable-wheel verification and
   independent review.
-- `brichan` 0.5.0 release metadata, dual-artifact CI, and an inert OIDC
-  Trusted Publishing workflow exist. **Nothing is published yet.**
+- The `brichan` distribution is published on PyPI and releases are automated:
+  pushing a `vX.Y.Z` tag triggers `.github/workflows/publish.yml`, which
+  builds, validates, and publishes through PyPI Trusted Publishing. The first
+  fully automated publish was `v0.9.0` on 2026-08-03.
+- Dogfood evidence is **partial**. The v0.11 change was produced by live worker
+  orchestration through Herdr in this repository — plan, implement, and review
+  workers, with the coordinator never editing repository files. Dogfood in an
+  external owner repository is still an open gate, so this is partial evidence
+  rather than the finished one.
 
 Next, in order:
 
-1. One-owner dogfood in a real repository with real Codex and real Herdr.
+1. One-owner dogfood in an external repository with real Codex and real Herdr.
 2. Record friction and defects; only then consider 3–5 trusted users.
-3. Before any PyPI release: confirm the public repository URL, configure the
-   trusted publisher and `pypi` environment, fix the README image URL, and get
-   explicit upload authorization.
+3. Confirm the public repository URL and fix the PyPI README image URL.
 
 Live status lives in
 [`projects/brida-installable-tool/current-state.md`](projects/brida-installable-tool/current-state.md),

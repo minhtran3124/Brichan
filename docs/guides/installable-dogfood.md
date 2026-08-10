@@ -57,15 +57,16 @@ This dogfood stage does not publish a package or fetch build dependencies.
 The equivalent manual flow is:
 
 ```bash
-python3 -m pip wheel /absolute/path/to/brichan \
-  --no-deps \
-  --no-build-isolation \
+BRICHAN_SRC=/absolute/path/to/brichan
+python3 -m pip wheel "$BRICHAN_SRC" --no-deps --no-build-isolation \
   --wheel-dir /tmp/brichan-wheel
 python3 -m venv /tmp/brichan-venv
-/tmp/brichan-venv/bin/python -m pip install \
-  --no-deps \
-  /tmp/brichan-wheel/brichan-0.5.0-py3-none-any.whl
+/tmp/brichan-venv/bin/python -m pip install --no-deps \
+  "/tmp/brichan-wheel/brichan-$(cat "$BRICHAN_SRC/VERSION")-py3-none-any.whl"
 ```
+
+The wheel filename is derived from `VERSION` so the command does not go stale
+with every release.
 
 The build interpreter must already provide `pip`, `setuptools`, `venv`, and
 `wheel`.

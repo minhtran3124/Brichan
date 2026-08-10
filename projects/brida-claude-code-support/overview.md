@@ -1,5 +1,7 @@
 # Brida Claude Code support
 
+- Lifecycle status: active
+
 ## Objective
 
 Support Claude Code as an explicit Brida runtime without changing Brida's
