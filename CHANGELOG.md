@@ -7,6 +7,38 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-08-10
+
+### Changed
+
+- The shipped operating principles no longer allow the `plan` worker to be
+  skipped. Previously a coordinator could declare a change "a single bounded
+  edit with obvious acceptance criteria" and go straight to `implement` —
+  which is how the lifecycle was bypassed in practice, since every change
+  looks bounded from the inside. All three phases are now mandatory
+  regardless of the size of the change, and the coordinator integrates only
+  after the independent `review` worker has verified it.
+- The PyPI long description embeds the project hero image again. The image
+  had been stripped since 0.5.0 because the readme builder treated the
+  repository as private and could not emit a resolvable raw URL; the
+  repository is public now, so `config/pypi-readme.json` declares it and the
+  generated `README_PYPI.md` carries the image through to the rendered page.
+- The README was rewritten for a public audience: what Brichan is and the
+  problem it solves lead, ahead of the internal dogfooding detail.
+
+### Added
+
+- `make memory-check` (`scripts/check_project_memory.py`) validates durable
+  project-memory consistency — project index and overview agreement, handoff
+  receipts, and task/state cross-references — and is part of `make check`.
+
+### Upgrade note
+
+- Policy resources are hash-managed, so existing `.brichan/` state reports
+  `incompatible` after upgrading (schema v1 is migration-free by design).
+  Back up `project-memory/`, delete `.brichan/`, and re-run
+  `brichan init --apply` to adopt the tightened policy.
+
 ## [0.11.0] - 2026-08-03
 
 ### Changed
