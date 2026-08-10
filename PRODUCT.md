@@ -227,7 +227,6 @@ Next, in order:
 
 1. One-owner dogfood in an external repository with real Codex and real Herdr.
 2. Record friction and defects; only then consider 3–5 trusted users.
-3. Confirm the public repository URL and fix the PyPI README image URL.
 
 Live status lives in
 [`projects/brida-installable-tool/current-state.md`](projects/brida-installable-tool/current-state.md),

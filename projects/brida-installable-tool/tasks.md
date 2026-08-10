@@ -22,6 +22,7 @@
 
 | ID | Outcome | Evidence | Completed |
 |---|---|---|---|
+| PYPI-003 | Confirmed the public GitHub repository and anonymous raw hero URL; enabled public PyPI README rendering, regenerated the description, and closed the completed durable-memory gate | `handoffs/PYPI-003/receipt.md`; code review `PASS`; 20 focused unit, 11 focused contract, 401 unit, and 81 contract tests; README, memory, and path gates | 2026-08-10 |
 | MEMORY-001 | Repaired product/project memory, installed-policy and wheel-guide drift; added the offline read-only memory checker to `make check`; remediated all three implementation-review findings | `handoffs/MEMORY-001/receipt.md`; code review v2 `PASS`; 27 focused tests; full gate with 400 unit, 79 contract, and 90 integration tests | 2026-08-10 |
 | COMPAT-001 | Audited coexistence with target `.claude`, `.agents`, `.codex`, instruction files, skills, hooks, and wrappers; filesystem-safe but runtime compatibility remains conditional pending live Codex probes | `brida-existing-instructions-compat` / `w27:p5`; `existing-instructions-compatibility-assessment.md`; focused tests and disposable coexistence probe | 2026-07-30 |
 | ARCH-001 | Rust performance migration assessed; recommendation is to retain Python and gate any future selective prototype on measured bottlenecks | `brida-rust-rewrite-research` / `w27:p3`; `rust-migration-assessment.md`; local benchmarks and official sources | 2026-07-30 |

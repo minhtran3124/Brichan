@@ -46,6 +46,15 @@ class PackagingMetadataTest(unittest.TestCase):
             "README_PYPI.md is stale; run `make readme-check`",
         )
 
+    def test_committed_description_embeds_the_public_hero_image(self):
+        """The 0.5.0 page shipped a broken hero; the public flip restores it."""
+        committed = (ROOT / "README_PYPI.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "![Brichan coordinating a team of AI workers]"
+            "(https://raw.githubusercontent.com/minhtran3124/Brichan/main/assets/brichan-hero.png)",
+            committed,
+        )
+
 
 class SdistBuildTest(unittest.TestCase):
     @classmethod
@@ -134,6 +143,13 @@ class SdistBuildTest(unittest.TestCase):
         self.assertNotIn("(docs/", pkg_info)
         self.assertNotIn("(CONTRIBUTING.md)", pkg_info)
         self.assertNotIn("(LICENSE)", pkg_info)
+
+    def test_published_description_embeds_the_hero_image(self):
+        """PKG-INFO is what PyPI renders; the raw URL must survive the build."""
+        self.assertIn(
+            "https://raw.githubusercontent.com/minhtran3124/Brichan/main/assets/brichan-hero.png",
+            self._pkg_info(),
+        )
 
     def test_published_description_keeps_the_pypi_prose(self):
         """Stripping targets must not cost the description its content."""

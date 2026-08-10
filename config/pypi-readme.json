@@ -2,7 +2,7 @@
   "schema_version": 1,
   "source": "packaging/pypi-readme.md",
   "output": "README_PYPI.md",
-  "public_repository": false,
+  "public_repository": true,
   "asset_base_url": "https://raw.githubusercontent.com/minhtran3124/Brichan/main",
   "link_base_url": "https://github.com/minhtran3124/Brichan/blob/main"
 }

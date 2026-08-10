@@ -21,6 +21,9 @@ is dogfood in an external owner repository with real Codex and real Herdr.
   dedicated external virtual environment and exposes commands through guarded
   symlinks, with no virtualenv activation and no checkout build artifacts.
 - `make check` includes a read-only, offline durable-memory consistency gate.
+- The repository is public at https://github.com/minhtran3124/Brichan; the
+  PyPI long description embeds the hero image through the anonymous raw URL
+  (verified 2026-08-10).
 
 ## Installed-project shape
 
@@ -52,9 +55,6 @@ is dogfood in an external owner repository with real Codex and real Herdr.
 - Run the documented dogfood workflow in one external owner repository with real
   Codex and real Herdr, with explicit backup and reinitialization expectations,
   and record friction and defects before considering 3–5 trusted users.
-- Confirm the public repository URL and fix the PyPI README image URL; flip
-  `public_repository` in `config/pypi-readme.json` when the repository is
-  public.
 - No TestPyPI rehearsal environment, workflow, or Trusted Publisher exists.
 
 ## Risks
