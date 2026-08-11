@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-07-29
+Last updated: 2026-08-01
 
 ## Summary
 
@@ -10,6 +10,10 @@ with a `PASS` verdict. Pull request #12 merged to `main` at `6a55c97`; release
 
 ## Completed recently
 
+- Researched making Claude Code the checkout coordinator default. The evidence
+  supports a reversible one-owner dogfood default while preserving Codex-only
+  installed mode and the Codex review route; it does not support a general
+  provider ranking. See `claude-default-runtime-research.md`.
 - Reviewed current hard-coded model selection and official provider settings.
 - Selected a repository-owned JSON manifest plus provider-neutral resolver.
 - Initial implementation, full repository tests, isolated sandbox tests, and a
@@ -49,11 +53,18 @@ with a `PASS` verdict. Pull request #12 merged to `main` at `6a55c97`; release
 - Raw-command compatibility can bypass new validation unless clearly treated as
   a legacy escape hatch.
 - Real runtime smoke tests must not create nested agents or remote changes.
+- Claude worker `auto` mode can allow pushes and pull-request creation unless
+  durable ask or deny rules establish the required human checkpoint.
+- A Max subscription can stop long-lived coordinator work at usage limits, and
+  its consumer-account data-use setting requires explicit user review.
 
 ## Next actions
 
-1. Monitor post-release feedback.
-2. Address only evidence-backed follow-up findings.
+1. Resolve the Claude worker remote-action checkpoint and complete the account
+   privacy, authentication, model-access, and rollback preflight.
+2. Decide whether to adopt the proposed checkout-only Claude dogfood default.
+3. If adopted, run matched coordinator evaluations before making it permanent.
+4. Monitor post-release feedback and address only evidence-backed findings.
 
 ## Unverified assumptions
 
