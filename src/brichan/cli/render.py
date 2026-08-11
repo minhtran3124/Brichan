@@ -30,8 +30,8 @@ INIT_DESCRIPTION = (
     "Create the .brichan/ state directory that Brichan manages in this "
     "repository: policy, model routing, Herdr skills, and project memory. "
     "Also creates root AGENTS.md and CLAUDE.md pointers when they are "
-    "absent, and with --init-agents exports the Herdr skill to "
-    ".agents/skills/ for direct codex sessions. Defaults to a dry run with "
+    "absent, and exports the Herdr skill to .agents/skills/ for direct "
+    "codex sessions. Defaults to a dry run with "
     "zero writes; pass --apply to create the footprint. Existing repository "
     "files are never modified."
 )

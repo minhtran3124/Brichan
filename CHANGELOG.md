@@ -7,6 +7,14 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+### Changed
+
+- `brichan init` now exports `.agents/skills/herdr-orchestration/` by default;
+  the `--init-agents` flag is no longer needed or accepted. If `.agents/` or
+  `.agents/skills/` already exists, initialization preserves its contents and
+  adds only the missing Brichan skill layout. An existing
+  `herdr-orchestration` export remains unmanaged and is never overwritten.
+
 ## [0.12.0] - 2026-08-10
 
 ### Changed

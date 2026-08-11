@@ -262,8 +262,9 @@ class LifecycleHelpTest(unittest.TestCase):
 
     def test_init_help_still_documents_every_flag(self):
         text = self._help("init")
-        for flag in ("--project", "--apply", "--dry-run", "--init-agents"):
+        for flag in ("--project", "--apply", "--dry-run"):
             self.assertIn(flag, text, flag)
+        self.assertNotIn("--init-agents", text)
 
     def test_status_description_names_every_state_and_exit_code(self):
         for state in ("uninitialized", "healthy", "malformed", "incompatible"):

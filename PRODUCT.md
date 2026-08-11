@@ -57,9 +57,10 @@ Do not add these unless the user explicitly asks and authorizes them:
 - Third-party Python runtime dependencies.
 - Windows support, broad multi-platform or broad repository-shape support.
 - Automatic mutation of a target repository's existing `AGENTS.md`,
-  `CLAUDE.md`, `.codex/`, or provider configuration. (`brichan init` creates
-  missing root `AGENTS.md`/`CLAUDE.md` pointers to `.brichan/`, but never
-  edits, overwrites, or re-manages ones that already exist.)
+  `CLAUDE.md`, `.codex/`, provider configuration, or existing skill files.
+  (`brichan init` creates missing root `AGENTS.md`/`CLAUDE.md` pointers and
+  adds its missing skill under `.agents/skills/herdr-orchestration/`, but
+  never edits, overwrites, or re-manages existing files.)
 - Automatic repair or migration of `.brichan/` state (schema v1 is deliberately
   migration-free).
 - Publishing, deploying, remote-state changes, permission broadening, or secret
@@ -130,10 +131,12 @@ repository-changing task runs `plan` → `implement` → independent `review`, a
 the coordinator integrates only after that reviewer has verified the change.
 
 Installed mode currently supports **Codex on POSIX with Python 3.10+**. It
-writes only a versioned `.brichan/` directory (manifest, managed policy, model
-routing, Herdr skill resources, mutable project memory) and leaves every
-pre-existing file untouched. It launches external `codex` directly and never
-executes target-owned `bin/brichan-*` wrappers.
+writes a versioned `.brichan/` directory (manifest, managed policy, model
+routing, Herdr skill resources, mutable project memory), missing root agent
+pointers, and a missing `.agents/skills/herdr-orchestration/` export. It leaves
+every pre-existing file untouched, including other skills. It launches
+external `codex` directly and never executes target-owned `bin/brichan-*`
+wrappers.
 
 ### 6.3 Safety posture of the launcher
 
@@ -240,8 +243,9 @@ Before proposing or merging a change, confirm all of the following:
 - [ ] It does not add a runtime dependency.
 - [ ] It does not widen permissions, scope, or provider configuration
       implicitly.
-- [ ] It does not mutate user-owned files in a target repository outside
-      `.brichan/`.
+- [ ] Outside `.brichan/`, it only creates missing root agent pointers and the
+      missing `.agents/skills/herdr-orchestration/` export; it does not mutate
+      pre-existing user-owned files or skills.
 - [ ] It does not silently repair or migrate state.
 - [ ] It does not report completion without evidence, or record unverified
       claims as durable memory.

@@ -349,7 +349,7 @@ class AgentEntryFilesTest(unittest.TestCase):
 
 
 class AgentSkillsExportTest(unittest.TestCase):
-    """`init --init-agents` exports the Herdr skill for direct codex runs."""
+    """`init` exports the Herdr skill for direct codex runs."""
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -362,23 +362,8 @@ class AgentSkillsExportTest(unittest.TestCase):
     def test_skill_export_contract_names_the_codex_discovery_dir(self):
         self.assertEqual(".agents/skills/herdr-orchestration", AGENT_SKILLS_DIR)
 
-    def test_default_init_never_creates_or_lists_the_agents_dir(self):
+    def test_default_dry_run_lists_missing_skill_export_without_writing(self):
         code, lines = initialize_project(self.paths, apply=False)
-        self.assertEqual(0, code)
-        self.assertNotIn(
-            "create .agents/skills/herdr-orchestration/SKILL.md", lines
-        )
-        code, lines = initialize_project(self.paths, apply=True)
-        self.assertEqual(0, code)
-        self.assertNotIn(
-            "create .agents/skills/herdr-orchestration/SKILL.md", lines
-        )
-        self.assertFalse((self.root / ".agents").exists())
-
-    def test_dry_run_lists_missing_skill_export_without_writing(self):
-        code, lines = initialize_project(
-            self.paths, apply=False, include_agents=True
-        )
         self.assertEqual(0, code)
         self.assertIn("create .agents/skills/herdr-orchestration/SKILL.md", lines)
         self.assertIn(
@@ -392,9 +377,7 @@ class AgentSkillsExportTest(unittest.TestCase):
         self.assertFalse((self.root / ".agents").exists())
 
     def test_apply_exports_the_skill_byte_identical_to_managed_state(self):
-        code, lines = initialize_project(
-            self.paths, apply=True, include_agents=True
-        )
+        code, lines = initialize_project(self.paths, apply=True)
         self.assertEqual(0, code)
         self.assertIn("create .agents/skills/herdr-orchestration/SKILL.md", lines)
         exported = self.root / AGENT_SKILLS_DIR / "SKILL.md"
@@ -408,9 +391,7 @@ class AgentSkillsExportTest(unittest.TestCase):
         marker = existing / "SKILL.md"
         marker.write_bytes(b"user skill\n")
 
-        code, lines = initialize_project(
-            self.paths, apply=True, include_agents=True
-        )
+        code, lines = initialize_project(self.paths, apply=True)
         self.assertEqual(0, code)
         self.assertNotIn(
             "create .agents/skills/herdr-orchestration/SKILL.md", lines
@@ -419,31 +400,56 @@ class AgentSkillsExportTest(unittest.TestCase):
 
     def test_healthy_project_gains_missing_skill_export_on_reinit(self):
         initialize_project(self.paths, apply=True)
+        exported = self.root / AGENT_SKILLS_DIR
+        shutil.rmtree(exported)
 
-        code, lines = initialize_project(
-            self.paths, apply=True, include_agents=True
-        )
+        code, lines = initialize_project(self.paths, apply=True)
         self.assertEqual(0, code)
         self.assertIn("create .agents/skills/herdr-orchestration/SKILL.md", lines)
         self.assertTrue((self.root / AGENT_SKILLS_DIR / "SKILL.md").is_file())
 
-        code, lines = initialize_project(
-            self.paths, apply=True, include_agents=True
-        )
+        code, lines = initialize_project(self.paths, apply=True)
         self.assertEqual(0, code)
         self.assertTrue(lines[0].startswith("no changes:"))
 
-    def test_cli_flag_plumbs_through_to_the_export(self):
-        from brichan.cli import runtime as cli_runtime
+    def test_existing_agents_skills_are_preserved_while_export_is_added(self):
+        other_skill = self.root / ".agents/skills/user-skill/SKILL.md"
+        other_skill.parent.mkdir(parents=True)
+        other_skill.write_bytes(b"user skill\n")
 
-        with contextlib.redirect_stdout(io.StringIO()):
-            code = cli_runtime.main(
-                ["init", "--apply", "--init-agents", "--project", str(self.root)]
-            )
+        code, lines = initialize_project(self.paths, apply=True)
         self.assertEqual(0, code)
+        self.assertIn("create .agents/skills/herdr-orchestration/SKILL.md", lines)
+        self.assertEqual(b"user skill\n", other_skill.read_bytes())
         self.assertTrue((self.root / AGENT_SKILLS_DIR / "SKILL.md").is_file())
 
-    def test_cli_default_leaves_agents_dir_absent(self):
+    def test_symlinked_agents_directory_cannot_redirect_the_export(self):
+        outside = self.root.parent / "outside-agents"
+        outside.mkdir()
+        (self.root / ".agents").symlink_to(outside, target_is_directory=True)
+
+        code, lines = initialize_project(self.paths, apply=True)
+
+        self.assertEqual(2, code)
+        self.assertTrue(lines[0].startswith("initialization failed:"), lines)
+        self.assertFalse(
+            (outside / "skills/herdr-orchestration/SKILL.md").exists()
+        )
+
+    def test_symlinked_skills_directory_cannot_redirect_the_export(self):
+        agents = self.root / ".agents"
+        outside = self.root.parent / "outside-skills"
+        agents.mkdir()
+        outside.mkdir()
+        (agents / "skills").symlink_to(outside, target_is_directory=True)
+
+        code, lines = initialize_project(self.paths, apply=True)
+
+        self.assertEqual(2, code)
+        self.assertTrue(lines[0].startswith("initialization failed:"), lines)
+        self.assertFalse((outside / "herdr-orchestration/SKILL.md").exists())
+
+    def test_cli_default_exports_the_skill(self):
         from brichan.cli import runtime as cli_runtime
 
         with contextlib.redirect_stdout(io.StringIO()):
@@ -451,6 +457,21 @@ class AgentSkillsExportTest(unittest.TestCase):
                 ["init", "--apply", "--project", str(self.root)]
             )
         self.assertEqual(0, code)
+        self.assertTrue((self.root / AGENT_SKILLS_DIR / "SKILL.md").is_file())
+
+    def test_removed_cli_flag_is_rejected(self):
+        from brichan.cli import runtime as cli_runtime
+
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            with self.assertRaises(SystemExit) as caught:
+                cli_runtime.main(
+                    ["init", "--init-agents", "--project", str(self.root)]
+                )
+        self.assertEqual(2, caught.exception.code)
+        self.assertIn(
+            "unrecognized arguments: --init-agents", stderr.getvalue()
+        )
         self.assertFalse((self.root / ".agents").exists())
 
 
