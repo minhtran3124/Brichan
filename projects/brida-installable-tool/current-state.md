@@ -29,9 +29,12 @@ is dogfood in an external owner repository with real Codex and real Herdr.
 
 - Commands: `brichan init` (dry-run by default, `--apply` to write),
   `brichan status`, `brichan doctor` (text plus `--json`), and `brichan run`.
-- `init` writes only a versioned `.brichan/` directory — manifest, managed
-  policy, model routing, Herdr skill resources, and mutable project memory —
-  and leaves every pre-existing target file untouched.
+- `init` writes a versioned `.brichan/` directory — manifest, managed policy,
+  model routing, Herdr skill resources, and mutable project memory — plus
+  missing root agent pointers and the default
+  `.agents/skills/herdr-orchestration/` export. Existing files and skills are
+  left untouched; an existing `.agents/skills/` tree is topped up only when
+  the Brichan skill is absent.
 - `run` launches external `codex` directly at the target root through a narrow
   option allowlist; text after `--` is literal prompt content. Target-owned
   `bin/brichan-*` wrappers are never executed.

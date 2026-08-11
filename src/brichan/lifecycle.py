@@ -54,8 +54,9 @@ AGENT_ENTRY_RESOURCE_DIR = "agent-entry"
 #: Codex skill-discovery export. `brichan run` injects the managed skill from
 #: `.brichan/skills/` explicitly, but a `codex` session started directly in
 #: the repository discovers skills only under `.agents/skills/`. `init`
-#: exports the skill there once, when the directory is absent, under the same
-#: contract as the agent entry files: unmanaged afterwards, never overwritten.
+#: always exports the skill there when this specific skill directory is absent.
+#: Existing `.agents/` content is preserved, and an existing export remains
+#: unmanaged and is never overwritten.
 AGENT_SKILLS_DIR = ".agents/skills/herdr-orchestration"
 _SKILL_RESOURCE_PREFIX = "skills/herdr-orchestration/"
 
@@ -332,8 +333,6 @@ def inspect_project(paths: ProjectPaths) -> Inspection:
 
 def _missing_agent_entries(
     paths: ProjectPaths,
-    *,
-    include_agents: bool = False,
 ) -> tuple[tuple[str, str], ...]:
     """Pending unmanaged files as (project-relative path, resource path)."""
 
@@ -342,9 +341,7 @@ def _missing_agent_entries(
         for name in AGENT_ENTRY_PATHS
         if not os.path.lexists(paths.project_root / name)
     ]
-    if include_agents and not os.path.lexists(
-        paths.project_root / AGENT_SKILLS_DIR
-    ):
+    if not os.path.lexists(paths.project_root / AGENT_SKILLS_DIR):
         pending.extend(
             (f".agents/{resource}", resource)
             for resource in IMMUTABLE_PATHS
@@ -359,9 +356,31 @@ def _write_agent_entries(
 ) -> str | None:
     for relative_path, resource in pending:
         destination = paths.project_root / relative_path
+        directory_fd: int | None = None
         try:
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            with open(destination, "xb") as stream:
+            directory_fd = os.open(
+                paths.project_root,
+                os.O_RDONLY | os.O_DIRECTORY,
+            )
+            for component in Path(relative_path).parts[:-1]:
+                try:
+                    os.mkdir(component, dir_fd=directory_fd)
+                except FileExistsError:
+                    pass
+                next_fd = os.open(
+                    component,
+                    os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                    dir_fd=directory_fd,
+                )
+                os.close(directory_fd)
+                directory_fd = next_fd
+            file_fd = os.open(
+                Path(relative_path).name,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                0o666,
+                dir_fd=directory_fd,
+            )
+            with os.fdopen(file_fd, "wb") as stream:
                 stream.write(_resource_bytes(resource))
         except FileExistsError:
             continue
@@ -370,6 +389,9 @@ def _write_agent_entries(
                 f"initialization failed: {destination}: "
                 f"{exc.__class__.__name__}: {exc}"
             )
+        finally:
+            if directory_fd is not None:
+                os.close(directory_fd)
     return None
 
 
@@ -377,13 +399,10 @@ def initialize_project(
     paths: ProjectPaths,
     *,
     apply: bool,
-    include_agents: bool = False,
 ) -> tuple[int, list[str]]:
     inspection = inspect_project(paths)
     if inspection.kind is StateKind.HEALTHY:
-        missing_entries = _missing_agent_entries(
-            paths, include_agents=include_agents
-        )
+        missing_entries = _missing_agent_entries(paths)
         if not missing_entries:
             return 0, [f"no changes: {paths.state_root} is already healthy"]
         entry_actions = [f"create {name}" for name, _ in missing_entries]
@@ -401,9 +420,7 @@ def initialize_project(
             f"{inspection.kind.value}: {paths.state_root}: {inspection.detail}"
         ]
 
-    missing_entries = _missing_agent_entries(
-        paths, include_agents=include_agents
-    )
+    missing_entries = _missing_agent_entries(paths)
     actions = [f"create .brichan/{path}" for path in documented_footprint()]
     actions.extend(f"create {name}" for name, _ in missing_entries)
     if not apply:

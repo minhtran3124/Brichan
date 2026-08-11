@@ -55,14 +55,14 @@ complete footprint before anything is created. `--apply` then creates:
 - a versioned `.brichan/` directory holding managed policy, model routing,
   Herdr skill resources, and mutable project memory;
 - root `AGENTS.md` and `CLAUDE.md` pointers, when the repository does not
-  already have them.
+  already have them;
+- the Herdr orchestration skill under
+  `.agents/skills/herdr-orchestration/`, so a `codex` session started directly
+  in the repository (without `brichan run`) discovers it too.
 
-Adding `--init-agents` also exports the Herdr orchestration skill to
-`.agents/skills/`, so a `codex` session started directly in the repository
-(without `brichan run`) discovers it too.
-
-Existing files are never modified, and repeating `init` against healthy state
-is idempotent.
+Existing files and skills are never modified. An existing `.agents/skills/`
+tree is preserved while the missing Brichan skill is added, and repeating
+`init` against healthy state is idempotent.
 
 From inside a healthy initialized repository, bare `brichan` launches the
 coordinator directly:

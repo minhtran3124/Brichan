@@ -36,7 +36,9 @@ small dogfood cohort of 3–5 trusted users.
   user population.
 - Broad platform and repository-shape compatibility beyond the dogfood
   environment.
-- Automatic mutation of existing `AGENTS.md`, `CLAUDE.md`, or provider config.
+- Automatic mutation of existing `AGENTS.md`, `CLAUDE.md`, provider config, or
+  skill files. Initialization may add the missing Brichan skill alongside an
+  existing `.agents/skills/` tree without overwriting its contents.
 - Production-grade migrations, Windows support, or broad multi-runtime support
   in the first vertical slice.
 - Selecting irreversible compatibility or security trade-offs.

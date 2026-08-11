@@ -105,12 +105,14 @@ the required workers, verify their output, and maintain project memory.
 managed policy, model routing, the Herdr orchestration skill, and mutable
 project memory. If the repository does not already contain root `AGENTS.md` or
 `CLAUDE.md` files, Brichan creates small pointers that direct coding agents to
-the managed policy.
+the managed policy. It also exports the Herdr skill to
+`.agents/skills/herdr-orchestration/` so Codex sessions started directly in the
+repository discover it.
 
-Existing files are never modified or overwritten. Repeating initialization
-against healthy state is idempotent. Use `--init-agents` to additionally export
-the Herdr skill to `.agents/skills/` for Codex sessions started directly rather
-than through `brichan run`.
+Existing files and skills are never modified or overwritten. If `.agents/` or
+`.agents/skills/` already exists, initialization adds only the missing
+`herdr-orchestration` skill in the standard skill layout. Repeating
+initialization against healthy state is idempotent.
 
 Useful commands:
 

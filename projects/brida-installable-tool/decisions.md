@@ -1,5 +1,19 @@
 # Decision log
 
+## 2026-08-10 — Export the Brichan skill to `.agents/` by default
+
+- Status: accepted
+- Context: Direct Codex sessions need the packaged Herdr skill in the standard
+  `.agents/skills/` discovery tree, and requiring `--init-agents` made this
+  easy to omit.
+- Decision: Every `brichan init` previews or creates the missing
+  `.agents/skills/herdr-orchestration/` layout. Existing `.agents/` content and
+  existing skill files remain untouched; the opt-in flag is removed.
+- Rationale: The default initialized repository should work both through
+  `brichan run` and through a direct Codex session without extra setup.
+- Owner: User.
+- Evidence: User direction on 2026-08-10; `tests/unit/test_project_lifecycle.py`.
+
 ## 2026-07-29 — Explore installed CLI plus project initialization
 
 - Status: superseded
