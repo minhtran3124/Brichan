@@ -192,6 +192,12 @@
       "policy": "stable-wrapper"
     },
     {
+      "path": "bin/brichan-herdr-agent-observe",
+      "kind": "file",
+      "category": "runtime-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
       "path": "scripts/validate_handoff_receipts.py",
       "kind": "file",
       "category": "automation-entrypoint",
@@ -363,6 +369,30 @@
       "path": "src/brichan/orchestration/worker_launch.py",
       "kind": "file",
       "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/orchestration/monitor.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "tests/unit/test_herdr_monitor.py",
+      "kind": "file",
+      "category": "regression-test",
+      "policy": "canonical"
+    },
+    {
+      "path": "tests/integration/test_worker_monitor_cli.py",
+      "kind": "file",
+      "category": "regression-test",
+      "policy": "canonical"
+    },
+    {
+      "path": "tests/contract/test_skill_parity_contract.py",
+      "kind": "file",
+      "category": "regression-test",
       "policy": "canonical"
     },
     {
@@ -750,6 +780,20 @@
       "source": "src/brichan/contracts/task_dossier/validation.py",
       "target": "src/brichan/contracts/task_dossier/parser.py",
       "needle": "from .parser import"
+    },
+    {
+      "source": "bin/brichan-herdr-agent-observe",
+      "target": "src/brichan/orchestration/monitor.py",
+      "needle": "brichan.orchestration.monitor"
+    },
+    {
+      "source": "pyproject.toml",
+      "target": "src/brichan/orchestration/monitor.py",
+      "needle": "brichan.orchestration.monitor:main"
+    },
+    {
+      "source": ".agents/skills/herdr-orchestration/references/commands.md",
+      "target": "bin/brichan-herdr-agent-observe"
     }
   ]
 }

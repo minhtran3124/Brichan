@@ -124,3 +124,26 @@
   `src/brichan/`; `handoffs/MEMORY-001/receipt.md`.
 - Supersedes: 2026-07-29 — Brichan distribution identity with stable Brida
   runtime API.
+
+## 2026-08-14 — Typed read-only Herdr monitoring boundary
+
+- Status: accepted
+- Context: Raw terminal-buffer observations and Herdr scheduling states could be
+  mistaken for complete worker evidence; the user also questioned whether
+  monitoring depended on screenshots.
+- Decision: Observe Herdr through `brichan-herdr-agent-observe`. The monitor reads
+  text/JSON envelopes, not bitmap screenshots; preserves scheduling state without
+  interpreting completion; reports conservative truncation; and treats declared
+  durable files as acceptance evidence only after content review. Keep verified
+  support pinned to Herdr `0.7.3`/protocol `16` until a separately authorized
+  upgrade and design revision.
+- Rationale: A typed, tested boundary makes parser, redaction, wait-cap, path, and
+  exit-code behavior auditable while preventing terminal state from becoming an
+  unsupported completion claim.
+- Trade-offs: Healthy reads normally report truncation risk `possible`; later
+  Herdr formats intentionally degrade to `unverified` or malformed findings; a
+  released packaged-skill update would require deliberate installed-state
+  backup and reinitialization.
+- Owner: User-authorized HERDR-001 implementation.
+- Evidence: `handoffs/HERDR-001/receipt.md`; code-review artifact v4 `PASS`;
+  focused and full repository gates.

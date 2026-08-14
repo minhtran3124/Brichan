@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""Compatibility wrapper for Brichan's read-only Herdr monitoring surface."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from brichan.orchestration.monitor import (
+    AdapterError,
+    AgentObservation,
+    CapabilityFinding,
+    EvidenceFileReport,
+    HerdrPreflight,
+    IntegrationRow,
+    MonitorError,
+    PathValidationError,
+    StatusSchemaError,
+    UsageError,
+    assert_read_only,
+    canonical_source,
+    classify_truncation,
+    collect_evidence,
+    envelope_result,
+    main,
+    observe_agent,
+    open_project_root,
+    parse_integration_rows,
+    parse_read_payload,
+    parse_status_payload,
+    render_report,
+    run_preflight,
+    validate_argv,
+    wait_argv,
+)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

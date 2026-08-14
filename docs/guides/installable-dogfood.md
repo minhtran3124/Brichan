@@ -270,6 +270,70 @@ Initialization uses a `.brichan-stage-*` directory and normally removes it on
 failure; abrupt process or machine termination can leave that staging
 directory for the user to inspect and remove deliberately.
 
+## Read-only worker monitoring
+
+`brichan-herdr-agent-observe` is the installed console command for observing
+Brichan-owned Herdr workers. It runs only non-mutating Herdr commands and
+cannot send keys, prompts, or any other input to a worker.
+
+```bash
+brichan-herdr-agent-observe preflight [--agent <brichan-name>]
+brichan-herdr-agent-observe observe <brichan-name> \
+  --lines 200 \
+  --project-root /absolute/path/to/repository \
+  --evidence relative/path/to/evidence.md
+```
+
+`preflight` reports the client and server versions, protocol, compatibility,
+both restart-need values, per-runtime integration health parsed from the
+plain-text `herdr integration status` rows, and capability findings such as the
+observed `trust_directory` manifest failure. A version or protocol outside the
+verified set (`0.7.3` / protocol `16`) is reported as `unverified`; that is an
+informational state. The command never updates, installs, or edits Herdr state,
+and widening the verified set requires a separately authorized Herdr upgrade.
+
+`observe` reports the scheduling state verbatim, the read text with its
+completeness metadata, and presence metadata for each declared evidence file.
+It deliberately has no completion, success, or done field: a scheduling state
+such as `idle` or `done` is not proof that acceptance criteria passed.
+
+Both subcommands write one JSON document to stdout with sorted keys, two-space
+indentation, and exactly one trailing newline.
+
+| Exit | Meaning |
+|---:|---|
+| 0 | Report collected, including `unverified`, degraded, and truncation findings |
+| 1 | Report impossible: `herdr` missing, or the primary probe failed, returned malformed JSON, or omitted a required status field |
+| 2 | Invalid invocation, or a rejected project-root or evidence path |
+
+Exit classes are evaluated in the fixed order 2, then 1, then 0. All argument
+and path validation happens before any subprocess runs, so a rejected path
+always wins over a healthy worker. At exit 0 the findings are a union: a failed
+read and a missing evidence file appear together in one collected report.
+
+Truncation risk is `none`, `possible`, or `confirmed`. On Herdr `0.7.3` no
+capability proves terminal-history completeness, so a successful read is at
+best `possible` — that is the normal healthy outcome, not an error, and `none`
+is unreachable by design. When the risk is `possible` or `confirmed`, the
+authoritative fallback is reading the declared evidence files. The walk is
+descriptor-relative with `O_NOFOLLOW`, so absolute, `~`-prefixed, `..`, and
+symlinked paths are rejected with exit 2. Presence metadata is never acceptance
+evidence; read and judge the file contents.
+
+### Packaged-resource consequence after an upgrade
+
+The packaged skill files under
+`src/brichan/resources/dogfood_v1/skills/herdr-orchestration/` are hash-managed
+immutable resources. Changing them changes the intended manifest, so after
+upgrading the package an existing initialized project reports `incompatible`
+(exit code 3). Schema v1 stays migration-free and no repair code exists. The
+supported recovery is deliberate:
+
+1. Back up `.brichan/project-memory/`.
+2. Delete `.brichan/`.
+3. Re-run `brichan init --apply`.
+4. Restore the backed-up project memory.
+
 ## Compatibility boundary
 
 The checkout workflow remains supported: `bin/brichan` sets `BRICHAN_ROOT` and

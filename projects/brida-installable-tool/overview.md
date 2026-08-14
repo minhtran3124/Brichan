@@ -5,7 +5,7 @@
 - Repository/path: repository root (`.`)
 - Owner: Brida
 - Lifecycle status: active
-- Last verified: 2026-07-29
+- Last verified: 2026-08-14
 
 ## Purpose
 
@@ -58,6 +58,11 @@ The local installer adds a fourth operational boundary: a dedicated external
 virtual environment for the Brida executable. User command symlinks make it
 available without activation and keep it independent from target `.venv`
 lifecycles.
+
+Herdr observation is exposed through a typed, read-only monitor. It consumes
+terminal-buffer text and JSON envelopes rather than bitmap screenshots, treats
+scheduling state only as a scheduling signal, reports conservative truncation,
+and checks declared evidence through descriptor-anchored no-follow paths.
 
 ## Stable constraints
 

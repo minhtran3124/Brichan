@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-08-10
+Last updated: 2026-08-14
 
 ## Summary
 
@@ -8,6 +8,13 @@ Status: active. `brichan` is published on PyPI and releases are automated. The
 installed Codex vertical slice, the external installer, read-only `doctor`
 diagnostics, and the mandatory worker lifecycle are all in place. The open gate
 is dogfood in an external owner repository with real Codex and real Herdr.
+
+HERDR-001 locally implements accepted plan `HERDR-HARDENING-PLAN-001` version 5.
+The new typed monitor reads Herdr terminal-buffer text/JSON, never screenshots;
+scheduling state is not completion evidence. Code-review artifact v4 records
+`PASS` after all v2/v3 findings were remediated. The final evidence includes 165
+focused tests and a green full repository gate. Herdr upgrade, newer capability
+adoption, release, publication, and other remote actions remain unauthorized.
 
 ## Distribution and release
 
@@ -55,6 +62,8 @@ is dogfood in an external owner repository with real Codex and real Herdr.
 
 ## Open gates
 
+- Decide separately whether to authorize a Herdr upgrade or newer capability
+  adoption; the accepted plan does not presuppose either decision.
 - Run the documented dogfood workflow in one external owner repository with real
   Codex and real Herdr, with explicit backup and reinitialization expectations,
   and record friction and defects before considering 3–5 trusted users.
