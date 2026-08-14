@@ -1,6 +1,6 @@
 # References
 
-- `projects/brida-installable-tool/handoffs/HERDR-001/receipt.md` — reviewed Level 2 Herdr monitoring hardening; exact plan v5 implemented locally, final code review PASS, no upgrade/release/remote authorization
+- `projects/brida-installable-tool/handoffs/HERDR-001/receipt.md`; <https://github.com/minhtran3124/Brichan/pull/30> — reviewed Level 2 Herdr monitoring hardening; follow-up code review v5 PASS after installer/missing-runtime remediation; no upgrade or release authorization
 - `projects/brida-installable-tool/handoffs/INIT-002/receipt.md` — default `.agents/skills/herdr-orchestration/` export, symlink-safe remediation, and independent review evidence
 - `projects/brida-installable-tool/handoffs/PYPI-003/receipt.md` — accepted Level 2 public PyPI README rendering task; implementation and final review pending
 - `projects/brida-installable-tool/handoffs/MEMORY-001/receipt.md` — reviewed Level 2 durable-memory consistency repair with final PASS; local work only, no remote action authorized

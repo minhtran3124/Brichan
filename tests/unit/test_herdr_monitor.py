@@ -547,7 +547,13 @@ class IntegrationParserTest(unittest.TestCase):
         rows = monitor.parse_integration_rows(text)
         self.assertEqual(["unknown-row", "unknown-row"], [r.classification for r in rows])
         self.assertEqual(
-            ["unknown-row(1)", "unknown-row(2)"], monitor._integration_findings(rows)
+            [
+                "unknown-row(1)",
+                "unknown-row(2)",
+                "integration-unhealthy(claude=missing)",
+                "integration-unhealthy(codex=missing)",
+            ],
+            monitor._integration_findings(rows),
         )
         # Even an unknown row retains only the two bounded tokens.
         self.assertEqual(("quokka", "current"), (rows[0].runtime, rows[0].status))
@@ -563,9 +569,40 @@ class IntegrationParserTest(unittest.TestCase):
             [row.classification for row in rows],
         )
         self.assertEqual(
-            ["malformed-row(1)", "malformed-row(2)", "malformed-row(3)"],
+            [
+                "malformed-row(1)",
+                "malformed-row(2)",
+                "malformed-row(3)",
+                "integration-unhealthy(claude=missing)",
+                "integration-unhealthy(codex=missing)",
+            ],
             monitor._integration_findings(rows),
         )
+
+    def test_missing_required_runtime_rows_are_unhealthy(self):
+        cases = (
+            (
+                "",
+                {
+                    "integration-unhealthy(claude=missing)",
+                    "integration-unhealthy(codex=missing)",
+                },
+            ),
+            (
+                "claude: current (v7) (/Users/example/.claude/hook.sh)\n",
+                {"integration-unhealthy(codex=missing)"},
+            ),
+            (
+                "codex: current (v5) (/Users/example/.codex/hook.sh)\n",
+                {"integration-unhealthy(claude=missing)"},
+            ),
+        )
+        for text, expected in cases:
+            with self.subTest(text=text):
+                findings = set(
+                    monitor._integration_findings(monitor.parse_integration_rows(text))
+                )
+                self.assertEqual(expected, findings)
 
     # -- code review v2, finding M1: anchored grammar and strict redaction ----
 
@@ -617,8 +654,13 @@ class IntegrationParserTest(unittest.TestCase):
         rendered = monitor.render_report(report.as_dict())
         for leaked in ("/Users/", "/home/", "~/", "hook.sh", "herdr-agent-state", ".claude"):
             self.assertNotIn(leaked, rendered, leaked)
-        self.assertTrue(
-            all(finding.startswith("malformed-row(") for finding in report.findings)
+        self.assertEqual(
+            {
+                *(f"malformed-row({index})" for index in range(1, len(report.integrations) + 1)),
+                "integration-unhealthy(claude=missing)",
+                "integration-unhealthy(codex=missing)",
+            },
+            set(report.findings),
         )
 
     def test_a_path_like_unknown_row_still_cannot_carry_a_path(self):

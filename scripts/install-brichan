@@ -2,7 +2,7 @@
 set -eu
 
 PROGRAM=${0##*/}
-COMMANDS="brichan brichan-codex brichan-claude brichan-herdr-agent-start brichan-validate-receipts"
+COMMANDS="brichan brichan-codex brichan-claude brichan-herdr-agent-start brichan-herdr-agent-observe brichan-validate-receipts"
 
 usage() {
     cat <<EOF

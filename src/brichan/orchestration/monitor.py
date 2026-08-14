@@ -595,16 +595,21 @@ def parse_integration_rows(stdout: str) -> tuple[IntegrationRow, ...]:
 
 def _integration_findings(rows: Iterable[IntegrationRow]) -> list[str]:
     findings: list[str] = []
+    observed_valid_runtimes: set[str] = set()
     for row in rows:
         if row.classification == "malformed-row":
             findings.append(f"malformed-row({row.index})")
         elif row.classification == "unknown-row":
             findings.append(f"unknown-row({row.index})")
-        elif (
-            row.runtime in REQUIRED_INTEGRATION_RUNTIMES
-            and row.status not in HEALTHY_INTEGRATION_STATUSES
-        ) or row.status == "outdated":
-            findings.append(f"integration-unhealthy({row.runtime}={row.status})")
+        else:
+            observed_valid_runtimes.add(row.runtime)
+            if (
+                row.runtime in REQUIRED_INTEGRATION_RUNTIMES
+                and row.status not in HEALTHY_INTEGRATION_STATUSES
+            ) or row.status == "outdated":
+                findings.append(f"integration-unhealthy({row.runtime}={row.status})")
+    for runtime in sorted(REQUIRED_INTEGRATION_RUNTIMES - observed_valid_runtimes):
+        findings.append(f"integration-unhealthy({runtime}=missing)")
     return findings
 
 

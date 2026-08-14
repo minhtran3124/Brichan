@@ -510,6 +510,36 @@ class WorkerMonitorCliTest(unittest.TestCase):
             )
             self.assertIn(finding, report["findings"], finding)
 
+    def test_missing_required_integration_rows_are_unhealthy(self):
+        cases = (
+            (
+                "empty",
+                "",
+                {
+                    "integration-unhealthy(claude=missing)",
+                    "integration-unhealthy(codex=missing)",
+                },
+            ),
+            (
+                "claude-only",
+                "claude: current (v7) (/Users/example/.claude/hook.sh)\n",
+                {"integration-unhealthy(codex=missing)"},
+            ),
+            (
+                "codex-only",
+                "codex: current (v5) (/Users/example/.codex/hook.sh)\n",
+                {"integration-unhealthy(claude=missing)"},
+            ),
+        )
+        for label, rows, expected in cases:
+            with self.subTest(label=label):
+                report = self.assert_row(
+                    0,
+                    ["preflight"],
+                    healthy(**{"integration status": text(rows)}),
+                )
+                self.assertEqual(expected, set(report["findings"]))
+
     def test_capability_finding_exits_0_and_is_never_repaired(self):
         report = self.assert_row(
             0,
@@ -605,9 +635,13 @@ class WorkerMonitorCliTest(unittest.TestCase):
             self.assertEqual("malformed-row", row["classification"])
             self.assertEqual("", row["runtime"])
             self.assertEqual("", row["status"])
-        self.assertTrue(
-            all(f.startswith("malformed-row(") for f in report["findings"]),
-            report["findings"],
+        self.assertEqual(
+            {
+                *(f"malformed-row({index})" for index in range(1, len(report["integrations"]) + 1)),
+                "integration-unhealthy(claude=missing)",
+                "integration-unhealthy(codex=missing)",
+            },
+            set(report["findings"]),
         )
 
     def test_a_missing_trailing_path_group_is_malformed_not_valid(self):

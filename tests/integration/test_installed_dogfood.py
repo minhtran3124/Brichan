@@ -247,6 +247,7 @@ class InstalledDogfoodTest(unittest.TestCase):
             "brichan-codex",
             "brichan-claude",
             "brichan-herdr-agent-start",
+            "brichan-herdr-agent-observe",
             "brichan-validate-receipts",
         )
         for command_name in commands:

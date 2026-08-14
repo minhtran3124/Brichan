@@ -9,12 +9,15 @@ installed Codex vertical slice, the external installer, read-only `doctor`
 diagnostics, and the mandatory worker lifecycle are all in place. The open gate
 is dogfood in an external owner repository with real Codex and real Herdr.
 
-HERDR-001 locally implements accepted plan `HERDR-HARDENING-PLAN-001` version 5.
-The new typed monitor reads Herdr terminal-buffer text/JSON, never screenshots;
-scheduling state is not completion evidence. Code-review artifact v4 records
-`PASS` after all v2/v3 findings were remediated. The final evidence includes 165
-focused tests and a green full repository gate. Herdr upgrade, newer capability
-adoption, release, publication, and other remote actions remain unauthorized.
+HERDR-001 implements accepted plan `HERDR-HARDENING-PLAN-001` version 5 on the
+user-authorized branch and draft PR #30. The typed monitor reads Herdr
+terminal-buffer text/JSON, never screenshots; scheduling state is not completion
+evidence. The external installer now exposes the observe command, and preflight
+reports missing required Claude/Codex integration rows as unhealthy. Independent
+code-review artifact v5 records `PASS`; evidence includes 167 focused tests and
+a green full gate with 523 unit, 93 contract, and 126 integration tests. Only the
+requested branch, commit, push, and draft PR were authorized; Herdr upgrade,
+newer capability adoption, release, and publication remain unauthorized.
 
 ## Distribution and release
 
