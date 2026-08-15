@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-08-14
+Last updated: 2026-08-15
 
 ## Summary
 
@@ -18,6 +18,13 @@ code-review artifact v5 records `PASS`; evidence includes 167 focused tests and
 a green full gate with 523 unit, 93 contract, and 126 integration tests. Only the
 requested branch, commit, push, and draft PR were authorized; Herdr upgrade,
 newer capability adoption, release, and publication remain unauthorized.
+
+DOGFOOD-007 is locally complete. Source wrappers now select checkout behavior
+through explicit wrapper-only entrypoints, while installed console scripts stay
+managed-only and ignore target-controlled checkout claims. The bounded Claude
+replacement closed forged-symlink, malformed-path, and deterministic-coverage
+findings; focused 51/36/14/29 tests and full 533/95/130/10 gate pass with
+`.brichan/` present. Fresh independent plan/code review version 2 records PASS.
 
 ## Distribution and release
 

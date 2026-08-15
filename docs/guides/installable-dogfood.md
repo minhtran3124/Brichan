@@ -155,11 +155,33 @@ installed-package usage and version information instead of an uninitialized
 error. Inside a healthy initialized project, `--help`/`--version` are instead
 forwarded to `codex` as documented CLI overrides (see below).
 
-From a source checkout — that is, with `BRICHAN_ROOT` pointing at a checkout
-whose `src/brichan` is the running package — `brichan --help`/`--version` report
-Brichan rather than the runtime, because a checkout has no project state to
-launch into. Naming a runtime keeps the forwarding: `brichan --runtime codex
+Run through a source checkout's own `bin/brichan`, `brichan --help`/`--version`
+report Brichan rather than the runtime, because a checkout has no project state
+to launch into. Naming a runtime keeps the forwarding: `brichan --runtime codex
 --help` reaches `codex`, as does `bin/brichan-codex --help`.
+
+### Which mode a command is in
+
+Mode follows the launcher, not the directory. Each repository wrapper calls its
+package entrypoint's `checkout_main` with the root derived from the wrapper's
+own location; each wheel console script calls `main`, which only ever resolves
+an initialized project from the working directory.
+
+So when one directory is both a source checkout and an initialized project —
+the ordinary state of a checkout you have dogfooded on itself — the two sets of
+launchers stay separate:
+
+| Launcher | Routing | Managed bootstrap, skill, and option allowlist |
+|---|---|---|
+| `<checkout>/bin/brichan*` | `<checkout>/config/model-routing.json` | not applied |
+| installed `brichan*` console scripts | `<project>/.brichan/config/model-routing.json` | applied |
+
+Nothing a target repository contains can move a command between those rows.
+`BRICHAN_ROOT`, the working directory, and the shape of the target — including
+a `src/brichan` symlinked at the running package, or `bin/brichan-*` wrappers
+of its own — are never consulted to choose a mode. `BRICHAN_ROOT` remains an
+input to a *checkout* command's own root resolution, and installed commands
+never execute a target's wrappers.
 
 | Condition | Exit code |
 |---|---:|

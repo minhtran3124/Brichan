@@ -85,6 +85,7 @@ class InstalledDogfoodTest(unittest.TestCase):
             raise AssertionError(f"venv creation failed: {result.stderr}")
         cls.python = cls.venv / "bin" / "python"
         cls.brichan = cls.venv / "bin" / "brichan"
+        cls.codex_launcher = cls.venv / "bin" / "brichan-codex"
         cls.herdr_launcher = cls.venv / "bin" / "brichan-herdr-agent-start"
         result = subprocess.run(
             [
@@ -142,6 +143,17 @@ class InstalledDogfoodTest(unittest.TestCase):
         )
         fake_codex.chmod(fake_codex.stat().st_mode | stat.S_IXUSR)
 
+        self.claude_capture = self.temp_path / "claude-capture.json"
+        fake_claude = self.fake_bin / "claude"
+        fake_claude.write_text(
+            "#!/usr/bin/env python3\n"
+            "import json, os, sys\n"
+            "with open(os.environ['FAKE_CLAUDE_CAPTURE'], 'w', encoding='utf-8') as out:\n"
+            "    json.dump({'argv': sys.argv[1:], 'cwd': os.getcwd()}, out)\n",
+            encoding="utf-8",
+        )
+        fake_claude.chmod(fake_claude.stat().st_mode | stat.S_IXUSR)
+
         # `doctor` only resolves herdr on PATH; it never executes it.
         fake_herdr = self.fake_bin / "herdr"
         fake_herdr.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
@@ -173,6 +185,7 @@ class InstalledDogfoodTest(unittest.TestCase):
             f"{os.pathsep}{environment['PATH']}"
         )
         environment["FAKE_CODEX_CAPTURE"] = str(self.capture)
+        environment["FAKE_CLAUDE_CAPTURE"] = str(self.claude_capture)
         return environment
 
     def run_brichan(self, *arguments):
@@ -510,6 +523,287 @@ class InstalledDogfoodTest(unittest.TestCase):
         self.assertEqual("codex", route["resolved"]["runtime"])
         self.assertEqual("gpt-5.6-luna", route["resolved"]["model"])
         self.assertNotIn("external-checkout-model", route["command"])
+
+    def initialized_checkout(self, *, distinct_routing: bool = True) -> Path:
+        """Copy this checkout, give it its own routing, and initialize it.
+
+        This is the DOGFOOD-007 condition made deterministic: one directory
+        that is simultaneously a source checkout and an initialized installed
+        project. A clean CI checkout has no `.brichan/`, so without this copy
+        the co-located case is never actually exercised.
+
+        The source routing is given values the managed state cannot have, so
+        every assertion below distinguishes the two by observed effect rather
+        than by which file happened to be read.
+        """
+        checkout = self.temp_path / "checkout"
+        # A whole-tree copy, because the checkout contract covers docs/policy,
+        # projects/, and scripts/ as well as the launchers. `.brichan` is
+        # excluded so `init --apply` creates the co-located state itself.
+        shutil.copytree(
+            ROOT,
+            checkout,
+            symlinks=True,
+            ignore=shutil.ignore_patterns(
+                ".git", ".brichan", "__pycache__", "*.egg-info", ".venv", "dist", "build"
+            ),
+        )
+        # A real repository, not a `.git` placeholder: `brichan doctor` reports
+        # git status, and the strict suites assert that section is healthy.
+        git = shutil.which("git")
+        if git is None:
+            self.skipTest("git executable is not available")
+        result = subprocess.run(
+            [git, "init", "--quiet", str(checkout)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
+        if distinct_routing:
+            source_routing = checkout / "config" / "model-routing.json"
+            source_payload = json.loads(source_routing.read_text(encoding="utf-8"))
+            coordinators = source_payload["coordinator"]["runtimes"]
+            coordinators["codex"]["model"] = "source-model"
+            coordinators["claude"]["model"] = "source-claude-model"
+            source_payload["routes"]["implement"]["runtime"] = "claude"
+            source_payload["routes"]["implement"]["model"] = "source-worker"
+            source_routing.write_text(json.dumps(source_payload), encoding="utf-8")
+
+        result = self.run_brichan("init", "--apply", "--project", str(checkout))
+        self.assertEqual(0, result.returncode, result.stderr)
+        return checkout
+
+    def run_launcher(self, launcher, *arguments, cwd, environment=None):
+        return subprocess.run(
+            [str(launcher), *arguments],
+            cwd=cwd,
+            env=self.environment() if environment is None else environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_every_source_wrapper_uses_checkout_routing_on_the_same_target(self):
+        """All four repository wrappers stay in checkout mode (review M2).
+
+        The previous fixture invoked only `brichan-codex` and the worker
+        launcher, leaving source `brichan` and `brichan-claude` unproven in the
+        deterministic co-located target.
+        """
+        checkout = self.initialized_checkout()
+        wrappers = checkout / "bin"
+
+        # A checkout's routing is genuinely read: an unreadable override is an
+        # owned error rather than a silent fallback to the managed manifest.
+        spoofed = self.environment()
+        spoofed["BRICHAN_MODEL_ROUTING_FILE"] = str(self.temp_path / "spoof.json")
+        result = self.run_launcher(
+            wrappers / "brichan-codex", "--help", cwd=checkout, environment=spoofed
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("cannot read routing settings", result.stderr)
+
+        # 1. source bin/brichan-codex
+        result = self.run_launcher(wrappers / "brichan-codex", "--help", cwd=checkout)
+        self.assertEqual(0, result.returncode, result.stderr)
+        capture = json.loads(self.capture.read_text(encoding="utf-8"))
+        self.assertIn("source-model", capture["argv"])
+        self.assertEqual(str(checkout.resolve()), capture["cwd"])
+        self.assertFalse(
+            any(item.startswith("developer_instructions=") for item in capture["argv"]),
+            "source checkout dispatch must not inject managed bootstrap policy",
+        )
+
+        # 2. source bin/brichan — reports Brichan's own help, then dispatches
+        #    through the checkout's own per-runtime wrapper.
+        result = self.run_launcher(wrappers / "brichan", "--help", cwd=checkout)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("usage: brichan", result.stdout)
+        self.capture.unlink()
+        result = self.run_launcher(wrappers / "brichan", "do something", cwd=checkout)
+        self.assertEqual(0, result.returncode, result.stderr)
+        capture = json.loads(self.capture.read_text(encoding="utf-8"))
+        self.assertIn("source-model", capture["argv"])
+        self.assertIn("do something", capture["argv"])
+
+        # 3. source bin/brichan-claude
+        result = self.run_launcher(wrappers / "brichan-claude", "hello", cwd=checkout)
+        self.assertEqual(0, result.returncode, result.stderr)
+        claude_capture = json.loads(self.claude_capture.read_text(encoding="utf-8"))
+        self.assertIn("source-claude-model", claude_capture["argv"])
+        self.assertEqual(str(checkout.resolve()), claude_capture["cwd"])
+
+        # 4. source bin/brichan-herdr-agent-start
+        result = self.run_launcher(
+            wrappers / "brichan-herdr-agent-start",
+            "brichan-source-worker",
+            "--cwd",
+            str(checkout),
+            "--route",
+            "implement",
+            "--json",
+            cwd=checkout,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        resolved = json.loads(result.stdout)["resolved"]
+        self.assertEqual("claude", resolved["runtime"])
+        self.assertEqual("source-worker", resolved["model"])
+
+    def test_every_installed_launcher_uses_managed_routing_on_the_same_target(self):
+        """The wheel commands ignore the checkout they are standing in."""
+        checkout = self.initialized_checkout()
+        # A crafted claim is present for every probe below; none may act on it.
+        environment = {**self.environment(), "BRICHAN_ROOT": str(checkout)}
+
+        for launcher in (self.codex_launcher, self.brichan):
+            result = self.run_launcher(
+                launcher, "--help", cwd=checkout, environment=environment
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            capture = json.loads(self.capture.read_text(encoding="utf-8"))
+            self.assertNotIn("source-model", capture["argv"])
+            self.assertTrue(
+                any(
+                    item.startswith("developer_instructions=")
+                    for item in capture["argv"]
+                ),
+                f"{launcher.name} lost managed bootstrap injection",
+            )
+            self.capture.unlink()
+
+        result = self.run_launcher(
+            self.herdr_launcher,
+            "brichan-installed-worker",
+            "--cwd",
+            str(checkout),
+            "--route",
+            "implement",
+            "--json",
+            cwd=checkout,
+            environment=environment,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        resolved = json.loads(result.stdout)["resolved"]
+        self.assertEqual("codex", resolved["runtime"])
+        self.assertNotEqual("source-worker", resolved["model"])
+
+        # brichan-claude is checkout-only; installed it must refuse rather than
+        # adopt the co-located checkout's claude coordinator.
+        claude_launcher = self.venv / "bin" / "brichan-claude"
+        result = self.run_launcher(
+            claude_launcher, "hello", cwd=checkout, environment=environment
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("brichan-claude:", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertFalse(self.claude_capture.exists())
+
+        self.assertFalse(self.hostile_marker.exists())
+
+    def test_installed_codex_refuses_forged_checkout_provenance(self):
+        """DOGFOOD-007 H1: the review's own reproduction, as a regression.
+
+        A claimed root that contains a wrapper-shaped file and symlinks
+        `src/brichan` at the *installed* package used to satisfy the package
+        identity check, switching this wheel process into the unguarded
+        checkout `codex_command()` path.
+        """
+        result = subprocess.run(
+            [
+                str(self.python),
+                "-c",
+                "import brichan, pathlib; print(pathlib.Path(brichan.__file__).parent)",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        installed_package = Path(result.stdout.strip())
+
+        forged = self.temp_path / "forged"
+        (forged / "bin").mkdir(parents=True)
+        (forged / "src").mkdir()
+        for wrapper in ("brichan", "brichan-codex", "brichan-claude"):
+            (forged / "bin" / wrapper).write_text("#!/bin/sh\n", encoding="utf-8")
+        (forged / "src" / "brichan").symlink_to(installed_package)
+        (forged / "config").mkdir()
+        forged_routing = json.loads(
+            (ROOT / "config" / "model-routing.json").read_text(encoding="utf-8")
+        )
+        forged_routing["coordinator"]["runtimes"]["codex"]["model"] = "forged-model"
+        (forged / "config" / "model-routing.json").write_text(
+            json.dumps(forged_routing), encoding="utf-8"
+        )
+
+        environment = {**self.environment(), "BRICHAN_ROOT": str(forged)}
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
+        self.assertEqual(0, result.returncode, result.stderr)
+
+        for launcher in (self.codex_launcher, self.brichan):
+            result = self.run_launcher(
+                launcher, "--help", cwd=self.target, environment=environment
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            capture = json.loads(self.capture.read_text(encoding="utf-8"))
+            self.assertNotIn("forged-model", capture["argv"])
+            self.assertEqual(str(self.resolved_target), capture["cwd"])
+            self.assertTrue(
+                any(
+                    item.startswith("developer_instructions=")
+                    for item in capture["argv"]
+                ),
+                f"{launcher.name} took forged checkout dispatch",
+            )
+            self.capture.unlink()
+
+        # DOGFOOD-007 M1: a malformed claim is inert too, not a traceback.
+        malformed = self.temp_path / "malformed"
+        (malformed / "src").mkdir(parents=True)
+        (malformed / "bin").mkdir()
+        (malformed / "bin" / "brichan-codex").write_text("", encoding="utf-8")
+        (malformed / "src" / "brichan").symlink_to(malformed / "src" / "brichan")
+        result = self.run_launcher(
+            self.codex_launcher,
+            "--help",
+            cwd=self.target,
+            environment={**self.environment(), "BRICHAN_ROOT": str(malformed)},
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertFalse(self.hostile_marker.exists())
+
+    def test_strict_source_suites_pass_inside_the_initialized_copy(self):
+        """Run the accepted strict suites where `.brichan/` co-exists.
+
+        These suites pass in a developer checkout that happens to be
+        initialized, but CI checks out a tree with no `.brichan/`. Running them
+        against the copied, initialized checkout is what makes the original
+        DOGFOOD-007 failure condition reproducible rather than incidental.
+        """
+        checkout = self.initialized_checkout(distinct_routing=False)
+        self.assertTrue((checkout / ".brichan").is_dir())
+        environment = self.environment()
+        environment["PYTHONDONTWRITEBYTECODE"] = "1"
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "unittest",
+                "tests.integration.test_cli_compatibility",
+                "tests.integration.test_worker_routing_cli",
+            ],
+            cwd=checkout,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("OK", result.stderr)
+        self.assertNotIn("skipped", result.stderr)
 
     def test_installed_status_reports_malformed_and_incompatible(self):
         result = self.run_brichan("init", "--apply", "--project", str(self.target))

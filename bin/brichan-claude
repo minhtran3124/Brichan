@@ -7,4 +7,7 @@ export BRICHAN_ROOT
 PYTHONPATH="$BRICHAN_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONPATH
 
-exec python3 -m brichan.cli.claude "$@"
+# Call the checkout entrypoint explicitly with this wrapper's own root, so
+# checkout mode comes from the launch and never from BRICHAN_ROOT, the working
+# directory, or the shape of a target repository.
+exec python3 -c 'import sys; from brichan.cli.claude import checkout_main; raise SystemExit(checkout_main(sys.argv[1], sys.argv[2:]))' "$BRICHAN_ROOT" "$@"

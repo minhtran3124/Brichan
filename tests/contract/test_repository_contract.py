@@ -165,6 +165,56 @@ class RepositoryContractTest(unittest.TestCase):
             self.assertEqual("", result.stderr)
             self.assertEqual(0, result.returncode)
 
+    def test_source_wrappers_call_explicit_checkout_entrypoints(self):
+        """Checkout mode is a property of the launch, not of the environment.
+
+        DOGFOOD-007 H1: proving a checkout from `BRICHAN_ROOT` plus target
+        directory shape was forgeable, so no such proof exists any more. Each
+        repository wrapper names its module's `checkout_main` and hands over
+        the root it derived from its own location.
+        """
+        for name, module in (
+            ("bin/brichan", "brichan.cli.runtime"),
+            ("bin/brichan-codex", "brichan.cli.codex"),
+            ("bin/brichan-claude", "brichan.cli.claude"),
+        ):
+            wrapper = (ROOT / name).read_text(encoding="utf-8")
+            self.assertIn(f"from {module} import checkout_main", wrapper)
+            self.assertIn("checkout_main(sys.argv[1], sys.argv[2:])", wrapper)
+            self.assertNotIn("-m brichan.cli", wrapper)
+
+        worker_wrapper = (ROOT / "bin/brichan-herdr-agent-start").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("checkout_main(ROOT)", worker_wrapper)
+        self.assertNotIn("SystemExit(main())", worker_wrapper)
+
+    def test_installed_entrypoints_never_select_mode_from_the_environment(self):
+        """No installed console script may consult a checkout claim."""
+        entrypoints = {
+            "src/brichan/cli/_root.py",
+            "src/brichan/cli/runtime.py",
+            "src/brichan/cli/codex.py",
+            "src/brichan/cli/claude.py",
+            "src/brichan/orchestration/worker_launch.py",
+        }
+        for name in entrypoints:
+            source = (ROOT / name).read_text(encoding="utf-8")
+            self.assertNotIn("validated_checkout_root", source)
+
+        # Routing for an installed target comes from its managed state root,
+        # never from a config/ directory that happens to sit beside it.
+        routing = (
+            ROOT / "src/brichan/orchestration/model_routing.py"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn(".brichan", routing)
+
+        codex = (ROOT / "src/brichan/cli/codex.py").read_text(encoding="utf-8")
+        installed_main = codex.split("def main(", 1)[1].split("\ndef ", 1)[0]
+        self.assertNotIn("BRICHAN_ROOT", installed_main)
+        self.assertNotIn("codex_command(", installed_main)
+        self.assertIn("run_project(", installed_main)
+
     def test_balanced_herdr_launcher_is_executable_python(self):
         launcher = ROOT / "bin/brichan-herdr-agent-start"
         self.assertTrue(os.access(launcher, os.X_OK))
@@ -204,7 +254,11 @@ class RepositoryContractTest(unittest.TestCase):
             adapter,
         )
         self.assertIn("claude_command", adapter)
-        self.assertIn("os.chdir(repository_root())", adapter)
+        # The checkout entrypoint runs from its wrapper-derived root; the
+        # installed console script must never launch a checkout at all.
+        self.assertIn("def checkout_main(root: Path | str", adapter)
+        self.assertIn("os.chdir(resolved)", adapter)
+        self.assertNotIn("os.chdir(repository_root())", adapter)
 
     def test_model_routing_manifest_has_only_model_selection_settings(self):
         import json
