@@ -13,6 +13,7 @@ and orchestration boundaries.
 
 ## Workflows
 
+- [Brichan workflow overview](workflow.md)
 - [Workflow documentation policy](workflows/README.md)
 - [Task dossier workflow](workflows/task-dossier.md)
 

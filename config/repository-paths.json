@@ -108,6 +108,12 @@
       "policy": "canonical"
     },
     {
+      "path": "docs/workflow.md",
+      "kind": "file",
+      "category": "workflow-overview",
+      "policy": "canonical"
+    },
+    {
       "path": "docs/policy/identity.md",
       "kind": "file",
       "category": "internal-policy",
