@@ -181,13 +181,7 @@ def settings_path(
         root = Path(env["BRICHAN_ROOT"])
     else:
         root = Path(__file__).resolve().parents[3]
-    resolved_root = root.resolve()
-    installed_project_settings = (
-        resolved_root / ".brichan" / "config" / "model-routing.json"
-    )
-    if installed_project_settings.is_file():
-        return installed_project_settings
-    return resolved_root / "config" / "model-routing.json"
+    return root.resolve() / "config" / "model-routing.json"
 
 
 def load_settings(

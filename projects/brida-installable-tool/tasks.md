@@ -22,6 +22,8 @@
 
 | ID | Outcome | Evidence | Completed |
 |---|---|---|---|
+| DOGFOOD-007 | Source wrappers use explicit checkout entrypoints; installed console scripts remain managed-only; H1/M1/M2 remediated and independently reviewed | `handoffs/DOGFOOD-007/receipt.md`; focused 51/36/14/29; full 533/95/130/10 gate; plan/code review v2 `PASS` | 2026-08-15 |
+| HERDR-001 | Implemented typed read-only Herdr monitoring; remediated PR #30 installer exposure and missing required-runtime findings; all independent reviews pass | `handoffs/HERDR-001/receipt.md`; code-review v5 `PASS`; 167 focused tests; final full gate with 523 unit, 93 contract, and 126 integration tests | 2026-08-14 |
 | INIT-002 | Made `.agents/skills/herdr-orchestration/` a default, coexistence-safe init export; removed the opt-in flag and refused symlink-directed parent traversal | `handoffs/INIT-002/receipt.md`; independent version-2 plan/code review `PASS`; 16 focused, 86 affected reviewer, 403 unit, 82 contract, and 90 integration tests; all memory/path/package gates | 2026-08-10 |
 | PYPI-003 | Confirmed the public GitHub repository and anonymous raw hero URL; enabled public PyPI README rendering, regenerated the description, and closed the completed durable-memory gate | `handoffs/PYPI-003/receipt.md`; code review `PASS`; 20 focused unit, 11 focused contract, 401 unit, and 81 contract tests; README, memory, and path gates | 2026-08-10 |
 | MEMORY-001 | Repaired product/project memory, installed-policy and wheel-guide drift; added the offline read-only memory checker to `make check`; remediated all three implementation-review findings | `handoffs/MEMORY-001/receipt.md`; code review v2 `PASS`; 27 focused tests; full gate with 400 unit, 79 contract, and 90 integration tests | 2026-08-10 |

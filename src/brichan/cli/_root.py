@@ -1,8 +1,24 @@
 """Repository-root resolution shared by source and installed CLI adapters."""
 
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
+
+
+def checkout_root(claim: Path | str) -> Path:
+    """Normalize a checkout root supplied by a repository wrapper.
+
+    Only the package's own ``checkout_main`` entrypoints call this, and they
+    are reachable only from `bin/brichan*`, which derives the root from the
+    wrapper's own location. Mode is therefore decided by which entrypoint the
+    process entered through, never by `BRICHAN_ROOT`, the working directory,
+    or the shape of a target repository. Malformed claims raise `OSError` or
+    `RuntimeError`, which every caller reports as an owned error.
+    """
+
+    return Path(claim).expanduser().resolve(strict=True)
 
 
 def exec_runtime(program: str, command: list[str], *, owner: str) -> int:

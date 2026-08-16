@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
-from ._root import exec_runtime, repository_root
+from ._root import checkout_root, exec_runtime, repository_root
 from brichan import __version__
 from brichan.lifecycle import StateKind, inspect_project
 from brichan.orchestration.model_routing import (
@@ -20,9 +21,11 @@ from .provider_commands import codex_command, codex_project_command
 def command(
     argv: list[str],
     environment: dict[str, str] | None = None,
+    *,
+    root: Path | None = None,
 ) -> list[str]:
     env = os.environ if environment is None else environment
-    root = repository_root()
+    root = repository_root() if root is None else root
     settings = load_settings(repository=root, environment=env)
     route = resolve_coordinator(settings, "codex")
     return codex_command(route, argv, cwd=root)
@@ -78,35 +81,54 @@ def run_project(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Installed console-script entrypoint; never enters checkout mode.
+
+    Only an initialized project discovered from the working directory can be
+    launched, and it is always launched through the managed `project_command`
+    path, which keeps the bootstrap policy, skill injection, and the
+    installed-project option allowlist.
+    """
+
     arguments = sys.argv[1:] if argv is None else argv
     try:
         paths = project_paths()
-        if paths.state_root.exists():
+    except ProjectError:
+        paths = None
+    if paths is not None and paths.state_root.exists():
+        try:
             return run_project(paths, arguments, os.environ)
-    except (ProjectError, RoutingError) as exc:
-        if not isinstance(exc, ProjectError):
+        except RoutingError as exc:
             print(f"brichan-codex: {exc}", file=sys.stderr)
             return 2
-        pass
+    if arguments[:1] in (["--help"], ["-h"]):
+        print("usage: brichan-codex [codex arguments...]")
+        print()
+        print(
+            "brichan-codex is checkout-oriented: run the checkout's own "
+            "bin/brichan-codex wrapper, or run this installed command inside a "
+            "Git project initialized with 'brichan init --apply'."
+        )
+        return 0
+    if arguments[:1] in (["--version"], ["-V"]):
+        print(f"brichan-codex {__version__}")
+        return 0
+    print(
+        "brichan-codex: no initialized project here; run "
+        "'brichan init --apply --project PATH' first",
+        file=sys.stderr,
+    )
+    return 2
+
+
+def checkout_main(root: Path | str, argv: list[str] | None = None) -> int:
+    """Source-checkout entrypoint, reached only from `bin/brichan-codex`."""
+
+    arguments = sys.argv[1:] if argv is None else argv
     try:
-        resolved_command = command(arguments, os.environ)
-    except RoutingError as exc:
-        print(f"brichan-codex: {exc}", file=sys.stderr)
-        return 2
-    except RuntimeError as exc:
-        if arguments[:1] in (["--help"], ["-h"]):
-            print("usage: brichan-codex [codex arguments...]")
-            print()
-            print(
-                "brichan-codex is checkout-oriented: run it from within the "
-                "Brichan source checkout (or with BRICHAN_ROOT set), or inside a "
-                "Git project initialized with 'brichan init --apply' for the "
-                "installed-project workflow."
-            )
-            return 0
-        if arguments[:1] in (["--version"], ["-V"]):
-            print(f"brichan-codex {__version__}")
-            return 0
+        resolved_command = command(
+            arguments, os.environ, root=checkout_root(root)
+        )
+    except (OSError, RuntimeError, RoutingError) as exc:
         print(f"brichan-codex: {exc}", file=sys.stderr)
         return 2
     return exec_runtime("codex", resolved_command, owner="brichan-codex")

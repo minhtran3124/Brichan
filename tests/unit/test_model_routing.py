@@ -15,6 +15,7 @@ from brichan.orchestration.model_routing import (
     parse_settings,
     resolve_coordinator,
     resolve_route,
+    settings_path,
 )
 from brichan.cli.provider_commands import (
     codex_command,
@@ -32,6 +33,50 @@ def manifest_payload():
 
 
 class ModelRoutingTest(unittest.TestCase):
+    def test_repository_routing_never_promotes_colocated_managed_state(self):
+        """A checkout's own routing wins even when `.brichan/` sits beside it.
+
+        DOGFOOD-007: a developer checkout that has itself been initialized has
+        both files. Promoting the managed one made source wrappers silently
+        adopt installed routing; the caller now names the managed path
+        explicitly instead.
+        """
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = Path(temporary)
+            checkout_path = repository / "config" / "model-routing.json"
+            checkout_path.parent.mkdir()
+            checkout_path.write_text(json.dumps(manifest_payload()), encoding="utf-8")
+            managed_path = repository / ".brichan" / "config" / "model-routing.json"
+            managed_path.parent.mkdir(parents=True)
+            managed = manifest_payload()
+            managed["coordinator"]["runtimes"]["codex"]["model"] = "managed"
+            managed_path.write_text(json.dumps(managed), encoding="utf-8")
+
+            self.assertEqual(checkout_path.resolve(), settings_path(repository))
+            settings = load_settings(repository=repository)
+            self.assertNotEqual(
+                "managed", resolve_coordinator(settings, "codex").model
+            )
+
+    def test_checkout_override_and_explicit_managed_path_remain_distinct(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            override = root / "override.json"
+            managed = root / "managed.json"
+            payload = manifest_payload()
+            payload["routes"]["scan"]["model"] = "override-model"
+            override.write_text(json.dumps(payload), encoding="utf-8")
+            payload["routes"]["scan"]["model"] = "managed-model"
+            managed.write_text(json.dumps(payload), encoding="utf-8")
+
+            self.assertEqual(
+                override.resolve(),
+                settings_path(root, {"BRICHAN_MODEL_ROUTING_FILE": str(override)}),
+            )
+            self.assertEqual(
+                "managed-model", resolve_route(load_settings(managed), "scan").model
+            )
+
     def test_manifest_resolves_all_required_routes(self):
         settings = parse_settings(manifest_payload())
 

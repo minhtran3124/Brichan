@@ -124,15 +124,84 @@ packet was never submitted, not that the task finished.
 
 ## Monitor
 
+Prefer the typed read-only helper for any observation Brichan will act on:
+
+```text
+bin/brichan-herdr-agent-observe preflight [--agent <brichan-name>]
+bin/brichan-herdr-agent-observe observe <brichan-name> \
+  --lines 200 \
+  --project-root <absolute-target-project> \
+  --evidence <repo-relative-path> [--evidence <repo-relative-path> ...]
+```
+
+`preflight` reports the client/server version, protocol, compatibility, both
+restart-need values, per-runtime integration health, and capability findings
+such as the observed `trust_directory` manifest failure. A version or protocol
+outside the verified set {`0.7.3`/`16`} is reported as `unverified`; that is a
+state, never a block, and the helper never updates, installs, or edits Herdr
+state.
+
+`observe` reports the scheduling state verbatim, the read text with its
+completeness metadata, and presence metadata for each declared evidence file.
+It has no completion field by design.
+
+| Exit | Meaning |
+|---:|---|
+| `0` | Report collected, including `unverified`, degraded, and truncation findings |
+| `1` | Report impossible (`herdr` missing, primary probe failed or schema-invalid) |
+| `2` | Invalid invocation or rejected project-root/evidence path |
+
+The raw commands remain available for manual inspection:
+
 ```text
 herdr agent wait <brichan-name> --status idle --timeout 30000
 herdr agent get <brichan-name>
 herdr agent read <brichan-name> --source recent-unwrapped --lines 200 --format text
+herdr integration status
 ```
+
+`herdr integration status` is text-only on `0.7.3`; its `--json` flag exits `2`.
+The `--format text` read variant is for manual inspection, not for parsing.
 
 Wait in bounded intervals of at most 30 seconds so the user continues receiving
 progress updates. Treat `blocked` as a request to inspect output and decide
 whether Brichan can respond within its authority.
+
+### Truncation and the evidence-file fallback
+
+`herdr agent read` returns a bounded UTF-8 observation, not a transcript
+guarantee. The helper classifies truncation risk as `none`, `possible`, or
+`confirmed`:
+
+- `confirmed` — the read failed, or Herdr's native `truncated` flag is set.
+- `possible` — the normal healthy outcome on `0.7.3`. No capability proves
+  alternate-screen history completeness, so a short read cannot be trusted as
+  complete. Do not treat it as an error.
+- `none` — unreachable on `0.7.3` by design. Reaching it requires an authorized
+  Herdr upgrade plus a reviewed design revision.
+
+When risk is `possible` or `confirmed`, the authoritative fallback is reading
+declared evidence files, not re-reading the screen. Pass `--project-root` and
+`--evidence`; the helper reports existence, regular-file status, size, and
+mtime from a held descriptor, and rejects absolute, `~`-prefixed, `..`, and
+symlinked paths. Presence metadata is never acceptance evidence: read and
+judge the file contents.
+
+### No automatic input
+
+Never send input to a worker automatically. The helper cannot: its command
+allowlist contains no `pane run`, `agent send`, `pane send-keys`, `pane close`,
+or `agent start`, and every `agent wait` it emits is capped at 30000 ms. A
+`blocked` worker is surfaced for coordinator judgment or user escalation, never
+answered by tooling.
+
+The paste-swallowed-Enter recovery below stays a manual coordinator step. Take
+it only after a fresh `herdr agent get` plus `herdr agent read` observation shows
+an unsubmitted `[Pasted text #1]` prompt on an `idle` worker.
+
+Before declaring a worker stale, record three timestamped no-progress
+observations, then allow one bounded replacement, then escalate. See
+`worker-recovery.md`.
 
 ## Follow up
 

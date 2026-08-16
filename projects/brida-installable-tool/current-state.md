@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-08-10
+Last updated: 2026-08-15
 
 ## Summary
 
@@ -8,6 +8,23 @@ Status: active. `brichan` is published on PyPI and releases are automated. The
 installed Codex vertical slice, the external installer, read-only `doctor`
 diagnostics, and the mandatory worker lifecycle are all in place. The open gate
 is dogfood in an external owner repository with real Codex and real Herdr.
+
+HERDR-001 implements accepted plan `HERDR-HARDENING-PLAN-001` version 5 on the
+user-authorized branch and draft PR #30. The typed monitor reads Herdr
+terminal-buffer text/JSON, never screenshots; scheduling state is not completion
+evidence. The external installer now exposes the observe command, and preflight
+reports missing required Claude/Codex integration rows as unhealthy. Independent
+code-review artifact v5 records `PASS`; evidence includes 167 focused tests and
+a green full gate with 523 unit, 93 contract, and 126 integration tests. Only the
+requested branch, commit, push, and draft PR were authorized; Herdr upgrade,
+newer capability adoption, release, and publication remain unauthorized.
+
+DOGFOOD-007 is locally complete. Source wrappers now select checkout behavior
+through explicit wrapper-only entrypoints, while installed console scripts stay
+managed-only and ignore target-controlled checkout claims. The bounded Claude
+replacement closed forged-symlink, malformed-path, and deterministic-coverage
+findings; focused 51/36/14/29 tests and full 533/95/130/10 gate pass with
+`.brichan/` present. Fresh independent plan/code review version 2 records PASS.
 
 ## Distribution and release
 
@@ -55,6 +72,8 @@ is dogfood in an external owner repository with real Codex and real Herdr.
 
 ## Open gates
 
+- Decide separately whether to authorize a Herdr upgrade or newer capability
+  adoption; the accepted plan does not presuppose either decision.
 - Run the documented dogfood workflow in one external owner repository with real
   Codex and real Herdr, with explicit backup and reinitialization expectations,
   and record friction and defects before considering 3–5 trusted users.

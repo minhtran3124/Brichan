@@ -16,13 +16,14 @@ class PackagingMetadataTest(unittest.TestCase):
         self.assertIn('name = "brichan"', pyproject)
         self.assertIn("wheel", pyproject.split("requires = ", 1)[1].splitlines()[0])
 
-    def test_console_scripts_are_unchanged(self):
+    def test_required_console_scripts_are_declared(self):
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         for entry_point in (
             'brichan = "brichan.cli.runtime:main"',
             'brichan-codex = "brichan.cli.codex:main"',
             'brichan-claude = "brichan.cli.claude:main"',
             'brichan-herdr-agent-start = "brichan.orchestration.worker_launch:main"',
+            'brichan-herdr-agent-observe = "brichan.orchestration.monitor:main"',
             'brichan-validate-receipts = "brichan.contracts.receipts.validation:main"',
         ):
             self.assertIn(entry_point, pyproject)

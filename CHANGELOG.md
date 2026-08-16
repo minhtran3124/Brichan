@@ -7,7 +7,58 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ## [Unreleased]
 
+### Added
+
+- `brichan-herdr-agent-observe` (`bin/brichan-herdr-agent-observe`,
+  `src/brichan/orchestration/monitor.py`): a dependency-free, read-only Herdr
+  preflight and worker-observation surface. Monitoring was previously prose in
+  the skill with nothing typed or tested; the three authorities are now
+  structurally separated. Herdr scheduling state is exposed as a scheduling
+  signal only — the observation type has no completion, success, or done field,
+  so `idle` or `done` can never be reported as acceptance evidence. Terminal
+  text carries conservative completeness metadata and a truncation risk of
+  `none`, `possible`, or `confirmed`, dominated by Herdr's native `truncated`
+  flag; on Herdr `0.7.3` no capability proves history completeness, so a healthy
+  read is `possible` and `none` is unreachable by design. A read is treated as
+  successful only when the whole schema is present — string text, a boolean
+  native `truncated`, and a source that canonically matches the one requested
+  (`recent-unwrapped` and `recent_unwrapped` are the same source); any missing,
+  mistyped, or mismatched field is a partial read and forces `confirmed`, so a
+  truncated payload can never report false completeness. Malformed envelopes are
+  owned failures rather than tracebacks: a syntactically valid payload whose
+  `result` container is not an object is rejected before it is dereferenced, so
+  a bad read stays a collected exit-`0` observation and a bad `agent get` stays
+  an exit-`1` diagnostic. Acceptance evidence
+  falls back to declared durable files, read through a descriptor-relative
+  `O_DIRECTORY | O_NOFOLLOW` walk with metadata taken from the final held
+  descriptor. Preflight parses `herdr status --json` through a strict JSON
+  adapter and the plain-text `herdr integration status` rows through a separate
+  parser anchored on the full frozen `0.7.3` row grammar, including its required
+  trailing path group; a row is either fully understood — in which case only a
+  bounded runtime identifier and status token are kept — or rejected as
+  `malformed-row` with no remainder retained, so no home or configuration path
+  can reach output. Each command is bound to its own adapter and validated
+  against a complete argv grammar that rejects unknown or duplicated options,
+  wrong arity, and tokens smuggled behind an allowed prefix; every
+  `herdr agent wait` occurrence is capped at 30000 ms. A version or protocol outside the verified
+  set (`0.7.3` / protocol `16`) is reported as `unverified` and never triggers
+  an update or install. Both subcommands emit one deterministic JSON document
+  and exit `0` report collected, `1` report impossible, `2` invalid invocation
+  or rejected path.
+
 ### Changed
+
+- The checkout and packaged `herdr-orchestration` skills now state the same
+  monitoring safeguards, enforced by a new parity contract test so drift fails
+  `make check`. The packaged skill previously omitted the
+  done/idle-is-not-proof invariant, bounded waits of at most 30 seconds, the
+  truncation and evidence-file fallback, the no-automatic-input rule, the
+  paste-swallowed-Enter recovery guidance, and the three-observation
+  no-progress rule with one bounded replacement. Because packaged skill files
+  are hash-managed immutable resources, an upgraded package makes existing
+  initialized `.brichan/` states report `incompatible`; the documented recovery
+  is to back up `project-memory/`, delete `.brichan/`, and re-run
+  `brichan init --apply`. No repair or migration code was added.
 
 - `brichan init` now exports `.agents/skills/herdr-orchestration/` by default;
   the `--init-agents` flag is no longer needed or accepted. If `.agents/` or

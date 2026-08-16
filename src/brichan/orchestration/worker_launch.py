@@ -324,15 +324,18 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return args
 
 
-def _resolve_launch(args: argparse.Namespace) -> LaunchResolution:
+def _resolve_launch(
+    args: argparse.Namespace,
+    *,
+    checkout_root: Path | None = None,
+) -> LaunchResolution:
     if args.route:
         # Keep the orchestration package provider-neutral at import time.  The
         # CLI adapter is needed only after a named route has been resolved.
         from brichan.cli.provider_commands import worker_command
 
         target_root = Path(args.cwd).expanduser().resolve()
-        target_state = target_root / ".brichan"
-        if os.path.lexists(target_state):
+        if checkout_root is None:
             from brichan.lifecycle import StateKind, inspect_project
             from brichan.project import project_paths
 
@@ -347,7 +350,7 @@ def _resolve_launch(args: argparse.Namespace) -> LaunchResolution:
                 paths.state_root / "config" / "model-routing.json"
             )
         else:
-            settings = load_settings(repository=target_root)
+            settings = load_settings(repository=checkout_root)
         route = resolve_route(
             settings,
             args.route,
@@ -388,10 +391,10 @@ def _print_dry_run(
     print(shlex.join(resolution.command))
 
 
-def main(argv: list[str] | None = None) -> int:
+def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -> int:
     args = _parse_args(argv)
     try:
-        resolution = _resolve_launch(args)
+        resolution = _resolve_launch(args, checkout_root=checkout_root)
         if args.dry_run:
             _print_dry_run(args, resolution)
             return 0
@@ -473,6 +476,31 @@ def main(argv: list[str] | None = None) -> int:
     except (HerdrError, KeyError, RoutingError, ValueError) as exc:
         print(f"brichan-herdr-agent-start: {exc}", file=sys.stderr)
         return 1
+
+
+def checkout_main(checkout_root: Path | str, argv: list[str] | None = None) -> int:
+    """Source-checkout entrypoint, reached only from the repository wrapper.
+
+    The wrapper derives the root from its own location, so checkout routing is
+    a property of the launch rather than of the target `--cwd`.
+    """
+
+    try:
+        root = Path(checkout_root).expanduser().resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        print(
+            f"brichan-herdr-agent-start: unusable checkout root "
+            f"{checkout_root}: {exc}",
+            file=sys.stderr,
+        )
+        return 2
+    return _main(argv, checkout_root=root)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Installed console-script entrypoint; always managed target routing."""
+
+    return _main(argv)
 
 
 if __name__ == "__main__":

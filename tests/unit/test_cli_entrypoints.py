@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from brichan import __version__
-from brichan.cli._root import exec_runtime
+from brichan.cli._root import checkout_root, exec_runtime
 from brichan.cli import claude as claude_cli
 from brichan.cli import codex as codex_cli
 from brichan.cli import runtime as runtime_cli
@@ -24,6 +24,54 @@ _NOT_A_CHECKOUT = RuntimeError(
     "cannot locate the Brichan repository root; run inside the repository "
     "or set BRICHAN_ROOT"
 )
+
+
+class CheckoutRootTest(unittest.TestCase):
+    """DOGFOOD-007 M1: a malformed root is an owned error, never a traceback.
+
+    `checkout_root` normalizes a wrapper-supplied path and is deliberately
+    strict; each `checkout_main` converts its failures into exit code 2.
+    """
+
+    def test_a_relative_claim_is_normalized(self):
+        self.assertEqual(ROOT.resolve(), checkout_root(str(ROOT / "tests" / "..")))
+
+    def test_a_symlinked_checkout_is_accepted(self):
+        # Editable and symlinked checkouts are legitimate; only the launch
+        # decides mode, so following the link here is safe.
+        with tempfile.TemporaryDirectory() as temporary:
+            link = Path(temporary) / "checkout"
+            link.symlink_to(ROOT)
+            self.assertEqual(ROOT.resolve(), checkout_root(link))
+
+    def test_missing_and_looping_claims_raise_owned_errors(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaises(OSError):
+                checkout_root(root / "absent")
+            loop = root / "loop"
+            loop.symlink_to(loop)
+            with self.assertRaises((OSError, RuntimeError)):
+                checkout_root(loop)
+
+    def test_every_checkout_main_reports_a_bad_root_without_a_traceback(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            absent = str(Path(temporary) / "absent")
+            for main, owner in (
+                (runtime_cli.checkout_main, "brichan:"),
+                (codex_cli.checkout_main, "brichan-codex:"),
+                (claude_cli.checkout_main, "brichan-claude:"),
+            ):
+                out = io.StringIO()
+                err = io.StringIO()
+                with (
+                    contextlib.redirect_stdout(out),
+                    contextlib.redirect_stderr(err),
+                ):
+                    code = main(absent, ["--version"])
+                self.assertEqual(2, code, owner)
+                self.assertIn(owner, err.getvalue())
+                self.assertNotIn("Traceback", err.getvalue())
 
 
 class _OutsideCheckoutTestCase(unittest.TestCase):
@@ -209,6 +257,72 @@ class ClaudeEntrypointOutsideCheckoutTest(_OutsideCheckoutTestCase):
         self.assertEqual("", out)
         self.assertIn("brichan-claude:", err)
         self.assertNotIn("Traceback", err)
+
+
+class ForgedCheckoutClaimTest(_OutsideCheckoutTestCase):
+    """DOGFOOD-007 H1: no target shape can switch an installed command.
+
+    The original defect let a claimed root whose `src/brichan` symlinked to the
+    imported package prove "checkout", which selected the unguarded checkout
+    `codex_command()` instead of the managed `codex_project_command()`. Mode is
+    now decided by the invoked entrypoint, so the forged claim must be inert.
+    """
+
+    def _forged_root(self, wrapper):
+        root = self.outside / f"forged-{wrapper}"
+        (root / "bin").mkdir(parents=True)
+        (root / "bin" / wrapper).write_text("#!/bin/sh\n", encoding="utf-8")
+        (root / "src").mkdir()
+        # The exact reproduction from the review: point the claimed source
+        # package at the package this process actually imported.
+        (root / "src" / "brichan").symlink_to(Path(codex_cli.__file__).parents[1])
+        os.environ["BRICHAN_ROOT"] = str(root)
+        return root
+
+    def test_forged_claim_cannot_give_installed_codex_checkout_dispatch(self):
+        self._forged_root("brichan-codex")
+        with (
+            mock.patch.object(codex_cli, "run_project") as run_project,
+            mock.patch.object(codex_cli, "codex_command") as codex_command,
+        ):
+            code, out, err = self._run(codex_cli.main, ["do something"])
+        run_project.assert_not_called()
+        codex_command.assert_not_called()
+        self.assertEqual(2, code)
+        self.assertEqual("", out)
+        self.assertIn("brichan-codex:", err)
+        self.assertNotIn("Traceback", err)
+
+    def test_forged_claim_cannot_give_installed_brichan_checkout_dispatch(self):
+        root = self._forged_root("brichan")
+        with mock.patch.object(runtime_cli, "exec_runtime") as exec_wrapper:
+            code, _, err = self._run(runtime_cli.main, ["do something"])
+        # Checkout dispatch would have exec'd the claimed root's wrapper.
+        exec_wrapper.assert_not_called()
+        self.assertEqual(2, code)
+        self.assertNotIn(str(root), err)
+
+    def test_forged_claim_cannot_give_installed_claude_checkout_dispatch(self):
+        self._forged_root("brichan-claude")
+        with mock.patch.object(claude_cli, "claude_command") as claude_command:
+            code, _, err = self._run(claude_cli.main, ["do something"])
+        claude_command.assert_not_called()
+        self.assertEqual(2, code)
+        self.assertIn("brichan-claude:", err)
+
+    def test_a_malformed_claim_is_ignored_rather_than_raised(self):
+        # DOGFOOD-007 M1 reproduction: the self-referential source-package
+        # symlink that previously escaped as a RuntimeError traceback.
+        root = self.outside / "malformed"
+        (root / "bin").mkdir(parents=True)
+        (root / "bin" / "brichan-codex").write_text("", encoding="utf-8")
+        (root / "src").mkdir()
+        (root / "src" / "brichan").symlink_to(root / "src" / "brichan")
+        os.environ["BRICHAN_ROOT"] = str(root)
+        code, out, err = self._run(codex_cli.main, ["--version"])
+        self.assertEqual(0, code)
+        self.assertEqual(f"brichan-codex {__version__}\n", out)
+        self.assertEqual("", err)
 
 
 class ExecRuntimeTest(unittest.TestCase):

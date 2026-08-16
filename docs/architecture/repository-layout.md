@@ -6,7 +6,7 @@ Brichan uses stable repository adapters around an importable Python core.
 AGENTS.md / CLAUDE.md ──> docs/policy/
 bin/ and scripts/ ──────> brichan.cli / brichan.contracts
 brichan.cli ──────────────> provider adapters
-brichan.orchestration ────> Herdr process and layout behavior
+brichan.orchestration ────> Herdr process, layout, and read-only monitoring
 projects/evals/metrics    durable data; never imported by the core
 ```
 
@@ -17,7 +17,13 @@ projects/evals/metrics    durable data; never imported by the core
 - `src/brichan/contracts/receipts/` exposes schema, parser, discovery, and
   validation APIs.
 - `src/brichan/orchestration/` owns provider-neutral layout and Herdr launch
-  behavior.
+  behavior. `monitor.py` adds the read-only preflight and worker-observation
+  surface behind `bin/brichan-herdr-agent-observe`: it may run only
+  non-mutating Herdr commands, caps every `herdr agent wait` at 30000 ms, and
+  has no completion field, so a scheduling state can never be reported as
+  acceptance evidence. Its evidence fallback uses a descriptor-relative
+  `O_DIRECTORY | O_NOFOLLOW` walk, the same discipline as
+  `src/brichan/contracts/task_dossier/generate.py`.
 - `src/brichan/cli/` owns runtime dispatch and the Codex/Claude adapters.
 - `projects/`, `evals/`, and `metrics/` are data and evidence. Importable
   modules must not depend on them.

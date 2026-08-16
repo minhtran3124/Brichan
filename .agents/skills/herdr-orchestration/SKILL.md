@@ -51,6 +51,43 @@ A tracked task also owns a full task dossier in the same directory. Read
 `references/task-dossier.md` before creating or resuming one. The receipt stays
 canonical for delegated lifecycle evidence; the dossier index links to it.
 
+## Monitoring
+
+Route every worker observation through the read-only helper rather than
+interpreting raw terminal text:
+
+```text
+bin/brichan-herdr-agent-observe preflight [--agent <brichan-name>]
+bin/brichan-herdr-agent-observe observe <brichan-name> \
+  --lines 200 \
+  --project-root <absolute-target-project> \
+  --evidence <repo-relative-path>
+```
+
+It emits one deterministic JSON report and exits `0` report collected, `1`
+report impossible, `2` invalid invocation or rejected path. Raw `herdr`
+commands stay documented in `references/commands.md` as the underlying
+reference.
+
+Three authority classes stay separate:
+
+- Herdr scheduling state (`idle`, `working`, `blocked`, `done`, and any future
+  state) is a scheduling signal only. It tells Brichan when to look, when to
+  wait, and when to escalate. A worker's `done` or `idle` state is not proof
+  that acceptance criteria passed.
+- Terminal text is a bounded observation. Every read carries a truncation risk
+  of `none`, `possible`, or `confirmed`. On Herdr `0.7.3` no capability proves
+  history completeness, so `possible` is the normal healthy outcome, not an
+  error — do not over-escalate on it.
+- Acceptance evidence is durable files only. When truncation risk is `possible`
+  or `confirmed`, use the evidence-file fallback: declare the evidence paths and
+  read those files. Presence metadata is never acceptance evidence: read and
+  judge the content.
+
+Wait in bounded intervals of at most 30 seconds. Never send input to a worker
+automatically — no keys, no prompts, no nudges. A `blocked` worker is reported
+for coordinator judgment or user escalation.
+
 ## Safety
 
 - Run `herdr agent list` before creating or closing anything.

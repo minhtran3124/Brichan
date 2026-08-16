@@ -30,10 +30,11 @@ from brichan.orchestration.worker_launch import (
     _root_split,
     _run_json,
     _split_is_within_group,
+    checkout_main,
     main,
     plan_spawn,
 )
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(checkout_main(ROOT))

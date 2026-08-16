@@ -7,7 +7,7 @@ import os
 import sys
 from pathlib import Path
 
-from ._root import exec_runtime
+from ._root import checkout_root, exec_runtime
 from .codex import run_project
 from .render import (
     DOCTOR_DESCRIPTION,
@@ -31,7 +31,7 @@ from brichan.orchestration.model_routing import (
     RoutingError,
     load_settings,
 )
-from brichan.project import ProjectError, package_root, project_paths
+from brichan.project import ProjectError, project_paths
 
 
 def select_runtime(
@@ -68,7 +68,12 @@ def _print_lines(lines: list[str]) -> None:
         print(line)
 
 
-def _lifecycle_command(command_name: str, argv: list[str]) -> int:
+def _lifecycle_command(
+    command_name: str,
+    argv: list[str],
+    *,
+    checkout_root: Path | None = None,
+) -> int:
     parser = argparse.ArgumentParser(
         prog=f"brichan {command_name}",
         description=LIFECYCLE_DESCRIPTIONS.get(command_name),
@@ -110,13 +115,13 @@ def _lifecycle_command(command_name: str, argv: list[str]) -> int:
     elif command_name == "status":
         code, lines = status_lines(paths)
     elif args.json:
-        code, report = doctor_report(paths, checkout_root=_checkout_root())
+        code, report = doctor_report(paths, checkout_root=checkout_root)
         # Written rather than printed so the document ends in exactly one
         # newline, whatever the platform.
         sys.stdout.write(format_doctor_json(report))
         return code
     else:
-        code, report = doctor_report(paths, checkout_root=_checkout_root())
+        code, report = doctor_report(paths, checkout_root=checkout_root)
         lines = format_doctor_text(
             report,
             style=resolve_style(sys.stdout, os.environ),
@@ -139,19 +144,6 @@ def _run_command(argv: list[str]) -> int:
     except (ProjectError, RoutingError) as exc:
         print(f"brichan run: {exc}", file=sys.stderr)
         return 2
-
-
-def _checkout_root() -> Path | None:
-    override = os.environ.get("BRICHAN_ROOT")
-    if not override:
-        return None
-    root = Path(override).expanduser().resolve()
-    source_package = root / "src" / "brichan"
-    if not (root / "bin" / "brichan").is_file():
-        return None
-    if source_package != package_root():
-        return None
-    return root
 
 
 def _global_help_lines() -> list[str]:
@@ -219,15 +211,25 @@ def _unavailable_response(argv: list[str], error: str | None) -> int | None:
     return 2
 
 
-def main(argv: list[str] | None = None) -> int:
+def checkout_main(root: Path | str, argv: list[str] | None = None) -> int:
+    """Source-checkout entrypoint, reached only from `bin/brichan`.
+
+    The wrapper passes its own derived root, so checkout mode is a property of
+    the launch rather than of the environment or the target repository.
+    """
+
     arguments = sys.argv[1:] if argv is None else argv
+    try:
+        resolved_root = checkout_root(root)
+    except (OSError, RuntimeError) as exc:
+        print(f"brichan: unusable checkout root {root}: {exc}", file=sys.stderr)
+        return 2
     if arguments[:1] and arguments[0] in {"init", "status", "doctor"}:
-        return _lifecycle_command(arguments[0], arguments[1:])
+        return _lifecycle_command(
+            arguments[0], arguments[1:], checkout_root=resolved_root
+        )
     if arguments[:1] == ["run"]:
         return _run_command(arguments[1:])
-    root = _checkout_root()
-    if root is None:
-        return _installed_default(arguments)
 
     # A checkout has no project state to launch into, so `brichan --help` here
     # is a question about Brichan. `bin/brichan-<runtime> --help` still reaches
@@ -235,9 +237,8 @@ def main(argv: list[str] | None = None) -> int:
     response = _brichan_help_or_version(arguments)
     if response is not None:
         return response
-
     try:
-        settings = load_settings(repository=root, environment=os.environ)
+        settings = load_settings(repository=resolved_root, environment=os.environ)
         runtime, remaining = select_runtime(
             arguments,
             os.environ,
@@ -246,13 +247,21 @@ def main(argv: list[str] | None = None) -> int:
     except (RoutingError, ValueError) as exc:
         print(exc, file=sys.stderr)
         return 2
+    # The wrapper only proves bin/brichan, so the per-runtime wrapper may be
+    # absent in a partial checkout; exec_runtime owns that failure.
+    executable = resolved_root / "bin" / f"brichan-{runtime}"
+    return exec_runtime(str(executable), [str(executable), *remaining], owner="brichan")
 
-    # _checkout_root only guarantees bin/brichan, so the per-runtime wrapper may
-    # be absent in a partial checkout.
-    executable = root / "bin" / f"brichan-{runtime}"
-    return exec_runtime(
-        str(executable), [str(executable), *remaining], owner="brichan"
-    )
+
+def main(argv: list[str] | None = None) -> int:
+    """Installed console-script entrypoint; always installed-project mode."""
+
+    arguments = sys.argv[1:] if argv is None else argv
+    if arguments[:1] and arguments[0] in {"init", "status", "doctor"}:
+        return _lifecycle_command(arguments[0], arguments[1:])
+    if arguments[:1] == ["run"]:
+        return _run_command(arguments[1:])
+    return _installed_default(arguments)
 
 
 if __name__ == "__main__":
