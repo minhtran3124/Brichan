@@ -16,6 +16,46 @@ sys.path.insert(0, str(ROOT / "src"))
 
 POLICY = ROOT / "src/brichan/resources/dogfood_v1/policy"
 
+PACKAGED_PRINCIPLES = POLICY / "operating-principles.md"
+CHECKOUT_PRINCIPLES = ROOT / "docs/policy/operating-principles.md"
+REVIEWER = ROOT / "docs/policy/reviewer.md"
+
+#: Testing-discipline norms both operating policies must state. Each entry
+#: carries one requirement, not a topic heading, so removing the rule from
+#: either surface fails the contract.
+TESTING_DISCIPLINE_MARKERS = (
+    # Owned behavior (R1).
+    "application-owned observable behavior",
+    # Test creation quality (R2).
+    "distinct justification",
+    "observed failure",
+    "duplicate",
+    "speculative",
+    "implementation-coupled",
+    # Focused-to-broad order and intentional specialized suites (R3).
+    "smallest relevant checks",
+    "sequentially by default",
+    "E2E, race, load, and stress tests are used intentionally, for a specific "
+    "identified risk, never by default",
+    # Static checks only when configured (R4).
+    "configures them",
+    # Failure diagnosis and assertion preservation (R5).
+    "before code or tests change",
+    "meaningful assertion",
+    # The completion gate stays the completion gate (R6).
+    "never replace",
+)
+
+
+def normalized(path: Path) -> str:
+    """Read a policy with whitespace runs collapsed.
+
+    Both files are wrapped at 80 columns, so markers must assert wording
+    rather than line breaks.
+    """
+
+    return " ".join(path.read_text(encoding="utf-8").split())
+
 
 class DogfoodPolicyDelegationTest(unittest.TestCase):
     def setUp(self):
@@ -68,6 +108,35 @@ class DogfoodPolicyDelegationTest(unittest.TestCase):
         self.assertIn("You coordinate; workers execute", self.bootstrap)
         for phrase in ("plan", "implement", "review"):
             self.assertIn(phrase, self.bootstrap, phrase)
+
+
+class TestingDisciplineContractTest(unittest.TestCase):
+    """Both operating policies must carry the risk-based testing discipline.
+
+    The observed failure is generated coverage nobody uses: duplicate,
+    speculative, or implementation-coupled cases, broad suites run by reflex,
+    and assertions weakened to make a gate pass. Each marker below carries one
+    norm, so deleting the rule from either policy surface fails here.
+    """
+
+    def setUp(self):
+        self.checkout = normalized(CHECKOUT_PRINCIPLES)
+        self.packaged = normalized(PACKAGED_PRINCIPLES)
+        self.reviewer = normalized(REVIEWER)
+
+    def test_both_policies_state_every_testing_discipline_norm(self):
+        for text, label in ((self.checkout, "checkout"), (self.packaged, "packaged")):
+            for marker in TESTING_DISCIPLINE_MARKERS:
+                self.assertIn(marker, text, f"{label}: {marker}")
+
+    def test_the_unconditional_static_check_demand_does_not_return(self):
+        """R4: this repository configures no linter or type checker."""
+
+        self.assertNotIn("tests, lint/typecheck", self.checkout)
+
+    def test_reviewers_must_flag_more_than_missing_tests(self):
+        for marker in ("redundant", "non-owned", "implementation-coupled"):
+            self.assertIn(marker, self.reviewer, marker)
 
 
 if __name__ == "__main__":
