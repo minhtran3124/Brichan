@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-08-15
+Last updated: 2026-08-17
 
 ## Summary
 
@@ -25,6 +25,18 @@ managed-only and ignore target-controlled checkout claims. The bounded Claude
 replacement closed forged-symlink, malformed-path, and deterministic-coverage
 findings; focused 51/36/14/29 tests and full 533/95/130/10 gate pass with
 `.brichan/` present. Fresh independent plan/code review version 2 records PASS.
+
+POLICY-002 is locally complete. Both checkout and packaged operating policies now require
+application-owned, distinctly justified tests; reject duplicate, speculative,
+and implementation-coupled coverage; sequence focused-to-broad checks by
+default; reserve specialized tests for identified risks; diagnose failures
+before changes; and forbid weakening assertions. Both worker task packets point
+to the applicable policy. The exact nine-file patch passes focused 8/12/18
+contract suites, repository-path validation, and whitespace checks; the single
+broad gate passes with 10 metrics, 533 unit, 99 contract, and 130 integration
+tests; fresh independent code review version 1 records PASS with no findings. Existing
+initialized `.brichan/` state will intentionally require documented
+reinitialization after the packaged-resource hashes change.
 
 ## Distribution and release
 
