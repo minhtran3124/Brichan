@@ -7,10 +7,15 @@
 [![CI](https://github.com/minhtran3124/Brichan/actions/workflows/ci.yml/badge.svg)](https://github.com/minhtran3124/Brichan/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/minhtran3124/Brichan)](LICENSE)
 
-Brichan is an open-source AI Chief of Staff for coding agents. Give it a
+Brichan is an open-source AI Chief of Staff for coding agents: a coordination
+and verification harness that runs above coding-agent runtimes. Give it a
 project outcome and it preserves the relevant context, coordinates independent
 workers through [Herdr](https://herdr.dev), verifies their evidence, and keeps
 decisions and project status in your repository instead of a chat window.
+
+Codex and Claude Code provide the execution runtime, Herdr provides the worker
+control plane, and Brichan provides the operating contract, routing, durable
+memory, and verification layer above them.
 
 Brichan is useful when work spans multiple agent sessions and you need more
 than a stream of generated code: clear task boundaries, durable memory,

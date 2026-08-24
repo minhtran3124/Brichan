@@ -13,6 +13,10 @@ Objective:
 Context:
 <minimum context>
 
+Applicable operating policy:
+- Read and follow `.brichan/policy/operating-principles.md`, including its
+  testing discipline, before running Required verification.
+
 In scope:
 - <item>
 

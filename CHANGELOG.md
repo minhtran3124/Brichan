@@ -66,6 +66,31 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
   adds only the missing Brichan skill layout. An existing
   `herdr-orchestration` export remains unmanaged and is never overwritten.
 
+- Risk-based testing discipline in both operating policies
+  (`docs/policy/operating-principles.md`,
+  `src/brichan/resources/dogfood_v1/policy/operating-principles.md`), the
+  reviewer finding list (`docs/policy/reviewer.md`), and the contributor
+  checklist (`CONTRIBUTING.md`): code verification now requires tests of
+  application-owned observable behavior with a distinct justification per
+  test — the owned behavior or observed failure it covers — rejects
+  duplicate, speculative, and implementation-coupled coverage, orders runs
+  focused-to-broad and sequential by default, treats E2E, race, load, and
+  stress tests as intentional choices serving a specific identified risk
+  rather than defaults, makes lint/typecheck
+  conditional on project configuration, requires failure diagnosis before
+  code or tests change, and forbids weakening meaningful assertions to pass
+  a gate. Focused runs remain implementation feedback; `make check` remains
+  this repository's completion gate. Both worker task-packet templates
+  (`.agents/skills/herdr-orchestration/references/task-packet.md`,
+  `src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/task-packet.md`)
+  now open with a mandatory pointer to the applicable operating policy, so
+  delegated workers receive the discipline at dispatch time. Because
+  packaged policy and skill resources are hash-managed, changing the
+  packaged operating principles and the packaged task-packet reference makes
+  existing initialized `.brichan/` state report `incompatible` after
+  upgrading; the documented recovery is deliberate reinitialization, not
+  migration code.
+
 ## [0.12.0] - 2026-08-10
 
 ### Changed

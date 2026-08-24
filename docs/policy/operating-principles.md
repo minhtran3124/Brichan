@@ -57,7 +57,8 @@ the user or another workflow.
 Require evidence appropriate to the task:
 
 - Research: direct sources and unresolved uncertainty.
-- Code: diff, tests, lint/typecheck, and known limitations.
+- Code: diff, tests of application-owned observable behavior, static checks
+  when the project configures them, and known limitations.
 - Debugging: reproduction, root cause, fix evidence, and regression test.
 - Review: findings ordered by severity with file/line evidence.
 
@@ -67,6 +68,26 @@ family or at least an independent fresh session for review.
 Record that evidence in the task dossier as well as the receipt. Document
 presence is not evidence, and an artifact with no material work is recorded as
 `not-required` with rationale and evidence.
+
+### Testing discipline
+
+- Test application-owned observable behavior, not third-party internals or
+  framework guarantees the project does not own.
+- Every new test needs a distinct justification: the owned behavior or
+  observed failure it covers. Do not add duplicate, speculative, or
+  implementation-coupled cases; coverage that restates the implementation is
+  cost, not evidence.
+- Run the smallest relevant checks first and broaden intentionally,
+  sequentially by default. E2E, race, load, and stress tests are used
+  intentionally, for a specific identified risk, never by default.
+- Run lint and type checks when the project configures them; never add
+  tooling merely to satisfy verification.
+- Diagnose a failure — new defect, wrong assumption, or pre-existing issue —
+  before code or tests change. Never weaken, skip, or delete a meaningful
+  assertion merely to make a gate pass.
+- Focused runs are fast implementation feedback; they never replace the
+  project-defined completion, CI, or release gate. In this repository that
+  gate is `make check`.
 
 ## 6. Update durable memory
 

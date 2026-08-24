@@ -21,6 +21,10 @@ Objective:
 Context:
 <minimum context required>
 
+Applicable operating policy:
+- Read and follow `docs/policy/operating-principles.md`, including its
+  testing discipline, before running Required verification.
+
 Upstream plan and receipt (optional):
 - Accepted plan ID: <plan-id or null>
 - Plan version: <version or null>

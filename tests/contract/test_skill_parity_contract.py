@@ -162,6 +162,31 @@ class SkillParityContractTest(unittest.TestCase):
         for text in (self.checkout, self.packaged):
             self.assertIn("herdr pane run", text)
 
+    def test_both_task_packet_templates_point_to_their_operating_policy(self):
+        """Plan review v1, finding H1.
+
+        Workers receive no managed instruction injection, so the task packet
+        is the delivery mechanism for the operating policy. Each template
+        must direct the worker to the policy path its surface can read.
+        """
+
+        checkout = (CHECKOUT_SKILL / "references/task-packet.md").read_text(
+            encoding="utf-8"
+        )
+        packaged = (PACKAGED_SKILL / "references/task-packet.md").read_text(
+            encoding="utf-8"
+        )
+        for text in (checkout, packaged):
+            normalized = " ".join(text.split())
+            self.assertIn("Applicable operating policy", normalized)
+            self.assertIn(
+                "including its testing discipline, before running "
+                "Required verification",
+                normalized,
+            )
+        self.assertIn("docs/policy/operating-principles.md", checkout)
+        self.assertIn(".brichan/policy/operating-principles.md", packaged)
+
     def test_both_trees_route_observation_through_the_read_only_helper(self):
         for text in (self.checkout, self.packaged):
             self.assertIn("brichan-herdr-agent-observe preflight", text)

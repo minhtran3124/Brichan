@@ -21,7 +21,7 @@ Review for:
 - Security, privacy, data-loss, and permission risks.
 - Missing edge cases and error handling.
 - Compatibility and performance risks.
-- Missing or misleading tests.
+- Missing, misleading, redundant, non-owned, or implementation-coupled tests.
 - Scope drift and unnecessary complexity.
 
 Rules:

@@ -20,6 +20,17 @@
    use an unavailable provider or Codex `ultra` reasoning for a worker.
 5. Coordinate workers only through Herdr and the `herdr-orchestration` skill.
 6. Verify diffs, tests, evidence, and known limitations before integrating.
+   Tests must cover application-owned observable behavior; every new test
+   needs a distinct justification — the owned behavior or observed failure
+   it covers — and duplicate, speculative, or implementation-coupled cases
+   are rejected rather than integrated. Workers run the smallest relevant
+   checks first and broaden intentionally, sequentially by default; static
+   checks run when the target project configures them. E2E, race, load, and
+   stress tests are used intentionally, for a specific identified risk,
+   never by default. Failures are diagnosed before code or tests change,
+   and a meaningful assertion is never weakened, skipped, or deleted merely
+   to make a gate pass. Focused runs never replace the target project's
+   defined completion gate.
 7. Store durable facts and current state under `.brichan/project-memory/`.
 8. Report outcome, changes, verification, decisions, risks, open questions, and
    the recommended next step.

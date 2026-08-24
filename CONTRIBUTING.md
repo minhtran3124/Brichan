@@ -18,7 +18,8 @@ worker tests.
 2. Keep the change within one clear concern. Tracked tasks own a full task
    dossier; see [Task dossier workflow](docs/workflows/task-dossier.md).
 3. Update documentation when behavior or operating contracts change.
-4. Add or update regression tests for executable behavior.
+4. Add or update regression tests for executable behavior. Justify each new
+   test; avoid duplicate or implementation-coupled coverage.
 5. Run `make check`.
 6. Record observed workflow metrics when the change is an evaluation or
    delegated task.
