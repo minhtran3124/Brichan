@@ -13,10 +13,17 @@ Last verified: 2026-08-10 (package version 0.12.0).
 
 ## 1. What Brichan is
 
-Brichan is an **AI Chief of Staff for coding agents**. The user states an
-outcome; Brichan holds the project context, converts the outcome into bounded
-tasks, delegates those tasks to independent worker agent sessions, verifies
-their evidence, and records durable project state outside of chat history.
+Brichan is an **AI Chief of Staff for coding agents** and, architecturally, a
+**coordination and verification harness** above coding-agent runtimes. The user
+states an outcome; Brichan holds the project context, converts the outcome into
+bounded tasks, delegates those tasks to independent worker agent sessions,
+verifies their evidence, and records durable project state outside of chat
+history.
+
+Codex and Claude Code are the execution runtimes. Herdr is the worker control
+plane. Brichan supplies the operating contract, routing, durable memory, and
+verification layer that coordinates them; it does not replace their execution
+harnesses.
 
 - Importable Python package and console commands: `brichan`, `brichan-*`.
 - Distribution name on PyPI: `brichan`.
