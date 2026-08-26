@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 from dataclasses import dataclass
 from pathlib import Path
 from typing import IO, Any, Iterable
@@ -123,11 +124,19 @@ def format_doctor_text(report: dict[str, Any], style: Style) -> list[str]:
         ("policies", "policies"),
         ("model_routing", "model routing"),
         ("project_memory", "project memory"),
+        ("agent_skill_export", "agent skill export"),
         ("dependencies", "dependencies"),
     ]
     for key, label in checks:
         section = report[key]
         status = section["status"]
+        if key == "agent_skill_export":
+            rows.append(f"{mark(status)} {label}: {state(status)}")
+            rows.append(f"    detail: {section['detail']}")
+            rows.append(f"    managed: {_path_or_null(section['managed_path'])}")
+            rows.append(f"    exported: {_path_or_null(section['path'])}")
+            rows.extend(_export_commands(report, section))
+            continue
         suffix = ""
         if key == "repository" and status == "ok":
             kind = section.get("kind", "repository").replace("_", " ")
@@ -158,6 +167,31 @@ def format_doctor_text(report: dict[str, Any], style: Style) -> list[str]:
     overall_status = "ok" if report["ok"] else "invalid"
     rows.extend(["", f"overall: {state(overall_status)} · {'healthy' if report['ok'] else 'needs attention'}"])
     return rows
+
+
+#: The three relations a user can act on. Doctor renders no backup or removal
+#: command, because both targets are user choices.
+EXPORT_COMMAND_CODES = ("EXPORT_EXTRA", "EXPORT_STALE", "EXPORT_MISSING")
+
+
+def _path_or_null(value: str | None) -> str:
+    return "null" if value is None else value
+
+
+def _export_commands(report: dict[str, Any], section: dict[str, Any]) -> list[str]:
+    """The two shell-quoted commands, or nothing at all.
+
+    The root is quoted with `shlex.quote`, so a space, a single quote, or a
+    leading dash is pasteable rather than a second argument.
+    """
+
+    if section.get("detail_code") not in EXPORT_COMMAND_CODES:
+        return []
+    root = shlex.quote(str(report["repository"]["root"]))
+    return [
+        f"    re-export: brichan init --apply --project {root}",
+        f"    verify: brichan doctor --json --project {root}",
+    ]
 
 
 def _doctor_callout(report: dict[str, Any], style: Style) -> list[str]:
