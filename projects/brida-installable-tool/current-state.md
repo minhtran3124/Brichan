@@ -132,8 +132,11 @@ reinitialization after the packaged-resource hashes change.
   against the immutable accepted plan (blocked CLI resolve exits 5, not 0;
   eighth T-LINE fixture unreachable; §7.4 count wording) and five
   non-gating Low follow-ups are recorded in `decisions.md` and
-  `handoffs/TECHSTACK-002/code-review.md`. The user authorized the commit; no
-  push, pull request, release, or publication has run.
+  `handoffs/TECHSTACK-002/code-review.md`. The user authorized the commit, the
+  push to `github`, and draft PR #33 into `main` (2026-08-26); CI on Linux
+  passed for Python 3.10 and 3.13 on both the push and pull-request runs,
+  the first observed Linux evidence for the R7 residual (still unmeasured
+  by a local Linux host). No release or publication has run.
 - Decide separately whether to authorize a Herdr upgrade or newer capability
   adoption; the accepted plan does not presuppose either decision.
 - Run the documented dogfood workflow in one external owner repository with real
