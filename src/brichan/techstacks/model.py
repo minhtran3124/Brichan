@@ -469,7 +469,7 @@ DIAGNOSTIC_REGISTRY: tuple[DiagnosticSpec, ...] = (
     DiagnosticSpec(22, "EVIDENCE_FILE_LIMIT", "G", "error", False, "evidence file count exceeds 64"),
     DiagnosticSpec(23, "EVIDENCE_AGGREGATE_BYTE_LIMIT", "G", "error", False, "evidence bytes exceed 8388608"),
     DiagnosticSpec(24, "INVALID_MAP", "P", "error", False, "map bytes do not match the map grammar"),
-    DiagnosticSpec(25, "INVALID_LEAF", "P", "error", False, "leaf bytes do not match the leaf grammar"),
+    DiagnosticSpec(25, "INVALID_LEAF", "P", "error", False, "leaf bytes do not match the leaf grammar at line <decimal-or-0>: <leaf-rule>"),
     DiagnosticSpec(26, "MAP_ROW_LIMIT", "P", "error", False, "map row count exceeds 32"),
     DiagnosticSpec(27, "SELECTOR_LIMIT", "C", "error", False, "map row selector count exceeds 16"),
     DiagnosticSpec(28, "MAP_DEPTH_LIMIT", "G", "error", False, "selected map depth exceeds 6"),
@@ -519,6 +519,41 @@ HELPER_DIAGNOSTIC_CODES = (
 )
 
 
+#: The closed leaf-grammar rule registry. One member names the violated rule
+#: of every leaf-reachable failure site of :mod:`brichan.techstacks.markdown`,
+#: which imports this tuple and spells its members as literals at those sites,
+#: so the registry is single-sourced and a test asserts every site literal is
+#: a member. Members are uppercase ASCII identifiers of at most 32 bytes.
+LEAF_GRAMMAR_RULES: tuple[str, ...] = (
+    "DOCUMENT_ENCODING",
+    "DOCUMENT_LINE_ENDING",
+    "DOCUMENT_TERMINAL_LF",
+    "LINE_SHAPE",
+    "TITLE",
+    "SECTION_BOUNDARY",
+    "TRAILING_CONTENT",
+    "METADATA_CONTEXT_ID",
+    "METADATA_REVIEWED_ON",
+    "METADATA_REVIEW_WITHIN_DAYS",
+    "METADATA_DEPRECATED",
+    "METADATA_EVIDENCE",
+    "SCOPE_BULLET",
+    "RULE_BULLET",
+    "OVERRIDE_BULLET",
+    "VERIFICATION_BULLET",
+    "EXCEPTION_BULLET",
+    "EXAMPLES_LABEL",
+    "EXAMPLES_FENCE",
+    "EXAMPLES_PAYLOAD",
+)
+
+#: The one literal prefix of the two-slot ``INVALID_LEAF`` detail. The reported
+#: line is 0 for a document-level failure and otherwise a 1-based index into
+#: the normalized line array, whose length the leaf byte cap bounds, so the
+#: largest reportable line is one past that cap's line count.
+INVALID_LEAF_DETAIL_PREFIX = "leaf bytes do not match the leaf grammar at line "
+
+
 def filesystem_error_detail(errno_value: int | None) -> str:
     """Fill the one bounded decimal-errno slot of ``FILESYSTEM_ERROR``."""
 
@@ -526,11 +561,38 @@ def filesystem_error_detail(errno_value: int | None) -> str:
     return f"filesystem operation failed with errno {decimal}"
 
 
-def diagnostic_detail(code: str, *, errno_value: int | None = None) -> str:
+def invalid_leaf_detail(line: int | None, rule: str | None) -> str:
+    """Fill the bounded line and violated-rule slots of ``INVALID_LEAF``.
+
+    Both slots are required: an unattributed leaf failure cannot be rendered,
+    so a parser site that forgets its rule fails loudly here instead of
+    producing a diagnostic that names no rule.
+    """
+
+    if line is None or rule is None:
+        raise ValueError("INVALID_LEAF requires a line and a leaf grammar rule")
+    if isinstance(line, bool) or not isinstance(line, int):
+        raise ValueError("INVALID_LEAF line must be an integer")
+    if not 0 <= line <= LEAF_FILE_BYTE_LIMIT + 1:
+        raise ValueError("INVALID_LEAF line is outside its bounds")
+    if rule not in LEAF_GRAMMAR_RULES:
+        raise ValueError(f"unknown leaf grammar rule: {rule!r}")
+    return f"{INVALID_LEAF_DETAIL_PREFIX}{line}: {rule}"
+
+
+def diagnostic_detail(
+    code: str,
+    *,
+    errno_value: int | None = None,
+    line: int | None = None,
+    rule: str | None = None,
+) -> str:
     """Return the literal registry detail for one diagnostic code."""
 
     if code == "FILESYSTEM_ERROR":
         return filesystem_error_detail(errno_value)
+    if code == "INVALID_LEAF":
+        return invalid_leaf_detail(line, rule)
     return DIAGNOSTIC_SPECS[code].detail
 
 
@@ -2179,7 +2241,12 @@ class Diagnostic:
                 raise ValueError(f"a consumed {self.code} is a warning")
             if not is_attempt_id(self.waived_by):
                 raise ValueError("waived_by must be an approval ID")
-        if self.detail != diagnostic_detail(self.code, errno_value=self._errno_value()):
+        line, rule = self._leaf_slots()
+        if self.code == "INVALID_LEAF" and (line is None or rule is None):
+            raise ValueError(f"{self.code} detail is fixed by the registry")
+        if self.detail != diagnostic_detail(
+            self.code, errno_value=self._errno_value(), line=line, rule=rule
+        ):
             raise ValueError(f"{self.code} detail is fixed by the registry")
         if not 1 <= _byte_length(self.detail) <= DETAIL_BYTE_MAX:
             raise ValueError("diagnostic detail exceeds its byte bounds")
@@ -2193,6 +2260,32 @@ class Diagnostic:
             return int(suffix)
         except ValueError:
             return None
+
+    def _leaf_slots(self) -> tuple[int | None, str | None]:
+        """Parse the two ``INVALID_LEAF`` slots back out of ``detail``.
+
+        The accepted form is the literal prefix, one canonical decimal with no
+        sign, leading zero, or whitespace and inside the reportable line
+        bounds, then ``": "``, then one registry member. Any other form yields
+        ``(None, None)``, which the caller rejects.
+        """
+
+        if self.code != "INVALID_LEAF":
+            return (None, None)
+        if not self.detail.startswith(INVALID_LEAF_DETAIL_PREFIX):
+            return (None, None)
+        remainder = self.detail[len(INVALID_LEAF_DETAIL_PREFIX) :]
+        decimal, separator, rule = remainder.partition(": ")
+        if not separator or rule not in LEAF_GRAMMAR_RULES:
+            return (None, None)
+        if not decimal or not all(character in "0123456789" for character in decimal):
+            return (None, None)
+        if len(decimal) > 1 and decimal.startswith("0"):
+            return (None, None)
+        line = int(decimal)
+        if not 0 <= line <= LEAF_FILE_BYTE_LIMIT + 1:
+            return (None, None)
+        return (line, rule)
 
     def _check_location(self, spec: DiagnosticSpec) -> None:
         path_required = spec.fields in ("P", "C") or (
@@ -2228,6 +2321,8 @@ def diagnostic(
     path: str | None = None,
     context_id: str | None = None,
     errno_value: int | None = None,
+    line: int | None = None,
+    rule: str | None = None,
     waived_by: str | None = None,
 ) -> Diagnostic:
     """Build one registry-exact Diagnostic."""
@@ -2239,7 +2334,7 @@ def diagnostic(
         severity=severity,
         path=path,
         context_id=context_id,
-        detail=diagnostic_detail(code, errno_value=errno_value),
+        detail=diagnostic_detail(code, errno_value=errno_value, line=line, rule=rule),
         waivable=spec.waivable,
         waived_by=waived_by,
     )

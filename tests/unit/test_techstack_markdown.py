@@ -7,6 +7,7 @@ semantic models while retaining different raw byte counts and hashes.
 """
 
 import hashlib
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -15,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from brichan.techstacks import markdown
+from brichan.techstacks import markdown, model
 
 
 #: The exact Design section 15 base map bytes.
@@ -72,6 +73,29 @@ BASE_LEAF_LINES = (
     "",
     "None.",
 )
+
+#: The largest line an INVALID_LEAF may report: the leaf byte cap bounds the
+#: normalized line array, and a past-end failure reports one past its length.
+LEAF_LINE_MAX = 65537
+
+
+def assert_leaf_attribution(test, error):
+    """Assert one observed INVALID_LEAF names a registry rule and a line.
+
+    Both leaf rejection helpers of this module call this, so every leaf
+    failure the module's whole rejection corpus reaches -- not only the cases
+    a table names -- is asserted to be attributed. Restoring an argument-free
+    ``fail()`` at any one leaf site makes the corpus case that reaches it fail
+    here on a ``None`` rule.
+    """
+
+    if error.code != "INVALID_LEAF":
+        return
+    test.assertIn(error.rule, model.LEAF_GRAMMAR_RULES)
+    test.assertIsInstance(error.line, int)
+    test.assertGreaterEqual(error.line, 0)
+    test.assertLessEqual(error.line, LEAF_LINE_MAX)
+
 
 def document(lines, newline="\n"):
     """Render one line array as raw bytes with exactly one terminal newline."""
@@ -337,9 +361,11 @@ class MapGrammarTest(unittest.TestCase):
 
 class LeafGrammarTest(unittest.TestCase):
     def assert_invalid_leaf(self, lines, code="INVALID_LEAF", newline="\n"):
+        raw = lines if isinstance(lines, bytes) else document(lines, newline=newline)
         with self.assertRaises(markdown.MarkdownError) as error:
-            markdown.parse_leaf(document(lines, newline=newline))
+            markdown.parse_leaf(raw)
         self.assertEqual(code, error.exception.code)
+        assert_leaf_attribution(self, error.exception)
         return error.exception
 
     def test_the_frozen_base_leaf_parses_to_its_exact_sections(self):
@@ -421,9 +447,7 @@ class LeafGrammarTest(unittest.TestCase):
             ("double_terminal_lf", raw + b"\n"),
         ):
             with self.subTest(case=name):
-                with self.assertRaises(markdown.MarkdownError) as error:
-                    markdown.parse_leaf(payload)
-                self.assertEqual("INVALID_LEAF", error.exception.code)
+                self.assert_invalid_leaf(payload)
 
     def test_metadata_token_rules(self):
         for index, replacement in (
@@ -510,12 +534,204 @@ class LeafGrammarTest(unittest.TestCase):
         ]
         self.assert_invalid_leaf(lines)
 
+    def test_prose_accepts_backticks_and_angle_brackets_in_every_position(self):
+        # design.md version 4 section 6 amends the prose class: U+0060,
+        # U+003C, and U+003E become ordinary characters, while the NFC,
+        # one-line, surrounding-whitespace, U+007C, category-C, and
+        # 1,024-byte rules are retained. This fixture drives all six prose
+        # positions -- the four _is_prose call sites -- through one parse and
+        # asserts the exact retained text of each. The deprecated reason
+        # carries only the angle-bracket token: _DEPRECATED_LINE wraps its
+        # whole value in backticks and excludes U+0060 from it, and section 6
+        # leaves that regex unchanged, so a backtick is unreachable there by
+        # the line grammar rather than by the prose class.
+        lines = list(BASE_LEAF_LINES)
+        lines[7] = "- Deprecated: `yes: 2026-07-01: replaced by <ns>/Button`"
+        lines[12] = "- Applies to `src/frontend/` and <ns> elements."
+        lines[16] = "- `GENERAL-001`: Prefer `<Button>` over <button>."
+        lines[20] = "- `GENERAL-001` -> `root-domain`: `<Button>` is nearer."
+        lines[24] = "- Run `make check` and see <exit 0>."
+        lines[28] = "- Waive `GENERAL-001` for <legacy> trees."
+        parsed = markdown.parse_leaf(document(lines))
+        self.assertEqual("replaced by <ns>/Button", parsed.deprecated_reason)
+        self.assertEqual(
+            ("Applies to `src/frontend/` and <ns> elements.",), parsed.scope
+        )
+        self.assertEqual("Prefer `<Button>` over <button>.", parsed.rules[0].statement)
+        self.assertEqual("`<Button>` is nearer.", parsed.overrides[0].reason)
+        self.assertEqual(("Run `make check` and see <exit 0>.",), parsed.verification)
+        self.assertEqual(("Waive `GENERAL-001` for <legacy> trees.",), parsed.exceptions)
+
     def test_prose_rejects_control_and_markup_characters(self):
-        for prose in ("- Applies to `code`.", "- Applies to <b>.", "- Applies to a|b."):
+        # The retained rejections after the section 6 amendment: U+007C, and
+        # any Unicode category C character. U+0085 is category Cc and is not
+        # stripped as surrounding whitespace here, so it reaches the
+        # category-C loop rather than the leading/trailing whitespace check.
+        for prose in ("- Applies to a|b.", "- Applies to a\u0085b."):
             with self.subTest(prose=prose):
                 lines = list(BASE_LEAF_LINES)
                 lines[12] = prose
                 self.assert_invalid_leaf(lines)
+
+
+#: Uppercase string literals of markdown.py that are Diagnostic registry
+#: codes or Examples line-state names rather than leaf grammar rules.
+NON_RULE_UPPERCASE_LITERALS = frozenset(
+    {
+        "INVALID_LEAF",
+        "INVALID_MAP",
+        "MAP_ROW_LIMIT",
+        "SELECTOR_LIMIT",
+        "EXPECT_LABEL",
+        "EXPECT_OPEN",
+        "PAYLOAD",
+        "AFTER_CLOSE",
+        "DONE",
+        "C",
+    }
+)
+
+
+def replaced(index, value):
+    """Return the base leaf lines with one line replaced."""
+
+    lines = list(BASE_LEAF_LINES)
+    lines[index] = value
+    return lines
+
+
+def without_scope_bullet():
+    """Return the base leaf lines with the one Scope bullet removed."""
+
+    lines = list(BASE_LEAF_LINES)
+    del lines[12]
+    return lines
+
+
+def truncated_at_examples_heading():
+    """Return a 32-line leaf that ends on its ``## Examples`` heading.
+
+    One extra Scope bullet makes the truncation 32 lines rather than 31, so
+    the past-end report is the 33 the design's line arithmetic names. A leaf
+    can never simply drop its own final line: that would leave a blank final
+    line, which the terminal-LF rule rejects before any line is examined.
+    """
+
+    lines = list(BASE_LEAF_LINES)
+    lines.insert(13, "- Applies to a second task.")
+    return lines[:32]
+
+
+class LeafGrammarRuleAttributionTest(unittest.TestCase):
+    """T-TABLE: one fixture per LEAF_GRAMMAR_RULES member.
+
+    Owned behavior: every registry rule is reachable from real leaf bytes and
+    reports the line design.md section 7.3's four cases specify. A wrong line
+    or a wrong rule at any site fails that rule's row.
+    """
+
+    #: (rule, fixture, expected line). A bytes fixture is passed to the parser
+    #: verbatim; a line list is rendered by ``document``.
+    CASES = (
+        ("DOCUMENT_ENCODING", b"\xef\xbb\xbf" + document(BASE_LEAF_LINES), 0),
+        (
+            "DOCUMENT_LINE_ENDING",
+            document(BASE_LEAF_LINES).replace(b"General", b"Gene\ral", 1),
+            0,
+        ),
+        ("DOCUMENT_TERMINAL_LF", document(BASE_LEAF_LINES)[:-1], 0),
+        ("LINE_SHAPE", replaced(0, BASE_LEAF_LINES[0] + " "), 1),
+        ("TITLE", replaced(0, "#Bad"), 1),
+        ("SECTION_BOUNDARY", replaced(10, "## Unknown"), 11),
+        ("TRAILING_CONTENT", list(BASE_LEAF_LINES) + ["trailing"], 34),
+        ("METADATA_CONTEXT_ID", replaced(4, "- Context ID: `Root`"), 5),
+        ("METADATA_REVIEWED_ON", replaced(5, "- Reviewed on: `2026-02-30`"), 6),
+        ("METADATA_REVIEW_WITHIN_DAYS", replaced(6, "- Review within days: `0`"), 7),
+        ("METADATA_DEPRECATED", replaced(7, "- Deprecated: `maybe`"), 8),
+        ("METADATA_EVIDENCE", replaced(8, "- Evidence: `/a.txt`"), 9),
+        ("SCOPE_BULLET", without_scope_bullet(), 13),
+        ("RULE_BULLET", replaced(16, "- GENERAL-001: no backticks"), 17),
+        (
+            "OVERRIDE_BULLET",
+            replaced(20, "- `MISSING-001` -> `other`: unknown rule"),
+            21,
+        ),
+        ("VERIFICATION_BULLET", replaced(24, "- None."), 25),
+        ("EXCEPTION_BULLET", replaced(28, "- Exception a|b."), 29),
+        ("EXAMPLES_LABEL", leaf_lines(examples=("Example only",)), 33),
+        (
+            "EXAMPLES_FENCE",
+            leaf_lines(examples=("Example only.", "", "```", "payload", "```")),
+            35,
+        ),
+        (
+            "EXAMPLES_PAYLOAD",
+            leaf_lines(
+                examples=("Example only.", "", "```text", "x" * 4097, "```")
+            ),
+            36,
+        ),
+    )
+
+    def test_every_registry_rule_has_a_fixture(self):
+        self.assertEqual(
+            set(model.LEAF_GRAMMAR_RULES), {rule for rule, _, _ in self.CASES}
+        )
+        self.assertEqual(len(model.LEAF_GRAMMAR_RULES), len(self.CASES))
+
+    def test_each_fixture_reports_its_exact_code_line_and_rule(self):
+        for rule, fixture, line in self.CASES:
+            with self.subTest(rule=rule):
+                raw = fixture if isinstance(fixture, bytes) else document(fixture)
+                with self.assertRaises(markdown.MarkdownError) as error:
+                    markdown.parse_leaf(raw)
+                self.assertEqual("INVALID_LEAF", error.exception.code)
+                self.assertEqual(rule, error.exception.rule)
+                self.assertEqual(line, error.exception.line)
+
+
+class LeafGrammarLineCaseTest(unittest.TestCase):
+    """T-LINE: the line cases T-TABLE's rows do not otherwise reach.
+
+    T-TABLE already pins the document-level 0 cases, the unconsumed case at
+    line 34, and every examined case, so this class adds only the past-end
+    case, whose report is the normalized line count plus one.
+    """
+
+    def assert_leaf(self, raw, line, rule):
+        with self.assertRaises(markdown.MarkdownError) as error:
+            markdown.parse_leaf(raw)
+        self.assertEqual("INVALID_LEAF", error.exception.code)
+        self.assertEqual((line, rule), (error.exception.line, error.exception.rule))
+
+    def test_past_end_reports_the_line_count_plus_one(self):
+        self.assert_leaf(document(("# General rules",)), 2, "SECTION_BOUNDARY")
+        self.assert_leaf(
+            document(truncated_at_examples_heading()), 33, "SECTION_BOUNDARY"
+        )
+
+    def test_dropping_only_the_final_line_is_a_terminal_lf_failure(self):
+        # A leaf that drops its own last line ends on a blank line, which
+        # normalize_document rejects before any line is examined. The
+        # past-end case is therefore reached by truncating at a heading, as
+        # test_past_end_reports_the_line_count_plus_one does, not here.
+        self.assert_leaf(
+            document(BASE_LEAF_LINES[:-1]), 0, "DOCUMENT_TERMINAL_LF"
+        )
+
+
+class LeafGrammarRuleSourceTest(unittest.TestCase):
+    """PY-003: markdown.py names only registry rules at its failure sites."""
+
+    def test_every_uppercase_literal_is_a_registry_rule_or_a_known_non_rule(self):
+        source = (ROOT / "src" / "brichan" / "techstacks" / "markdown.py").read_text(
+            encoding="utf-8"
+        )
+        literals = set(re.findall(r'"([A-Z][A-Z0-9_]*)"', source))
+        self.assertEqual(
+            set(model.LEAF_GRAMMAR_RULES),
+            literals - NON_RULE_UPPERCASE_LITERALS,
+        )
 
 
 class ExamplesStateMachineTest(unittest.TestCase):
@@ -528,6 +744,8 @@ class ExamplesStateMachineTest(unittest.TestCase):
         with self.assertRaises(markdown.MarkdownError) as error:
             self.parse(examples, newline=newline)
         self.assertEqual("INVALID_LEAF", error.exception.code)
+        assert_leaf_attribution(self, error.exception)
+        return error.exception
 
     def test_none_reaches_done_immediately(self):
         parsed = self.parse(("None.",))

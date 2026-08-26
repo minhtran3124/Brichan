@@ -338,7 +338,11 @@ class _Resolver:
                 node.parsed_leaf = markdown.parse_leaf(node.raw)
         except markdown.MarkdownError as error:
             self.findings.add(
-                error.code, path=node.path, context_id=error.context_id
+                error.code,
+                path=node.path,
+                context_id=error.context_id,
+                line=error.line,
+                rule=error.rule,
             )
             return False
         return True

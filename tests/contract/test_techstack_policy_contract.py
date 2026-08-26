@@ -447,6 +447,20 @@ DESIGN_FIXTURES = (
     ),
 )
 
+#: Committed fixtures that freeze bytes without being cut from the design, as
+#: `(name, byte_count, sha256)`. `TEST-002` requires every byte-freezing
+#: fixture to have its digest frozen by a contract test; the doctor text
+#: fixture read by `tests.unit.test_cli_render` was the one that had none, so
+#: a rendering change could rewrite it with nothing in the diff to review.
+#: Changing the fixture now requires changing its row in the same diff.
+FROZEN_FIXTURES = (
+    (
+        "doctor_v2_text.json",
+        20863,
+        "3b70cf771df54ef607c0812eab81a6ff047f1a102adb45935776f885df3cd1fa",
+    ),
+)
+
 
 class TechstackDesignFixtureTest(unittest.TestCase):
     """The committed design blocks are frozen and, where possible, authentic.
@@ -512,6 +526,50 @@ class TechstackPolicyIsDeliveryOnlyTest(unittest.TestCase):
             text = (skill / "SKILL.md").read_text(encoding="utf-8")
             self.assertIn(policy_pointer, text, str(skill))
             self.assertIn("techstacks/README.md", text, str(skill))
+
+
+class FrozenFixtureDigestTest(unittest.TestCase):
+    """Byte-frozen fixtures that no design block generates."""
+
+    def test_every_frozen_fixture_matches_its_recorded_size_and_digest(self):
+        for name, byte_count, digest in FROZEN_FIXTURES:
+            with self.subTest(fixture=name):
+                payload = (FIXTURES / name).read_bytes()
+                self.assertEqual(byte_count, len(payload))
+                self.assertEqual(digest, hashlib.sha256(payload).hexdigest())
+
+
+class PackagedSkillExportRelationTest(unittest.TestCase):
+    """The checkout export is a path superset of the packaged skill.
+
+    `PACKAGED-001` requires marker parity for shared safeguards — owned by
+    `tests.contract.test_skill_parity_contract` — and allows the checkout
+    export to be a mode-specific superset that is not byte-identical to the
+    installed-mode skill. The one relation that would be a real regression on
+    this checkout is a packaged path missing from the export, the doctor's
+    `EXPORT_MISSING` outcome. This asserts that containment only: never byte
+    equality, and never inequality, so it stays true under any later
+    mode-neutral rewrite of either tree. Its coverage distinct from the parity
+    contract, which already detects the removal of any of today's four packaged
+    files, is twofold: the path set is derived from `PACKAGED_SKILL.rglob`, so
+    a packaged file added later is automatically required in the export; and a
+    symlink standing in for a regular export file is rejected here while the
+    parity contract reads through it.
+    """
+
+    def test_every_packaged_skill_path_exists_in_the_checkout_export(self):
+        packaged = sorted(
+            path.relative_to(PACKAGED_SKILL)
+            for path in PACKAGED_SKILL.rglob("*")
+            if path.is_file() and not path.is_symlink()
+        )
+        self.assertTrue(packaged, str(PACKAGED_SKILL))
+        for relative in packaged:
+            with self.subTest(path=str(relative)):
+                exported = CHECKOUT_SKILL / relative
+                self.assertTrue(
+                    exported.is_file() and not exported.is_symlink(), str(exported)
+                )
 
 
 if __name__ == "__main__":

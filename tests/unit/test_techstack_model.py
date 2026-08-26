@@ -149,7 +149,7 @@ DESIGN_DIAGNOSTIC_DETAILS = {
     "EVIDENCE_FILE_LIMIT": "evidence file count exceeds 64",
     "EVIDENCE_AGGREGATE_BYTE_LIMIT": "evidence bytes exceed 8388608",
     "INVALID_MAP": "map bytes do not match the map grammar",
-    "INVALID_LEAF": "leaf bytes do not match the leaf grammar",
+    "INVALID_LEAF": "leaf bytes do not match the leaf grammar at line <decimal-or-0>: <leaf-rule>",
     "MAP_ROW_LIMIT": "map row count exceeds 32",
     "SELECTOR_LIMIT": "map row selector count exceeds 16",
     "MAP_DEPTH_LIMIT": "selected map depth exceeds 6",
@@ -463,6 +463,91 @@ class CallerErrorRegistryTest(unittest.TestCase):
         error = model.TechstackInputError("INPUT_VALUE", "/as_of", "input field has an invalid value")
         with self.assertRaises(AttributeError):
             error.code = "INPUT_TYPE"
+
+
+class LeafGrammarRuleRegistryTest(unittest.TestCase):
+    """The closed leaf-grammar rule registry and its two detail slots."""
+
+    def test_registry_is_a_closed_ordered_tuple_of_twenty_identifiers(self):
+        rules = model.LEAF_GRAMMAR_RULES
+        self.assertIsInstance(rules, tuple)
+        self.assertEqual(20, len(rules))
+        self.assertEqual(len(set(rules)), len(rules))
+        for rule in rules:
+            with self.subTest(rule=rule):
+                self.assertTrue(rule.replace("_", "").isalpha())
+                self.assertEqual(rule, rule.upper())
+                self.assertTrue(rule.isascii())
+                self.assertLessEqual(len(rule.encode("utf-8")), 32)
+
+    def test_invalid_leaf_detail_renders_both_slots(self):
+        self.assertEqual(
+            "leaf bytes do not match the leaf grammar at line 34: TRAILING_CONTENT",
+            model.invalid_leaf_detail(34, "TRAILING_CONTENT"),
+        )
+        self.assertEqual(
+            "leaf bytes do not match the leaf grammar at line 0: DOCUMENT_ENCODING",
+            model.invalid_leaf_detail(0, "DOCUMENT_ENCODING"),
+        )
+
+    def test_invalid_leaf_detail_accepts_only_a_line_in_bounds_and_a_member(self):
+        # 0 is the document-level case and 65537 is one past the largest line
+        # array the leaf byte cap admits.
+        self.assertTrue(model.invalid_leaf_detail(0, "LINE_SHAPE"))
+        self.assertTrue(model.invalid_leaf_detail(65537, "LINE_SHAPE"))
+        for line in (-1, 65538):
+            with self.subTest(line=line):
+                with self.assertRaises(ValueError):
+                    model.invalid_leaf_detail(line, "LINE_SHAPE")
+        with self.assertRaises(ValueError):
+            model.invalid_leaf_detail(None, "LINE_SHAPE")
+        with self.assertRaises(ValueError):
+            model.invalid_leaf_detail(1, None)
+        with self.assertRaises(ValueError):
+            model.invalid_leaf_detail(1, "NOT_A_RULE")
+
+    def test_the_rendered_detail_stays_inside_its_bounds(self):
+        widest = max(model.LEAF_GRAMMAR_RULES, key=len)
+        detail = model.invalid_leaf_detail(65537, widest)
+        self.assertLessEqual(len(detail.encode("utf-8")), 88)
+        self.assertLessEqual(len(detail.encode("utf-8")), model.DETAIL_BYTE_MAX)
+
+    def test_diagnostic_round_trips_both_slots(self):
+        for line in (0, 65537):
+            with self.subTest(line=line):
+                built = model.diagnostic(
+                    "INVALID_LEAF",
+                    path="techstacks/general.md",
+                    line=line,
+                    rule="SECTION_BOUNDARY",
+                )
+                self.assertEqual(
+                    model.invalid_leaf_detail(line, "SECTION_BOUNDARY"), built.detail
+                )
+                self.assertEqual(built, model.Diagnostic(**built.to_json_object()))
+
+    def test_diagnostic_rejects_an_unattributed_or_malformed_detail(self):
+        for detail in (
+            "leaf bytes do not match the leaf grammar",
+            "leaf bytes do not match the leaf grammar at line 1: NOT_A_RULE",
+            "leaf bytes do not match the leaf grammar at line 65538: LINE_SHAPE",
+            "leaf bytes do not match the leaf grammar at line -1: LINE_SHAPE",
+            "leaf bytes do not match the leaf grammar at line 01: LINE_SHAPE",
+            "leaf bytes do not match the leaf grammar at line  1: LINE_SHAPE",
+        ):
+            with self.subTest(detail=detail):
+                with self.assertRaises(ValueError):
+                    model.Diagnostic(
+                        code="INVALID_LEAF",
+                        severity="error",
+                        path="techstacks/general.md",
+                        context_id=None,
+                        detail=detail,
+                        waivable=False,
+                        waived_by=None,
+                    )
+        with self.assertRaises(ValueError):
+            model.diagnostic("INVALID_LEAF", path="techstacks/general.md")
 
 
 class DiagnosticRegistryTest(unittest.TestCase):
@@ -1750,6 +1835,7 @@ class BoundsTest(unittest.TestCase):
         self.assertEqual(384, model.EFFECTIVE_RULE_COUNT_LIMIT)
         self.assertEqual(3072, model.PROJECT_ROOT_BYTE_MAX)
         self.assertEqual(255, model.PATH_COMPONENT_BYTE_MAX)
+        self.assertEqual(1024, model.RELATIVE_PATH_BYTE_MAX)
         self.assertEqual(9223372036854775807, model.INTEGER_MAX)
         self.assertEqual(4294967295, model.MODE_MAX)
 

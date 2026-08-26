@@ -548,6 +548,13 @@ class ReachabilityTest(ProjectMixin, unittest.TestCase):
         resolution = self.resolve(context_chains=(("general",),))
         self.assertEqual("blocked", resolution.status)
         self.assertEqual(("INVALID_LEAF",), self.codes(resolution))
+        # The resolver carries the parser's line and violated rule into the
+        # diagnostic detail: this one-line leaf runs out of lines where the
+        # first section boundary was required.
+        self.assertEqual(
+            "leaf bytes do not match the leaf grammar at line 2: SECTION_BOUNDARY",
+            resolution.diagnostics[0].detail,
+        )
         self.write_chain(2)
         self.write("techstacks/m01/README.md", b"# Not a map\n")
         resolution = self.resolve(context_chains=(("c01", "c02", "c03"),))
@@ -1725,6 +1732,10 @@ class SnapshotTest(ProjectMixin, unittest.TestCase):
         resolution = self.resolve()
         self.assertEqual(("INVALID_LEAF",), self.codes(resolution))
         self.assertEqual("techstacks/general.md", resolution.diagnostics[0].path)
+        self.assertEqual(
+            "leaf bytes do not match the leaf grammar at line 2: SECTION_BOUNDARY",
+            resolution.diagnostics[0].detail,
+        )
 
     def test_the_effective_rule_count_stays_inside_its_structural_bound(self):
         # Eleven leaves of 32 rules is the most a twelve-file selection can

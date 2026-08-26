@@ -14,7 +14,7 @@
 
 ## Rules
 
-- `PACKAGED-001`: The packaged skill and its checkout export stay byte-identical; parity is proven by the skill-parity contract, not by inspection.
+- `PACKAGED-001`: The packaged skill and its checkout export preserve marker parity for shared safeguards; the checkout export may be a mode-specific superset and is not required to be byte-identical to the installed-mode skill.
 - `PACKAGED-002`: Adding a packaged policy or skill resource changes the immutable manifest and requires deliberate installed-state backup and reinitialization; never overwrite an existing export automatically.
 - `PACKAGED-003`: Installed .brichan/ state stays schema version 1; a report-schema change is versioned separately and never migrates installed state silently.
 

@@ -46,6 +46,7 @@ from brichan.lifecycle import (
 )
 from brichan.project import ProjectError, ProjectPaths, find_git_root, project_paths
 from brichan.techstacks import filesystem as techstack_filesystem
+from brichan.techstacks import model as techstack_model
 
 
 REPORT_KEYS = {
@@ -2597,6 +2598,54 @@ class AgentSkillExportReportTest(unittest.TestCase):
         self.assertEqual(64, lifecycle.SKILL_DIRECTORY_COUNT_LIMIT)
         self.assertEqual(6, lifecycle.SKILL_MAX_DEPTH)
         self.assertEqual(128, lifecycle.SKILL_FILE_ROW_LIMIT)
+
+    def test_every_shared_section_three_cap_equals_its_techstacks_model_twin(self):
+        """The seven skill caps spelled in both modules are pinned equal.
+
+        Seven of the nine caps above have a `brichan.techstacks.model` twin
+        (`SKILL_OUTPUT_PATH_BYTE_LIMIT` and `SKILL_FILE_ROW_LIMIT` have none),
+        and `PY-003` requires a value spelled in two modules to be pinned
+        equal by a test. The literal pins — the test above for `lifecycle` and
+        `test_numeric_constants_match_the_design` for `model` — already catch
+        every one-sided edit. This test's own failure mode is the one they
+        cannot see: a two-sided edit that moves the twins of a pair apart while
+        each literal pin is updated to its own side's new value — divergence,
+        not motion. Moving both twins to the same new value with both pins
+        updated passes every test, correctly, because the two modules still
+        agree and only the design literal has moved. The import is test-side
+        only; `lifecycle` still does not import `techstacks` at module scope.
+        """
+
+        self.assertEqual(
+            lifecycle.SKILL_RELATIVE_PATH_BYTE_LIMIT,
+            techstack_model.RELATIVE_PATH_BYTE_MAX,
+        )
+        self.assertEqual(
+            lifecycle.SKILL_COMPONENT_BYTE_LIMIT,
+            techstack_model.PATH_COMPONENT_BYTE_MAX,
+        )
+        self.assertEqual(
+            lifecycle.SKILL_FILE_BYTE_LIMIT,
+            techstack_model.MANAGED_SKILL_FILE_BYTE_LIMIT,
+        )
+        self.assertEqual(
+            lifecycle.SKILL_FILE_BYTE_LIMIT,
+            techstack_model.EXPORTED_SKILL_FILE_BYTE_LIMIT,
+        )
+        self.assertEqual(
+            lifecycle.SKILL_AGGREGATE_BYTE_LIMIT,
+            techstack_model.SKILL_AGGREGATE_BYTE_LIMIT,
+        )
+        self.assertEqual(
+            lifecycle.SKILL_ENTRY_COUNT_LIMIT, techstack_model.SKILL_ENTRY_LIMIT
+        )
+        self.assertEqual(
+            lifecycle.SKILL_DIRECTORY_COUNT_LIMIT,
+            techstack_model.SKILL_DIRECTORY_LIMIT,
+        )
+        self.assertEqual(
+            lifecycle.SKILL_MAX_DEPTH, techstack_model.SKILL_DEPTH_LIMIT
+        )
 
     def test_a_file_of_exactly_262144_bytes_still_compares(self):
         self.initialize()

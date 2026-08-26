@@ -510,6 +510,45 @@ class ValidOutcomeTest(TechstackCliTestCase):
         )
 
 
+class MalformedLeafAttributionTest(TechstackCliTestCase):
+    """The attributed INVALID_LEAF detail, proven through the real launcher."""
+
+    def test_resolve_on_a_malformed_leaf_freezes_its_exact_stdout_bytes(self):
+        # The leaf is the valid fixture plus one trailing line, so the whole
+        # document parses and the failure is the first unconsumed line -- 34,
+        # not the 33 the last valid line carries. Every byte of stdout is
+        # frozen here because the detail is the one resolve-document field
+        # the line and rule attribution changes.
+        self.write_fixture()
+        leaf = (self.root / "techstacks" / "general.md").read_bytes()
+        self.write("techstacks/general.md", leaf + b"trailing\n")
+        before = self.tree_digest()
+        result = self.run_cli(*self.resolve_arguments())
+        self.assertEqual(5, result.returncode)
+        self.assertEqual(b"", result.stderr)
+        self.assertEqual(
+            b'{\n'
+            b'  "diagnostics": [\n'
+            b'    {\n'
+            b'      "code": "INVALID_LEAF",\n'
+            b'      "context_id": null,\n'
+            b'      "detail": "leaf bytes do not match the leaf grammar at line 34: '
+            b'TRAILING_CONTENT",\n'
+            b'      "path": "techstacks/general.md",\n'
+            b'      "severity": "error",\n'
+            b'      "waivable": false,\n'
+            b'      "waived_by": null\n'
+            b'    }\n'
+            b'  ],\n'
+            b'  "schema_version": 1,\n'
+            b'  "snapshot": null,\n'
+            b'  "status": "blocked"\n'
+            b'}\n',
+            result.stdout,
+        )
+        self.assertEqual(before, self.tree_digest())
+
+
 class PublicationOutputTest(TechstackCliTestCase):
     """Frozen canonical publication outputs and immutable drift leftovers."""
 

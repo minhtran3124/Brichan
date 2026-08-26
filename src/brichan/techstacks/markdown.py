@@ -117,12 +117,26 @@ class MarkdownError(Exception):
     ``INVALID_LEAF``. ``context_id`` is present only for ``SELECTOR_LIMIT``,
     whose registry field class requires both a path and a Context ID; the
     caller supplies the path because only it knows which file it read.
+
+    ``line`` and ``rule`` attribute one ``INVALID_LEAF`` to the line it was
+    reported on and the one ``LEAF_GRAMMAR_RULES`` member it violated. Both
+    are ``None`` for ``INVALID_MAP``, ``MAP_ROW_LIMIT``, and
+    ``SELECTOR_LIMIT``, whose details carry no slot.
     """
 
-    def __init__(self, code: str, *, context_id: str | None = None) -> None:
+    def __init__(
+        self,
+        code: str,
+        *,
+        context_id: str | None = None,
+        line: int | None = None,
+        rule: str | None = None,
+    ) -> None:
         super().__init__(code)
         self.code = code
         self.context_id = context_id
+        self.line = line
+        self.rule = rule
 
 
 # ---------------------------------------------------------------------------
@@ -312,7 +326,7 @@ def _is_prose(value: str) -> bool:
     if not is_nfc(value):
         return False
     for character in value:
-        if character in "`|<>":
+        if character == "|":
             return False
         if unicodedata.category(character)[0] == "C":
             return False
@@ -327,70 +341,106 @@ def _is_title(value: str) -> bool:
     return all(unicodedata.category(character)[0] != "C" for character in value)
 
 
-def normalize_document(raw: bytes, code: str) -> tuple[str, ...]:
+def normalize_document(
+    raw: bytes, code: str, *, attribute: bool = False
+) -> tuple[str, ...]:
     """Decode one raw file and return its normalized line array.
 
     Strict UTF-8, no BOM, and no NUL are required. Every CRLF pair becomes one
     LF and any remaining bare CR is rejected. The document ends with exactly
     one terminal LF. These four rules precede line-state parsing and therefore
     apply inside an Examples payload as well as outside one.
+
+    With ``attribute`` the failures carry their document-level rule and the
+    reported line ``0``, because they are decided before any line exists.
     """
 
+    def failure(rule: str) -> MarkdownError:
+        if attribute:
+            return MarkdownError(code, line=0, rule=rule)
+        return MarkdownError(code)
+
     if raw.startswith(_UTF8_BOM):
-        raise MarkdownError(code)
+        raise failure("DOCUMENT_ENCODING")
     if b"\x00" in raw:
-        raise MarkdownError(code)
+        raise failure("DOCUMENT_ENCODING")
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError:
-        raise MarkdownError(code) from None
+        raise failure("DOCUMENT_ENCODING") from None
     text = text.replace("\r\n", "\n")
     if "\r" in text:
-        raise MarkdownError(code)
+        raise failure("DOCUMENT_LINE_ENDING")
     if not text.endswith("\n") or text.endswith("\n\n"):
-        raise MarkdownError(code)
+        raise failure("DOCUMENT_TERMINAL_LF")
     return tuple(text[:-1].split("\n"))
 
 
-def _check_outside_line(line: str, code: str) -> None:
-    """Reject tabs, trailing whitespace, and indentation outside a payload."""
+def _check_outside_line(line: str) -> bool:
+    """Return True when one outside-payload line has the required shape.
+
+    Tabs, trailing whitespace, and indentation are the three rejections. The
+    predicate raises nothing; :meth:`_Cursor.take` is the one site that turns
+    a ``False`` into the cursor's line-shape failure.
+    """
 
     if "\t" in line:
-        raise MarkdownError(code)
+        return False
     if line != line.rstrip():
-        raise MarkdownError(code)
+        return False
     if line.startswith(" "):
-        raise MarkdownError(code)
+        return False
+    return True
 
 
 class _Cursor:
     """A line cursor that rejects every unconsumed or unexpected line."""
 
-    def __init__(self, lines: tuple[str, ...], code: str) -> None:
+    def __init__(
+        self,
+        lines: tuple[str, ...],
+        code: str,
+        *,
+        end_rule: str | None = None,
+        shape_rule: str | None = None,
+    ) -> None:
         self._lines = lines
         self._code = code
         self._index = 0
+        self._end_rule = end_rule
+        self._shape_rule = shape_rule
+        #: The 1-based number of the line most recently examined, 0 until the
+        #: first peek. Consuming a line never changes it, so a check that
+        #: fires after a take reports the line the check read.
+        self._examined = 0
 
     @property
     def code(self) -> str:
         return self._code
 
-    def fail(self) -> MarkdownError:
-        return MarkdownError(self._code)
+    def fail(self, rule: str | None = None) -> MarkdownError:
+        """Return this cursor's failure, attributed when a rule is given."""
+
+        if rule is None:
+            return MarkdownError(self._code)
+        return MarkdownError(self._code, line=self._examined, rule=rule)
 
     def exhausted(self) -> bool:
         return self._index >= len(self._lines)
 
     def peek(self) -> str:
         if self.exhausted():
-            raise self.fail()
+            self._examined = len(self._lines) + 1
+            raise self.fail(self._end_rule)
+        self._examined = self._index + 1
         return self._lines[self._index]
 
     def take(self) -> str:
         """Return the next line after the outside-payload line-shape check."""
 
         line = self.peek()
-        _check_outside_line(line, self._code)
+        if not _check_outside_line(line):
+            raise self.fail(self._shape_rule)
         self._index += 1
         return line
 
@@ -401,17 +451,18 @@ class _Cursor:
         self._index += 1
         return line
 
-    def expect(self, literal: str) -> None:
+    def expect(self, literal: str, rule: str | None = None) -> None:
         if self.take() != literal:
-            raise self.fail()
+            raise self.fail(rule)
 
-    def expect_blank(self) -> None:
+    def expect_blank(self, rule: str | None = None) -> None:
         if self.take() != "":
-            raise self.fail()
+            raise self.fail(rule)
 
-    def require_end(self) -> None:
+    def require_end(self, rule: str | None = None) -> None:
         if not self.exhausted():
-            raise self.fail()
+            self._examined = self._index + 1
+            raise self.fail(rule)
 
 
 # ---------------------------------------------------------------------------
@@ -518,30 +569,30 @@ def parse_map(raw: bytes) -> ParsedMap:
 
 
 def _take_section(cursor: _Cursor, heading: str) -> None:
-    cursor.expect_blank()
-    cursor.expect(heading)
-    cursor.expect_blank()
+    cursor.expect_blank("SECTION_BOUNDARY")
+    cursor.expect(heading, "SECTION_BOUNDARY")
+    cursor.expect_blank("SECTION_BOUNDARY")
 
 
 def _parse_metadata(cursor: _Cursor) -> dict[str, object]:
     context_match = _CONTEXT_ID_LINE.match(cursor.take())
     if context_match is None or not is_context_id(context_match.group("value")):
-        raise cursor.fail()
+        raise cursor.fail("METADATA_CONTEXT_ID")
     reviewed_match = _REVIEWED_ON_LINE.match(cursor.take())
     if reviewed_match is None or not is_date(reviewed_match.group("value")):
-        raise cursor.fail()
+        raise cursor.fail("METADATA_REVIEWED_ON")
     within_match = _REVIEW_WITHIN_LINE.match(cursor.take())
     if within_match is None:
-        raise cursor.fail()
+        raise cursor.fail("METADATA_REVIEW_WITHIN_DAYS")
     digits = within_match.group("value")
     if not digits.isdigit() or (len(digits) > 1 and digits.startswith("0")):
-        raise cursor.fail()
+        raise cursor.fail("METADATA_REVIEW_WITHIN_DAYS")
     within = int(digits)
     if not REVIEW_WITHIN_DAYS_MIN <= within <= REVIEW_WITHIN_DAYS_MAX:
-        raise cursor.fail()
+        raise cursor.fail("METADATA_REVIEW_WITHIN_DAYS")
     deprecated_match = _DEPRECATED_LINE.match(cursor.take())
     if deprecated_match is None:
-        raise cursor.fail()
+        raise cursor.fail("METADATA_DEPRECATED")
     declared = deprecated_match.group("value")
     deprecated_on: str | None = None
     deprecated_reason: str | None = None
@@ -550,9 +601,9 @@ def _parse_metadata(cursor: _Cursor) -> dict[str, object]:
     else:
         yes_match = _DEPRECATED_YES.match(declared)
         if yes_match is None or not is_date(yes_match.group("date")):
-            raise cursor.fail()
+            raise cursor.fail("METADATA_DEPRECATED")
         if not _is_prose(yes_match.group("reason")):
-            raise cursor.fail()
+            raise cursor.fail("METADATA_DEPRECATED")
         deprecated = True
         deprecated_on = yes_match.group("date")
         deprecated_reason = yes_match.group("reason")
@@ -561,20 +612,20 @@ def _parse_metadata(cursor: _Cursor) -> dict[str, object]:
     if evidence_line != EVIDENCE_NONE_LINE:
         evidence_match = _EVIDENCE_LINE.match(evidence_line)
         if evidence_match is None:
-            raise cursor.fail()
+            raise cursor.fail("METADATA_EVIDENCE")
         paths: list[str] = []
         for token in evidence_match.group("value").split(LIST_SEPARATOR):
             path_match = _BACKTICKED.match(token)
             if path_match is None:
-                raise cursor.fail()
+                raise cursor.fail("METADATA_EVIDENCE")
             paths.append(path_match.group("value"))
         if not 1 <= len(paths) <= EVIDENCE_DECLARATION_MAX:
-            raise cursor.fail()
+            raise cursor.fail("METADATA_EVIDENCE")
         if len(set(paths)) != len(paths):
-            raise cursor.fail()
+            raise cursor.fail("METADATA_EVIDENCE")
         for path in paths:
             if not is_normalized_relative_path(path):
-                raise cursor.fail()
+                raise cursor.fail("METADATA_EVIDENCE")
         evidence = tuple(paths)
     return {
         "context_id": context_match.group("value"),
@@ -587,41 +638,48 @@ def _parse_metadata(cursor: _Cursor) -> dict[str, object]:
     }
 
 
-def _parse_ordinary_bullets(cursor: _Cursor, maximum: int) -> tuple[str, ...]:
+def _parse_ordinary_bullets(
+    cursor: _Cursor, maximum: int, rule: str
+) -> tuple[str, ...]:
+    """Parse one ordinary-bullet section under the caller's own rule name."""
+
     bullets: list[str] = []
     while not cursor.exhausted() and cursor.peek() != "":
         line = cursor.take()
         if not line.startswith(_ORDINARY_BULLET_PREFIX):
-            raise cursor.fail()
+            raise cursor.fail(rule)
         prose = line[len(_ORDINARY_BULLET_PREFIX) :]
         if prose == NONE_LINE or not _is_prose(prose):
-            raise cursor.fail()
+            raise cursor.fail(rule)
         bullets.append(prose)
         if len(bullets) > maximum:
-            raise cursor.fail()
+            raise cursor.fail(rule)
     if not bullets:
-        raise cursor.fail()
+        raise cursor.fail(rule)
     return tuple(bullets)
 
 
 def _parse_rules(cursor: _Cursor) -> tuple[RuleRecord, ...]:
     rules: list[RuleRecord] = []
+    identifiers: set[str] = set()
     while not cursor.exhausted() and cursor.peek() != "":
         match = _RULE_BULLET.match(cursor.take())
         if match is None:
-            raise cursor.fail()
+            raise cursor.fail("RULE_BULLET")
         rule_id = match.group("rule_id")
         statement = match.group("statement")
         if not is_rule_id(rule_id) or not _is_prose(statement):
-            raise cursor.fail()
+            raise cursor.fail("RULE_BULLET")
+        # The duplicate test runs at append time, so the reported line is the
+        # duplicate bullet itself rather than the section terminator.
+        if rule_id in identifiers:
+            raise cursor.fail("RULE_BULLET")
+        identifiers.add(rule_id)
         rules.append(RuleRecord(rule_id=rule_id, statement=statement))
         if len(rules) > RULE_BULLET_MAX:
-            raise cursor.fail()
+            raise cursor.fail("RULE_BULLET")
     if not rules:
-        raise cursor.fail()
-    identifiers = [rule.rule_id for rule in rules]
-    if len(set(identifiers)) != len(identifiers):
-        raise cursor.fail()
+        raise cursor.fail("RULE_BULLET")
     return tuple(rules)
 
 
@@ -633,29 +691,31 @@ def _parse_overrides(
         return ()
     overrides: list[OverrideRecord] = []
     known = {rule.rule_id for rule in rules}
+    pairs: set[tuple[str, str]] = set()
     while not cursor.exhausted() and cursor.peek() != "":
         match = _OVERRIDE_BULLET.match(cursor.take())
         if match is None:
-            raise cursor.fail()
+            raise cursor.fail("OVERRIDE_BULLET")
         rule_id = match.group("rule_id")
         target = match.group("target")
         reason = match.group("reason")
         if not is_rule_id(rule_id) or rule_id not in known:
-            raise cursor.fail()
+            raise cursor.fail("OVERRIDE_BULLET")
         if not is_context_id(target) or target == context_id:
-            raise cursor.fail()
+            raise cursor.fail("OVERRIDE_BULLET")
         if not _is_prose(reason):
-            raise cursor.fail()
+            raise cursor.fail("OVERRIDE_BULLET")
+        # As in _parse_rules, the duplicate pair is reported on its own line.
+        if (rule_id, target) in pairs:
+            raise cursor.fail("OVERRIDE_BULLET")
+        pairs.add((rule_id, target))
         overrides.append(
             OverrideRecord(rule_id=rule_id, target_context_id=target, reason=reason)
         )
         if len(overrides) > OVERRIDE_BULLET_MAX:
-            raise cursor.fail()
+            raise cursor.fail("OVERRIDE_BULLET")
     if not overrides:
-        raise cursor.fail()
-    pairs = [(item.rule_id, item.target_context_id) for item in overrides]
-    if len(set(pairs)) != len(pairs):
-        raise cursor.fail()
+        raise cursor.fail("OVERRIDE_BULLET")
     return tuple(overrides)
 
 
@@ -663,7 +723,7 @@ def _parse_exceptions(cursor: _Cursor) -> tuple[str, ...]:
     if cursor.peek() == NONE_BULLET:
         cursor.take()
         return ()
-    return _parse_ordinary_bullets(cursor, EXCEPTION_BULLET_MAX)
+    return _parse_ordinary_bullets(cursor, EXCEPTION_BULLET_MAX, "EXCEPTION_BULLET")
 
 
 def _parse_examples(cursor: _Cursor) -> tuple[tuple[ExampleFence, ...], int]:
@@ -679,16 +739,16 @@ def _parse_examples(cursor: _Cursor) -> tuple[tuple[ExampleFence, ...], int]:
     aggregate = 0
     label = cursor.take()
     if label == NONE_LINE:
-        cursor.require_end()
+        cursor.require_end("TRAILING_CONTENT")
         return (), 0
     if label != EXAMPLES_LABEL:
-        raise cursor.fail()
-    cursor.expect_blank()
+        raise cursor.fail("EXAMPLES_LABEL")
+    cursor.expect_blank("EXAMPLES_LABEL")
     state = STATE_EXPECT_OPEN
     while state != STATE_DONE:
         opening = _FENCE_OPEN.match(cursor.take())
         if opening is None:
-            raise cursor.fail()
+            raise cursor.fail("EXAMPLES_FENCE")
         state = STATE_PAYLOAD
         payload_bytes = 0
         closed = False
@@ -698,23 +758,23 @@ def _parse_examples(cursor: _Cursor) -> tuple[tuple[ExampleFence, ...], int]:
                 closed = True
                 break
             if _byte_length(line) > PAYLOAD_LINE_BYTE_MAX:
-                raise cursor.fail()
+                raise cursor.fail("EXAMPLES_PAYLOAD")
             payload_bytes += _byte_length(line) + 1
             aggregate += _byte_length(line) + 1
             if aggregate > PAYLOAD_AGGREGATE_BYTE_MAX:
-                raise cursor.fail()
+                raise cursor.fail("EXAMPLES_PAYLOAD")
         if not closed:
-            raise cursor.fail()
+            raise cursor.fail("EXAMPLES_FENCE")
         fences.append(
             ExampleFence(language=opening.group("language"), payload_bytes=payload_bytes)
         )
         if len(fences) > EXAMPLE_FENCE_MAX:
-            raise cursor.fail()
+            raise cursor.fail("EXAMPLES_FENCE")
         state = STATE_AFTER_CLOSE
         if cursor.exhausted():
             state = STATE_DONE
             continue
-        cursor.expect_blank()
+        cursor.expect_blank("EXAMPLES_FENCE")
         state = STATE_EXPECT_OPEN
     return tuple(fences), aggregate
 
@@ -723,25 +783,34 @@ def parse_leaf(raw: bytes) -> ParsedLeaf:
     """Parse one leaf rule file in its exact ordered sections."""
 
     code = "INVALID_LEAF"
-    cursor = _Cursor(normalize_document(raw, code), code)
+    cursor = _Cursor(
+        normalize_document(raw, code, attribute=True),
+        code,
+        end_rule="SECTION_BOUNDARY",
+        shape_rule="LINE_SHAPE",
+    )
     title = cursor.take()
     if not title.startswith(_TITLE_PREFIX) or not _is_title(title[len(_TITLE_PREFIX) :]):
-        raise cursor.fail()
+        raise cursor.fail("TITLE")
     _take_section(cursor, RULE_METADATA_HEADING)
     metadata = _parse_metadata(cursor)
     _take_section(cursor, SCOPE_HEADING)
-    scope = _parse_ordinary_bullets(cursor, SCOPE_BULLET_MAX)
+    scope = _parse_ordinary_bullets(cursor, SCOPE_BULLET_MAX, "SCOPE_BULLET")
     _take_section(cursor, RULES_HEADING)
     rules = _parse_rules(cursor)
     _take_section(cursor, OVERRIDES_HEADING)
     overrides = _parse_overrides(cursor, str(metadata["context_id"]), rules)
     _take_section(cursor, VERIFICATION_HEADING)
-    verification = _parse_ordinary_bullets(cursor, VERIFICATION_BULLET_MAX)
+    verification = _parse_ordinary_bullets(
+        cursor, VERIFICATION_BULLET_MAX, "VERIFICATION_BULLET"
+    )
     _take_section(cursor, EXCEPTIONS_HEADING)
     exceptions = _parse_exceptions(cursor)
     _take_section(cursor, EXAMPLES_HEADING)
     examples, payload_bytes = _parse_examples(cursor)
-    cursor.require_end()
+    # Unreachable by construction: both _parse_examples returns occur only at
+    # exhaustion. Kept as defense, and attributed like every other leaf site.
+    cursor.require_end("TRAILING_CONTENT")
     return ParsedLeaf(
         title=title[len(_TITLE_PREFIX) :],
         context_id=str(metadata["context_id"]),
