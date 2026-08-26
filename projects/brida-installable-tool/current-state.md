@@ -141,6 +141,24 @@ reinitialization after the packaged-resource hashes change.
 - The gitignored checkout `.venv/` contains an unexplained Unicode `𝜋thon`
   alias and packaging utilities. It is excluded from source scans and cannot
   enter the installer wheel snapshot, but its provenance is unresolved.
+- Installed state of this checkout refreshed 2026-08-26 by the documented
+  user-controlled journey: `.brichan/` backed up to
+  `.brichan.bak-2026-08-26/`, a wheel built from the checkout
+  (`brichan-0.12.0`) and installed into a disposable venv, `brichan init
+  --apply` run missing-only, and `project-memory/` restored from the backup.
+  The manifest now lists all 10 immutable resources including
+  `policy/techstacks.md` and `references/handoff-receipt.md`. Installed
+  `brichan doctor` reports schema v2 `agent_skill_export: invalid /
+  EXPORT_EXTRA`: this repository's tracked `.agents/skills/herdr-orchestration/`
+  carries four files the packaged skill does not (`agents/openai.yaml`,
+  `references/concurrent-writers.md`, `references/task-dossier.md`,
+  `references/worker-recovery.md`), so the export is richer than managed state
+  and doctor correctly refuses to call it current without overwriting it. No
+  re-export was run. Checkout-mode `bin/brichan doctor` is unaffected and
+  still healthy. `.brichan/config/model-routing.json` is an immutable packaged
+  resource and therefore carries the package's Codex defaults, not the
+  checkout's Claude routes in `config/model-routing.json`; checkout mode reads
+  the latter.
 
 ## Unverified assumptions
 
