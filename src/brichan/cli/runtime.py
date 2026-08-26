@@ -230,6 +230,14 @@ def checkout_main(root: Path | str, argv: list[str] | None = None) -> int:
         )
     if arguments[:1] == ["run"]:
         return _run_command(arguments[1:])
+    if arguments[:1] == ["techstacks"]:
+        # Read-only techstacks resolve/verify. The subsurface owns its own
+        # exact bytes and exits, so nothing here parses or echoes its
+        # arguments; dispatch is identical in both launch modes. The import is
+        # local so an unrelated launch never loads the resolver.
+        from brichan.techstacks import cli as techstacks_cli
+
+        return techstacks_cli.main(arguments[1:])
 
     # A checkout has no project state to launch into, so `brichan --help` here
     # is a question about Brichan. `bin/brichan-<runtime> --help` still reaches
@@ -261,6 +269,14 @@ def main(argv: list[str] | None = None) -> int:
         return _lifecycle_command(arguments[0], arguments[1:])
     if arguments[:1] == ["run"]:
         return _run_command(arguments[1:])
+    if arguments[:1] == ["techstacks"]:
+        # Read-only techstacks resolve/verify. The subsurface owns its own
+        # exact bytes and exits, so nothing here parses or echoes its
+        # arguments; dispatch is identical in both launch modes. The import is
+        # local so an unrelated launch never loads the resolver.
+        from brichan.techstacks import cli as techstacks_cli
+
+        return techstacks_cli.main(arguments[1:])
     return _installed_default(arguments)
 
 
