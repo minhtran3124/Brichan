@@ -84,6 +84,35 @@ reinitialization after the packaged-resource hashes change.
 
 ## Open gates
 
+- TECHSTACK-001 is complete on branch `feat/techstacks-rules` (from `main` at
+  `5172eb1`) and uncommitted: plan version 10 steps 1–10 are implemented and
+  independently reviewed `PASS`. Seven implementation packets each closed at a
+  fresh review; the whole-feature review at max effort found 12/12
+  requirements owned and tested, every frozen literal identical across model,
+  resolver, CLI, doctor, policy, skill, and eval, the isolation closure
+  re-executed through the real CLI with zero planted executions, and ten
+  fail-closed categories exact on both interpreters; it held on one
+  test-hygiene High (design-parity assertions read the gitignored dossier),
+  closed by the user's committed-fixture remedy and confirmed at the closing
+  review. `make check` exits 0 on Python 3.10.11 and 3.14.6 both in this
+  checkout with zero skips and in a dossier-free clone — the first time both
+  have been true in this task. No commit, push, pull request, release, or
+  real owner-repository reinitialization has been made or authorized; the
+  commit is the user's decision. Eight non-gating follow-ups survive, recorded
+  in `handoffs/TECHSTACK-001/code-review.md` version 7 §`Closing judgment`:
+  two plan-text corrections (`design.md:1153` approval target; `plan.md:559`
+  provenance wording plus a stale `plan.md:511` citation in receipt and
+  index), one cross-module cap assertion (`model.RELATIVE_PATH_BYTE_MAX` is
+  pinned by no test), a prose clarification that `bin/brichan:13` predates the
+  closure, two step-6 fixture-ordering wording notes, a missing hash-freeze for
+  `tests/fixtures/doctor_v2_text.json`, and the carried unmeasured Linux and
+  real-owner-tree caps.
+- TECHSTACK-002 is open at intake (Level 1) for the eight non-gating
+  follow-ups the TECHSTACK-001 closing review recorded, on the user's
+  2026-08-26 direction. Its dossier is not yet scaffolded: the standard
+  scaffold leaves placeholder artifacts that fail `make dossiers` until the
+  plan, receipt, and reviewer sessions exist, so the coordinator scaffolds it
+  at the moment planning is authorized. No planning worker has been started.
 - Decide separately whether to authorize a Herdr upgrade or newer capability
   adoption; the accepted plan does not presuppose either decision.
 - Run the documented dogfood workflow in one external owner repository with real
@@ -106,6 +135,13 @@ reinitialization after the packaged-resource hashes change.
 
 ## Unverified assumptions
 
+- Claude worker routing is available again. The 2026-08-24 `Login expired`
+  probe was a credential-namespace fault, not an expired subscription: Claude
+  Code keys keychain credentials by `sha256(CLAUDE_CONFIG_DIR)[:8]`, and a
+  process without that variable falls back to a dead legacy entry. Herdr-started
+  Claude workers must therefore pass
+  `--env CLAUDE_CONFIG_DIR=<config dir>`; `brichan-techstack-plan-review-v6` ran
+  successfully that way on Claude `claude-opus-5` at max effort.
 - Real Codex accepts the generated `developer_instructions` and `skills.config`
   CLI overrides in the owner environment exactly as validated against current
   official documentation.

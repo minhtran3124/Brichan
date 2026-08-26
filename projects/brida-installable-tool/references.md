@@ -1,5 +1,6 @@
 # References
 
+- `projects/brida-installable-tool/handoffs/TECHSTACK-001/receipt.md`; `projects/brida-installable-tool/handoffs/TECHSTACK-001/code-review.md`; `projects/brida-installable-tool/handoffs/TECHSTACK-001/versions/` — complete Level 2 techstacks feature: accepted plan v10, seven implementation packets, whole-feature and closing code reviews `PASS`, archived v1-v10 plan evidence; uncommitted on `feat/techstacks-rules`, eight non-gating follow-ups, no release authorization
 - `projects/brida-installable-tool/handoffs/DOGFOOD-007/receipt.md` — active Level 2 self-install execution-mode remediation; original implementer pane disappeared with a partial diff, one bounded replacement is authorized, and final independent review remains pending
 - `projects/brida-installable-tool/handoffs/HERDR-001/receipt.md`; <https://github.com/minhtran3124/Brichan/pull/30> — reviewed Level 2 Herdr monitoring hardening; follow-up code review v5 PASS after installer/missing-runtime remediation; no upgrade or release authorization
 - `projects/brida-installable-tool/handoffs/INIT-002/receipt.md` — default `.agents/skills/herdr-orchestration/` export, symlink-safe remediation, and independent review evidence
