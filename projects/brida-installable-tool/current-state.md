@@ -109,7 +109,16 @@ reinitialization after the packaged-resource hashes change.
   real-owner-tree caps.
 - TECHSTACK-002 is open at intake (Level 1) for the eight non-gating
   follow-ups the TECHSTACK-001 closing review recorded, on the user's
-  2026-08-26 direction. Its dossier is not yet scaffolded: the standard
+  2026-08-26 direction, plus two findings from the same day's dogfood of
+  `techstacks/` on this repository (committed as Brichan's own rule tree,
+  3 maps, 6 leaves, 14 rules, resolved applicable and verified match): the
+  leaf grammar's `_is_prose` (`src/brichan/techstacks/markdown.py:305`)
+  rejects backticks and angle brackets inside Scope, Rules, and Verification
+  bullets, which is real friction for a repository whose rules name commands
+  and files; and `INVALID_LEAF` reports only "leaf bytes do not match the
+  leaf grammar" with no line number or violated rule, so an author must
+  bisect by hand. The grammar is frozen by plan version 10, so relaxing it is
+  a plan revision; improving the diagnostic detail may not be. Its dossier is not yet scaffolded: the standard
   scaffold leaves placeholder artifacts that fail `make dossiers` until the
   plan, receipt, and reviewer sessions exist, so the coordinator scaffolds it
   at the moment planning is authorized. No planning worker has been started.
