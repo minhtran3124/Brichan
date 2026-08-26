@@ -122,6 +122,28 @@ and `plan.md` are never reviewer-owned. Neither the reviewing session nor the
 authoring session of a review artifact may be the session that authored the
 plan.
 
+## Techstack pointers
+
+When the target project opts in with a regular, non-symlink
+`techstacks/README.md` at its top-level Git root, every dossier artifact that
+asserts scope records the Snapshot pointer and digest rather than rule bodies.
+The pointer is the selected artifact of a published resolution:
+`projects/<project-slug>/handoffs/<TASK-ID>/snapshots/<attempt-id>-<snapshot-sha256>.snapshot.json`
+in checkout mode, or
+`.brichan/project-memory/techstack-snapshots/<TASK-ID>/<attempt-id>-<snapshot-sha256>.snapshot.json`
+in an installed project. An unmatched publication attempt is never a pointer.
+
+`receipt.md` carries the same pointer in its existing `## Scope` and
+`## Verification` sections; no dossier or receipt field, section, schema
+version, or template changes. Plan acceptance is blocked whenever planning
+discovers a new path, Context ID or chain, conflict, or exception need: the
+coordinator re-resolves, sends the newly selected pointers and the new Snapshot
+pointer to a plan worker with a requirement to reread each one, and accepts
+only a revised plan carrying the final scope, every acknowledgement, and the
+latest digest. An implementation worker rereading the pointers is not
+sufficient. The normative rules are in
+[`../policy/techstacks.md`](../policy/techstacks.md).
+
 ## Levels
 
 All three levels produce the complete dossier. They differ in depth:

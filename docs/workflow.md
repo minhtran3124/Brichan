@@ -158,7 +158,29 @@ Brichan observes workers through the read-only monitor. Herdr states such as
 terminal output may be incomplete, the coordinator reads the declared durable
 evidence files instead.
 
-### 4. Verify before completion
+### 4. Resolve techstack context when the project opts in
+
+When the target project has a regular, non-symlink `techstacks/README.md` at
+its top-level Git root, the coordinator resolves it and publishes one Snapshot
+before writing the packet:
+
+```bash
+brichan techstacks resolve --project-root <root> --input-json <path> --snapshot-directory <dir>
+brichan techstacks verify --project-root <root> --snapshot-json <path> --as-of <YYYY-MM-DD>
+```
+
+The authorized Snapshot directory is mode-specific:
+`projects/<project-slug>/handoffs/<TASK-ID>/snapshots` in checkout mode, and
+`.brichan/project-memory/techstack-snapshots/<TASK-ID>` in an installed
+project. Publication derives the digest-bearing filename itself, verifies it,
+and retries at most three drifted observations. The packet and receipt carry
+only the selected artifact pointer, its digest, the selected file pointers, and
+the acknowledgement — never rule bodies. A newly discovered path, Context ID or
+chain, conflict, or exception need sends the plan back to a plan worker before
+acceptance. The normative rules are in
+[`policy/techstacks.md`](policy/techstacks.md).
+
+### 5. Verify before completion
 
 The coordinator checks the evidence appropriate to the task:
 
@@ -170,7 +192,7 @@ The coordinator checks the evidence appropriate to the task:
 Material changes require an independent review. A `PASS` verdict is integrated
 only after the acceptance criteria and required evidence have also passed.
 
-### 5. Record and clean up
+### 6. Record and clean up
 
 Verified facts are written to durable project memory, not left only in chat.
 The coordinator then closes only the idle or completed panes that Brichan

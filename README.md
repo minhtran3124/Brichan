@@ -131,6 +131,20 @@ brichan run --project <repo> -- <arguments>  # launch Codex with arguments
 Arguments after `--` are treated as literal prompt content, including text
 that begins with a dash.
 
+If the repository opts in with a `techstacks/README.md` at its top-level Git
+root, Brichan can resolve those rules and freeze the result as a verifiable
+Snapshot before delegating work:
+
+```bash
+brichan techstacks resolve --project-root <repo> --input-json <project-relative>
+brichan techstacks verify --project-root <repo> --snapshot-json <project-relative> \
+  --as-of <YYYY-MM-DD>
+```
+
+Both commands are read-only against `techstacks/**`. Workers receive pointers
+and a digest, never copies of the rules, and re-verify the Snapshot before they
+start. See [Techstack rules](docs/policy/techstacks.md).
+
 ## How it works
 
 ```text
@@ -218,6 +232,7 @@ module boundaries.
 - [Project memory policy](docs/policy/memory-policy.md)
 - [Model routing](docs/guides/model-routing.md)
 - [Task dossier workflow](docs/workflows/task-dossier.md)
+- [Techstack rules](docs/policy/techstacks.md)
 - [Changelog](CHANGELOG.md)
 
 ## License

@@ -25,6 +25,13 @@ projects/evals/metrics    durable data; never imported by the core
   `O_DIRECTORY | O_NOFOLLOW` walk, the same discipline as
   `src/brichan/contracts/task_dossier/generate.py`.
 - `src/brichan/cli/` owns runtime dispatch and the Codex/Claude adapters.
+- `src/brichan/techstacks/` owns read-only techstack resolution, Snapshot
+  publication, and verification behind `brichan techstacks resolve|verify`. It
+  reads a target project's `techstacks/**` and never writes it, and it holds
+  the only bounded safe-open helper the package launches. Packet completeness
+  and receipt placement are coordinator policy in
+  [`../policy/techstacks.md`](../policy/techstacks.md), not package behavior:
+  no packet parser or acceptance helper exists.
 - `projects/`, `evals/`, and `metrics/` are data and evidence. Importable
   modules must not depend on them.
 

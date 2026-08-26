@@ -9,6 +9,37 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ### Added
 
+- `brichan techstacks resolve` and `brichan techstacks verify`
+  (`src/brichan/techstacks/`): a read-only, standard-library resolver for a
+  target project's `techstacks/**` rules. A project opts in with a regular,
+  non-symlink `techstacks/README.md` at its exact validated top-level Git root;
+  every README is map-only and normative component rules live in non-README
+  leaves. Resolution never creates, edits, removes, repairs, or
+  inventory-manages `techstacks/**`. `resolve` prints one canonical Resolution;
+  with `--snapshot-directory` it publishes one to three immutable
+  `<attempt-id>-<snapshot-sha256>.snapshot.json` observation artifacts into the
+  authorized directory alone — `projects/<project-slug>/handoffs/<TASK-ID>/snapshots`
+  in a source checkout, `.brichan/project-memory/techstack-snapshots/<TASK-ID>`
+  in an installed project — verifying each and retrying at most three drifted
+  observations without overwriting, renaming, truncating, or deleting anything.
+  `verify` exits `0` on `match` and `5` on drift or blocked.
+- Canonical techstack policy at `docs/policy/techstacks.md` and its packaged
+  counterpart `policy/techstacks.md`, plus a packaged
+  `skills/herdr-orchestration/references/handoff-receipt.md`. The policy freezes
+  the sixteen exact packet labels, the exact not-applicable form, the
+  whole-packet 196,608-byte `TASK_PACKET_BYTE_LIMIT` cap, the receipt Scope and
+  Verification pointer placement, and the planning-reread gate. Packet
+  acceptance is coordinator policy: no production packet parser or acceptance
+  helper exists, and none is added. A project root or Snapshot artifact path
+  containing a pipe, CR, or LF is stated as out of contract for receipt
+  embedding, because the receipt parser splits every table row on the pipe with
+  no escape step.
+- The doctor report gains an `agent_skill_export` section and moves to report
+  schema `2`. The installed-state schema stays `1`. Because the two new
+  immutable resources join the managed footprint, an already initialized
+  project becomes incompatible with this package and requires deliberate backup
+  and reinitialization; no migration runs and no state is silently repaired.
+
 - `brichan-herdr-agent-observe` (`bin/brichan-herdr-agent-observe`,
   `src/brichan/orchestration/monitor.py`): a dependency-free, read-only Herdr
   preflight and worker-observation surface. Monitoring was previously prose in

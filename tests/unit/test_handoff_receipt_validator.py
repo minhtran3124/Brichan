@@ -1,5 +1,6 @@
 import contextlib
 import io
+import shlex
 import sys
 import tempfile
 import textwrap
@@ -12,7 +13,13 @@ sys.path.insert(0, str(ROOT / "src"))
 from brichan.contracts.receipts import validation as validate_handoff_receipts
 
 
-class HandoffReceiptValidatorTest(unittest.TestCase):
+class ReceiptFixtureMixin:
+    """Receipt fixtures and validator plumbing shared by both test classes.
+
+    Extracted so the techstack round trips can reuse the fixtures without
+    inheriting — and re-running — the existing validator cases.
+    """
+
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary_directory.cleanup)
@@ -46,6 +53,7 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
         panes_closed="no",
         memory_updated="yes",
         scope="bounded validator implementation",
+        verification_command="python3 -m unittest",
     ):
         content = textwrap.dedent(
             f"""\
@@ -98,7 +106,7 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
 
             | Command | Result |
             | --- | --- |
-            | `python3 -m unittest` | `{verification_result}` |
+            | `{verification_command}` | `{verification_result}` |
 
             ## Implementation evidence
 
@@ -196,6 +204,8 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
         values.update(overrides)
         return self.receipt(**values)
 
+
+class HandoffReceiptValidatorTest(ReceiptFixtureMixin, unittest.TestCase):
     def test_valid_accepted_receipt_is_not_mutated(self):
         content = self.receipt()
         path = self.write_receipt(content)
@@ -547,6 +557,221 @@ class HandoffReceiptValidatorTest(unittest.TestCase):
 
         self.assertEqual(0, result, stderr)
         self.assertIn("Validated 0 canonical handoff receipt", stdout)
+
+
+class TechstackReceiptRoundTripTest(ReceiptFixtureMixin, unittest.TestCase):
+    """Techstack pointers must fit the receipt that already exists.
+
+    Design section 16 places the Snapshot pointer inside the existing `Scope`
+    value and the verify result inside the existing `Verification` table. That
+    claim is only credible if a complete receipt carrying those exact bytes
+    parses with the production parser and validates with zero diagnostics, so
+    these fixtures freeze the fully substituted commands rather than
+    placeholders. No parser, validator, schema, section, field, generator, or
+    template is touched by this module.
+    """
+
+    #: Three roots that exercise quoting without breaking the two-column
+    #: table: a space, a single quote, and a leading-dash final component. No
+    #: `/Users/`, `/home/`, or `~` appears, so receipt path hygiene stays
+    #: satisfied. The fixtures below are the real `shlex.quote` output for
+    #: each, which `test_the_frozen_roots_are_the_real_shlex_quote_output`
+    #: pins — a hand-written approximation would prove nothing.
+    ROOTS = (
+        "/srv/work space/repo",
+        "/srv/it's/repo",
+        "/srv/-dashed",
+    )
+    QUOTED_ROOTS = tuple(shlex.quote(root) for root in ROOTS)
+    DIGEST = "a" * 64
+    ARTIFACT = (
+        "projects/example/handoffs/TASK-001/snapshots/"
+        "attempt-1-" + "a" * 64 + ".snapshot.json"
+    )
+
+    def applicable_scope(self):
+        return (
+            "bounded validator implementation; "
+            f"Techstack snapshot pointer: {self.ARTIFACT}; "
+            f"Techstack snapshot SHA-256: {self.DIGEST}"
+        )
+
+    def verify_command(self, quoted_root):
+        return (
+            "brichan techstacks verify "
+            f"--project-root {quoted_root} "
+            f"--snapshot-json '{self.ARTIFACT}' "
+            "--as-of 2026-08-24"
+        )
+
+    def publication_command(self, quoted_root):
+        return (
+            "brichan techstacks resolve "
+            f"--project-root {quoted_root} "
+            "--input-json 'techstack-input.json' "
+            "--snapshot-directory "
+            "'projects/example/handoffs/TASK-001/snapshots'"
+        )
+
+    def test_the_frozen_roots_are_the_real_shlex_quote_output(self):
+        self.assertEqual(
+            ("'/srv/work space/repo'", "'/srv/it'\"'\"'s/repo'", "/srv/-dashed"),
+            self.QUOTED_ROOTS,
+        )
+        # A leading-dash component needs no quoting, so the command carries it
+        # bare; that is the case the receipt row must still survive.
+        self.assertEqual("/srv/-dashed", shlex.quote("/srv/-dashed"))
+
+    def test_an_applicable_techstack_receipt_validates_with_zero_diagnostics(self):
+        for index, quoted_root in enumerate(self.QUOTED_ROOTS, start=1):
+            with self.subTest(quoted_root=quoted_root):
+                task_id = f"TASK-{index:03d}"
+                content = self.implemented_receipt(
+                    task_id=task_id,
+                    scope=self.applicable_scope(),
+                    verification_command=self.verify_command(quoted_root),
+                    verification_result=f"pass; snapshot_sha256={self.DIGEST}",
+                )
+                path = self.write_receipt(content, task_id=task_id)
+
+                # The frozen bytes really are in the file the parser reads.
+                self.assertIn(self.verify_command(quoted_root), content)
+                self.assertIn(
+                    f"Techstack snapshot SHA-256: {self.DIGEST}", content
+                )
+
+                parse_diagnostics = []
+                validate_handoff_receipts.parse_receipt(path, parse_diagnostics)
+                self.assertEqual([], parse_diagnostics, parse_diagnostics)
+                diagnostics = validate_handoff_receipts.validate_receipt(
+                    path, self.projects
+                )
+                self.assertEqual(
+                    [],
+                    [diagnostic.format() for diagnostic in diagnostics],
+                )
+                # Parsing and validating leave the receipt byte-identical.
+                self.assertEqual(content, path.read_text(encoding="utf-8"))
+
+    def test_a_not_applicable_techstack_receipt_validates_with_zero_diagnostics(self):
+        for index, quoted_root in enumerate(self.QUOTED_ROOTS, start=1):
+            with self.subTest(quoted_root=quoted_root):
+                task_id = f"TASK-1{index:02d}"
+                scope = (
+                    "bounded validator implementation; "
+                    "Techstack snapshot pointer: none; "
+                    "Techstack snapshot SHA-256: null"
+                )
+                content = self.implemented_receipt(
+                    task_id=task_id,
+                    scope=scope,
+                    verification_command=self.publication_command(quoted_root),
+                    verification_result=(
+                        "pass; snapshot_sha256=null; status=not_applicable"
+                    ),
+                )
+                path = self.write_receipt(content, task_id=task_id)
+                self.assertIn(
+                    "Techstack snapshot pointer: none; "
+                    "Techstack snapshot SHA-256: null",
+                    content,
+                )
+
+                parse_diagnostics = []
+                validate_handoff_receipts.parse_receipt(path, parse_diagnostics)
+                self.assertEqual([], parse_diagnostics, parse_diagnostics)
+                diagnostics = validate_handoff_receipts.validate_receipt(
+                    path, self.projects
+                )
+                self.assertEqual(
+                    [],
+                    [diagnostic.format() for diagnostic in diagnostics],
+                )
+                self.assertEqual(content, path.read_text(encoding="utf-8"))
+
+    def test_both_techstack_forms_pass_the_whole_validator_run(self):
+        """End to end through `main`, not only the two callables."""
+
+        self.write_receipt(
+            self.implemented_receipt(
+                task_id="TASK-201",
+                scope=self.applicable_scope(),
+                verification_command=self.verify_command(self.QUOTED_ROOTS[0]),
+                verification_result=f"pass; snapshot_sha256={self.DIGEST}",
+            ),
+            task_id="TASK-201",
+        )
+        self.write_receipt(
+            self.implemented_receipt(
+                task_id="TASK-202",
+                scope=(
+                    "bounded validator implementation; "
+                    "Techstack snapshot pointer: none; "
+                    "Techstack snapshot SHA-256: null"
+                ),
+                verification_command=self.publication_command(
+                    self.QUOTED_ROOTS[2]
+                ),
+                verification_result=(
+                    "pass; snapshot_sha256=null; status=not_applicable"
+                ),
+            ),
+            task_id="TASK-202",
+        )
+
+        result, stdout, stderr = self.run_validator()
+
+        self.assertEqual(0, result, stderr)
+        self.assertIn("Validated 2 canonical handoff receipt", stdout)
+
+    def test_a_root_containing_a_pipe_is_out_of_contract(self):
+        """The stated boundary, frozen as observed behavior.
+
+        `src/brichan/contracts/receipts/validation.py:223` splits every table
+        line on `|` with no unescape step, so a root carrying one produces a
+        three-column row. `shlex.quote` only wraps the value in single quotes
+        and a `\|` escape is never unescaped, so neither rescues the row. This
+        is why coordinator policy forbids a techstacks receipt for such a root.
+        """
+
+        expected = "Verification.row[1]: expected 2 columns, found 3"
+        for index, quoted_root in enumerate(
+            ("'/srv/a|b'", "'/srv/a\\|b'"), start=1
+        ):
+            with self.subTest(quoted_root=quoted_root):
+                task_id = f"TASK-3{index:02d}"
+                content = self.implemented_receipt(
+                    task_id=task_id,
+                    scope=self.applicable_scope(),
+                    verification_command=self.verify_command(quoted_root),
+                    verification_result=f"pass; snapshot_sha256={self.DIGEST}",
+                )
+                path = self.write_receipt(content, task_id=task_id)
+
+                diagnostics = validate_handoff_receipts.validate_receipt(
+                    path, self.projects
+                )
+                messages = [
+                    f"{diagnostic.field}: {diagnostic.message}"
+                    for diagnostic in diagnostics
+                ]
+                self.assertIn(expected, messages, messages)
+
+    def test_the_pipe_boundary_is_the_parser_and_not_the_quoting(self):
+        """Both escape attempts fail for the same reason: no unescape step."""
+
+        rows = validate_handoff_receipts._parse_table(
+            "| Command | Result |\n"
+            "| --- | --- |\n"
+            "| `brichan techstacks verify --project-root '/srv/a|b'` | `pass` |\n"
+        )
+        self.assertEqual(3, len(rows[1]))
+        escaped = validate_handoff_receipts._parse_table(
+            "| Command | Result |\n"
+            "| --- | --- |\n"
+            "| `brichan techstacks verify --project-root '/srv/a\\|b'` | `pass` |\n"
+        )
+        self.assertEqual(3, len(escaped[1]))
 
 
 if __name__ == "__main__":
