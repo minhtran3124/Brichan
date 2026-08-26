@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-08-17
+Last updated: 2026-08-26
 
 ## Summary
 
@@ -85,7 +85,7 @@ reinitialization after the packaged-resource hashes change.
 ## Open gates
 
 - TECHSTACK-001 is complete on branch `feat/techstacks-rules` (from `main` at
-  `5172eb1`) and uncommitted: plan version 10 steps 1–10 are implemented and
+  `5172eb1`), committed in the branch's `feat` commits: plan version 10 steps 1–10 are implemented and
   independently reviewed `PASS`. Seven implementation packets each closed at a
   fresh review; the whole-feature review at max effort found 12/12
   requirements owned and tested, every frozen literal identical across model,
@@ -98,8 +98,10 @@ reinitialization after the packaged-resource hashes change.
   checkout with zero skips and in a dossier-free clone — the first time both
   have been true in this task. No commit, push, pull request, release, or
   real owner-repository reinitialization has been made or authorized; the
-  commit is the user's decision. Eight non-gating follow-ups survive, recorded
-  in `handoffs/TECHSTACK-001/code-review.md` version 7 §`Closing judgment`:
+  commit is the user's decision. The eight non-gating follow-ups recorded in
+  `handoffs/TECHSTACK-001/code-review.md` version 7 §`Closing judgment` were
+  closed by TECHSTACK-002 on 2026-08-26 (TECHSTACK-001 is now at plan
+  version 11, code review version 8); they were:
   two plan-text corrections (`design.md:1153` approval target; `plan.md:559`
   provenance wording plus a stale `plan.md:511` citation in receipt and
   index), one cross-module cap assertion (`model.RELATIVE_PATH_BYTE_MAX` is
@@ -107,21 +109,31 @@ reinitialization after the packaged-resource hashes change.
   closure, two step-6 fixture-ordering wording notes, a missing hash-freeze for
   `tests/fixtures/doctor_v2_text.json`, and the carried unmeasured Linux and
   real-owner-tree caps.
-- TECHSTACK-002 is open at intake (Level 1) for the eight non-gating
-  follow-ups the TECHSTACK-001 closing review recorded, on the user's
-  2026-08-26 direction, plus two findings from the same day's dogfood of
-  `techstacks/` on this repository (committed as Brichan's own rule tree,
-  3 maps, 6 leaves, 14 rules, resolved applicable and verified match): the
-  leaf grammar's `_is_prose` (`src/brichan/techstacks/markdown.py:305`)
-  rejects backticks and angle brackets inside Scope, Rules, and Verification
-  bullets, which is real friction for a repository whose rules name commands
-  and files; and `INVALID_LEAF` reports only "leaf bytes do not match the
-  leaf grammar" with no line number or violated rule, so an author must
-  bisect by hand. The grammar is frozen by plan version 10, so relaxing it is
-  a plan revision; improving the diagnostic detail may not be. Its dossier is not yet scaffolded: the standard
-  scaffold leaves placeholder artifacts that fail `make dossiers` until the
-  plan, receipt, and reviewer sessions exist, so the coordinator scaffolds it
-  at the moment planning is authorized. No planning worker has been started.
+- TECHSTACK-002 is complete and committed on `feat/techstacks-rules` as
+  `5573d0e` (2026-08-26; TECHSTACK-001 was committed in the preceding
+  `feat` commits). All eleven inputs — the eight closing-review
+  follow-ups, the two dogfood leaf-grammar findings, and the self-install
+  `EXPORT_EXTRA` finding — are closed under accepted plan
+  `TECHSTACK-PLAN-002` version 5: TECHSTACK-001 reissued as plan version 11
+  (documentation only, version-10 bytes frozen); seven shared skill caps
+  pinned across `lifecycle.py` and `techstacks/model.py`; the doctor text
+  fixture digest frozen; a packaged-subset-of-checkout skill test under the
+  owner-corrected `PACKAGED-001`; the launcher comment corrected; leaf prose
+  now accepts backticks and angle brackets; `INVALID_LEAF` carries the line
+  and the violated rule from a closed twenty-member registry. Linux stays a
+  user-decided unmeasured residual and `EXPORT_EXTRA` a disclosed unowned
+  status. Every stage was reviewed by a fresh independent session (plan v3
+  `CHANGES REQUIRED` → v4 `PASS`, v5 `PASS`; R0 `PASS`; stage 1
+  `CHANGES REQUIRED` on prose only → re-review `PASS`; stage 2 `PASS`;
+  whole-task `code-review.md` v2 `PASS`), and `make check` exits 0 on Python
+  3.10.11 and 3.14.6 (10/968/145/193/56, zero skips). Coordination moved
+  from the Codex coordinator (usage-limited) to Claude Code on 2026-08-26;
+  every worker ran on Claude while Codex stayed limited. Three errata
+  against the immutable accepted plan (blocked CLI resolve exits 5, not 0;
+  eighth T-LINE fixture unreachable; §7.4 count wording) and five
+  non-gating Low follow-ups are recorded in `decisions.md` and
+  `handoffs/TECHSTACK-002/code-review.md`. The user authorized the commit; no
+  push, pull request, release, or publication has run.
 - Decide separately whether to authorize a Herdr upgrade or newer capability
   adoption; the accepted plan does not presuppose either decision.
 - Run the documented dogfood workflow in one external owner repository with real
@@ -150,10 +162,12 @@ reinitialization after the packaged-resource hashes change.
   `policy/techstacks.md` and `references/handoff-receipt.md`. Installed
   `brichan doctor` reports schema v2 `agent_skill_export: invalid /
   EXPORT_EXTRA`: this repository's tracked `.agents/skills/herdr-orchestration/`
-  carries four files the packaged skill does not (`agents/openai.yaml`,
+  differs in all four shared files and carries four files the packaged skill
+  does not (`agents/openai.yaml`,
   `references/concurrent-writers.md`, `references/task-dossier.md`,
-  `references/worker-recovery.md`), so the export is richer than managed state
-  and doctor correctly refuses to call it current without overwriting it. No
+  `references/worker-recovery.md`), so trimming only the extra files would
+  expose `EXPORT_STALE`, not `EXPORT_CURRENT`; doctor correctly refuses to
+  call the export current without overwriting it. No
   re-export was run. Checkout-mode `bin/brichan doctor` is unaffected and
   still healthy. `.brichan/config/model-routing.json` is an immutable packaged
   resource and therefore carries the package's Codex defaults, not the

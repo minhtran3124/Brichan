@@ -662,3 +662,79 @@
 - Owner: User-authorized HERDR-001 implementation.
 - Evidence: `handoffs/HERDR-001/receipt.md`; code-review artifact v4 `PASS`;
   focused and full repository gates.
+## 2026-08-26 — Approve TECHSTACK-002 planning gates G1–G3 and correction strategy
+
+- Status: accepted for `TECHSTACK-002` plan revision.
+- Context: Draft `TECHSTACK-PLAN-002` version 1 mapped all eleven inputs but
+  could not be accepted before user rulings and a techstack re-resolution.
+- Decision: Approve the bounded prose amendment that accepts backticks and
+  angle brackets; approve deterministic `INVALID_LEAF` line and violated-rule
+  attribution; retain mode-specific checkout and installed skill trees under
+  marker parity with a packaged-subset contract; record Linux as an unmeasured
+  residual with no push or remote action; and correct the TECHSTACK-001 prose
+  defects through a versioned v11 reissue while preserving archived v10 bytes.
+- Boundary: Brichan never edits `techstacks/**`. The project owner must correct
+  `PACKAGED-001` before Brichan can re-resolve the final Snapshot. No exception
+  is available because the rule's Exceptions section is `None`.
+- Owner: User.
+- Evidence: User confirmation on 2026-08-26; `handoffs/TECHSTACK-002/options.md`
+  D6–D8; `handoffs/TECHSTACK-002/design.md` sections 6–9;
+  `handoffs/TECHSTACK-002/plan.md` gates G1–G4.
+
+## 2026-08-26 — Accept TECHSTACK-PLAN-002 version 4 and replace the usage-limited Codex reviewer
+
+- Status: accepted for `TECHSTACK-002` implementation.
+- Context: The Codex coordinator and its version-3 plan reviewer both stopped
+  on a Codex usage limit; the reviewer had verified the Snapshot but written
+  nothing. The user asked Claude Code to continue coordination.
+- Decision: Replace the reviewer once with a fresh Claude `claude-opus-5`
+  high session on the identical packet (the route `tasks.md` already allowed
+  while Codex is limited); require a version 4 for the `CHANGES REQUIRED`
+  findings on a re-resolved attempt-plan-4 Snapshot with unchanged scope;
+  accept version 4 after its independent `PASS`; carry the three Low
+  findings into packet instructions instead of a version 5; treat the stale
+  gitignored `build/` and `src/brichan.egg-info/` as generated litter to
+  remove before the `make check` gate, not as a code defect.
+- Owner: Brichan (coordinator), within already authorized planning scope.
+- Evidence: `handoffs/TECHSTACK-002/versions/v3/plan-review.md`;
+  `handoffs/TECHSTACK-002/plan-review.md` version 2; `receipt.md`
+  Verification rows; `tasks.md` TECHSTACK-002 row.
+
+## 2026-08-26 — Correct two design-mandated sentences through plan version 5 before the P1–P3 fix
+
+- Status: accepted for `TECHSTACK-002`.
+- Context: The stage-1 review disproved by execution two sentences that
+  `design.md` version 4 §3 and §4 mandate verbatim (the cross-module test's
+  stated failure mode; the launcher comment's unqualified "fails closed"),
+  and found the packaged-subset test's distinct justification unstated. A fix
+  worker cannot ship corrected wording that contradicts the accepted design.
+- Decision: Issue design/plan version 5 with exactly those corrections, the
+  §8 justification, two re-anchored citations, and a bounded `P1–P3 fix`
+  packet; run it in parallel with P6a/P6b under accepted version 4 because
+  the write sets are disjoint and §6–§7 do not change; ship the fix after P6
+  so two workers never run `make check` on a half-edited tree. No scope,
+  packet, gate, or user ruling changes; the amendment corrects prose to
+  match executed behavior.
+- Owner: Brichan (coordinator); the user may overrule.
+- Evidence: `handoffs/TECHSTACK-002/stage1-review.md` M1–M3, L2;
+  `handoffs/TECHSTACK-002/p1-p3-evidence.md`.
+
+## 2026-08-26 — Record the P6b exit-code erratum against accepted plan version 5
+
+- Status: accepted erratum for `TECHSTACK-002`; the accepted plan text is
+  not rewritten.
+- Context: `plan.md` version 5 §P6b acceptance says the real-CLI resolve on
+  a malformed leaf "freezes exact stdout bytes with empty stderr and exit 0".
+  The shipped CLI contract, frozen by an existing integration test, exits 5
+  for a blocked resolution; the implementer asserted 5 and the stage-2
+  review confirmed the plan text was wrong (deviation 3, finding `L2`).
+- Decision: The accepted plan version stays immutable; this entry, the
+  dossier `index.md` Uncertainty, and the whole-task `code-review.md` carry
+  the erratum. The test asserting exit 5 is correct. Two further stage-2
+  wording notes (`design.md` §7.4's "8 bare raises" counts the leaf-reachable
+  subset; §7.8's eighth T-LINE fixture is unreachable by construction and is
+  asserted as its true outcome plus a reachable 32-line fixture) are recorded
+  the same way.
+- Owner: Brichan (coordinator).
+- Evidence: `handoffs/TECHSTACK-002/stage2-review.md` §Rulings, `L1`, `L2`;
+  `p6-evidence.md`; `tests/integration/test_techstack_cli.py`.
