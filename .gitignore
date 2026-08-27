@@ -65,3 +65,6 @@ internal-docs/
 
 # Local Brichan task dossiers (kept on disk for agent continuity)
 /projects/*/handoffs/*/
+
+# Local, machine-specific Claude Code overrides
+/CLAUDE.local.md
