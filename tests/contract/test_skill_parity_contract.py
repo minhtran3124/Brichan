@@ -47,6 +47,43 @@ PARITY_MARKERS = (
     "escalate",
     # The monitoring surface both trees route observation through.
     "brichan-herdr-agent-observe",
+    # Techstack delivery: the packet block, the caps, and the reread gate must
+    # reach an installed coordinator, not only a checkout one (plan step 7).
+    "Techstack verification requirement: run-before-work",
+    "Techstack verification requirement: not-applicable",
+    "Techstack verification acknowledgement: yes; snapshot_sha256=<digest>",
+    "196,608 bytes",
+    "TASK_PACKET_BYTE_LIMIT",
+    "<attempt-id>-<snapshot-sha256>.snapshot.json",
+    "not a package helper",
+    "explicitly insufficient",
+    # Publication safety rules (plan step 8, design sections 10 and 16): the
+    # retry bound, the blocked/not-applicable stop, and the unmatched-attempt
+    # exclusion. Each is a rule a coordinator could silently drop.
+    "at most three drifted observations",
+    "blocked and not-applicable stop with no artifact",
+    "an unmatched attempt can never enter a packet",
+)
+
+#: The sixteen exact packet labels, in order. Both task-packet templates carry
+#: them verbatim; a reworded or reordered label is the regression.
+PACKET_LABELS = (
+    "Techstack task ID:",
+    "Techstack plan ID:",
+    "Techstack plan version:",
+    "Techstack attempt ID:",
+    "Techstack as-of:",
+    "Techstack scope paths JSON:",
+    "Techstack context chains JSON:",
+    "Techstack declared conflicts JSON:",
+    "Techstack exception approvals JSON:",
+    "Techstack Snapshot JSON artifact:",
+    "Techstack Snapshot SHA-256:",
+    "Techstack selected files JSON:",
+    "Techstack acknowledged Context IDs JSON:",
+    "Techstack required selected rule reads JSON:",
+    "Techstack verify command:",
+    "Techstack verification requirement:",
 )
 
 
@@ -75,6 +112,12 @@ class SkillParityContractTest(unittest.TestCase):
         self.assertTrue((PACKAGED_SKILL / "SKILL.md").is_file())
         self.assertTrue((CHECKOUT_SKILL / "references/commands.md").is_file())
         self.assertTrue((PACKAGED_SKILL / "references/commands.md").is_file())
+        self.assertTrue(
+            (CHECKOUT_SKILL / "references/handoff-receipt.md").is_file()
+        )
+        self.assertTrue(
+            (PACKAGED_SKILL / "references/handoff-receipt.md").is_file()
+        )
 
     def test_the_checkout_skill_states_every_safeguard(self):
         for marker in PARITY_MARKERS:
@@ -186,6 +229,53 @@ class SkillParityContractTest(unittest.TestCase):
             )
         self.assertIn("docs/policy/operating-principles.md", checkout)
         self.assertIn(".brichan/policy/operating-principles.md", packaged)
+
+    def test_both_task_packet_templates_carry_the_sixteen_packet_labels(self):
+        """The packet block is the only place the labels are stated exactly.
+
+        Parity on the concatenated tree would pass if one template kept the
+        labels and the other only mentioned them, so each template is read on
+        its own and the labels are required in order.
+        """
+
+        for skill, label in (
+            (CHECKOUT_SKILL, "checkout"),
+            (PACKAGED_SKILL, "packaged"),
+        ):
+            text = (skill / "references/task-packet.md").read_text(
+                encoding="utf-8"
+            )
+            position = -1
+            for packet_label in PACKET_LABELS:
+                found = text.find(packet_label, position + 1)
+                self.assertNotEqual(-1, found, f"{label}: {packet_label}")
+                self.assertGreater(
+                    found, position, f"{label}: {packet_label} is out of order"
+                )
+                position = found
+
+    def test_both_handoff_receipt_references_place_the_same_pointers(self):
+        """Receipt placement is prose in two files and nowhere else."""
+
+        for skill, label in (
+            (CHECKOUT_SKILL, "checkout"),
+            (PACKAGED_SKILL, "packaged"),
+        ):
+            text = " ".join(
+                (skill / "references/handoff-receipt.md")
+                .read_text(encoding="utf-8")
+                .split()
+            )
+            for marker in (
+                "Techstack snapshot pointer: none; "
+                "Techstack snapshot SHA-256: null",
+                "pass; snapshot_sha256=<digest>",
+                "pass; snapshot_sha256=null; status=not_applicable",
+                "adds no receipt field, section, or schema version",
+                "exactly two columns",
+                "out of contract for receipt embedding",
+            ):
+                self.assertIn(marker, text, f"{label}: {marker}")
 
     def test_both_trees_route_observation_through_the_read_only_helper(self):
         for text in (self.checkout, self.packaged):

@@ -31,6 +31,44 @@ class PackagingMetadataTest(unittest.TestCase):
     def test_import_package_remains_brichan(self):
         self.assertTrue((ROOT / "src/brichan/__init__.py").is_file())
 
+    def test_pyproject_is_unchanged_by_the_new_resources(self):
+        """`["**/*"]` already packages every dogfood resource.
+
+        Plan step 7 adds two resource files and must not touch package
+        metadata; a per-file package-data list would be the drift.
+        """
+
+        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        self.assertIn('"brichan.resources.dogfood_v1" = ["**/*"]', pyproject)
+        self.assertNotIn("techstacks.md", pyproject)
+        self.assertNotIn("handoff-receipt.md", pyproject)
+        self.assertIn("dependencies = []", pyproject)
+
+    def test_every_managed_resource_is_readable_through_the_package(self):
+        """The manifest hashes what `init` will write; each must be readable.
+
+        Reading through `importlib.resources` rather than the checkout tree is
+        what proves the file is a package resource and not merely a file that
+        happens to sit under `src/`.
+        """
+
+        sys.path.insert(0, str(ROOT / "src"))
+        from importlib.resources import files
+
+        from brichan.lifecycle import IMMUTABLE_PATHS, RESOURCE_PACKAGE
+
+        for relative in IMMUTABLE_PATHS:
+            with self.subTest(relative=relative):
+                data = files(RESOURCE_PACKAGE).joinpath(relative).read_bytes()
+                self.assertTrue(data, relative)
+                data.decode("utf-8")
+        for relative in (
+            "policy/techstacks.md",
+            "skills/herdr-orchestration/references/handoff-receipt.md",
+            "skills/herdr-orchestration/references/task-packet.md",
+        ):
+            self.assertIn(relative, IMMUTABLE_PATHS, relative)
+
     def test_packaged_description_is_the_generated_one(self):
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn('readme = "README_PYPI.md"', pyproject)
@@ -117,6 +155,17 @@ class SdistBuildTest(unittest.TestCase):
         with tarfile.open(self.sdist) as archive:
             names = archive.getnames()
         self.assertTrue(any(name.endswith("src/brichan/__init__.py") for name in names))
+        for suffix in (
+            "src/brichan/techstacks/resolver.py",
+            "src/brichan/resources/dogfood_v1/policy/techstacks.md",
+            "src/brichan/resources/dogfood_v1/skills/herdr-orchestration"
+            "/references/task-packet.md",
+            "src/brichan/resources/dogfood_v1/skills/herdr-orchestration"
+            "/references/handoff-receipt.md",
+        ):
+            self.assertTrue(
+                any(name.endswith(suffix) for name in names), suffix
+            )
         self.assertTrue(
             any(name.endswith("PKG-INFO") for name in names), "sdist has no PKG-INFO"
         )

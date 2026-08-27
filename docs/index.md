@@ -7,6 +7,7 @@
 - [Project memory policy](policy/memory-policy.md)
 - [Model catalog](policy/model-catalog.md)
 - [Independent reviewer](policy/reviewer.md)
+- [Techstack rules](policy/techstacks.md)
 
 These files are normative. Changes require review across the affected runtime
 and orchestration boundaries.

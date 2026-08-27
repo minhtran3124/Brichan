@@ -144,6 +144,12 @@
       "policy": "canonical"
     },
     {
+      "path": "docs/policy/techstacks.md",
+      "kind": "file",
+      "category": "internal-policy",
+      "policy": "canonical"
+    },
+    {
       "path": "docs/workflows/README.md",
       "kind": "file",
       "category": "workflow-policy",
@@ -252,6 +258,18 @@
       "policy": "stable-path"
     },
     {
+      "path": "scripts/verify_techstack_safe_open_linux.py",
+      "kind": "file",
+      "category": "local-evidence",
+      "policy": "stable-path"
+    },
+    {
+      "path": "scripts/verify_techstack_safe_open_macos.py",
+      "kind": "file",
+      "category": "local-evidence",
+      "policy": "stable-path"
+    },
+    {
       "path": "scripts/install-brichan",
       "kind": "file",
       "category": "automation-entrypoint",
@@ -294,6 +312,36 @@
       "policy": "stable-path"
     },
     {
+      "path": "src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/task-packet.md",
+      "kind": "file",
+      "category": "runtime-skill",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/handoff-receipt.md",
+      "kind": "file",
+      "category": "runtime-skill",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/resources/dogfood_v1/policy/techstacks.md",
+      "kind": "file",
+      "category": "packaged-policy",
+      "policy": "canonical"
+    },
+    {
+      "path": ".agents/skills/herdr-orchestration/references/task-packet.md",
+      "kind": "file",
+      "category": "runtime-skill",
+      "policy": "canonical"
+    },
+    {
+      "path": ".agents/skills/herdr-orchestration/references/handoff-receipt.md",
+      "kind": "file",
+      "category": "runtime-skill",
+      "policy": "canonical"
+    },
+    {
       "path": ".github/workflows/ci.yml",
       "kind": "file",
       "category": "ci-entrypoint",
@@ -326,6 +374,84 @@
     {
       "path": "evals",
       "kind": "directory",
+      "category": "historical-evidence",
+      "policy": "frozen"
+    },
+    {
+      "path": "evals/techstack_context_v1",
+      "kind": "directory",
+      "category": "regression-test",
+      "policy": "canonical"
+    },
+    {
+      "path": "evals/techstack_context_v1/__init__.py",
+      "kind": "file",
+      "category": "regression-test",
+      "policy": "canonical"
+    },
+    {
+      "path": "evals/techstack_context_v1/README.md",
+      "kind": "file",
+      "category": "regression-test",
+      "policy": "canonical"
+    },
+    {
+      "path": "evals/techstack_context_v1/cases.json",
+      "kind": "file",
+      "category": "regression-test",
+      "policy": "canonical"
+    },
+    {
+      "path": "evals/techstack_context_v1/test_cases.py",
+      "kind": "file",
+      "category": "regression-test",
+      "policy": "canonical"
+    },
+    {
+      "path": "evals/techstack_context_v1/fixtures/base/techstacks/README.md",
+      "kind": "file",
+      "category": "historical-evidence",
+      "policy": "frozen"
+    },
+    {
+      "path": "evals/techstack_context_v1/fixtures/base/techstacks/general.md",
+      "kind": "file",
+      "category": "historical-evidence",
+      "policy": "frozen"
+    },
+    {
+      "path": "evals/techstack_context_v1/fixtures/base/techstacks/frontend/README.md",
+      "kind": "file",
+      "category": "historical-evidence",
+      "policy": "frozen"
+    },
+    {
+      "path": "evals/techstack_context_v1/fixtures/base/techstacks/frontend/components/Button.md",
+      "kind": "file",
+      "category": "historical-evidence",
+      "policy": "frozen"
+    },
+    {
+      "path": "evals/techstack_context_v1/fixtures/base/evidence/button.txt",
+      "kind": "file",
+      "category": "historical-evidence",
+      "policy": "frozen"
+    },
+    {
+      "path": "evals/techstack_context_v1/fixtures/stale/techstacks/README.md",
+      "kind": "file",
+      "category": "historical-evidence",
+      "policy": "frozen"
+    },
+    {
+      "path": "evals/techstack_context_v1/fixtures/stale/techstacks/stale.md",
+      "kind": "file",
+      "category": "historical-evidence",
+      "policy": "frozen"
+    },
+    {
+      "path": "evals/techstack_context_v1/fixtures/stale/evidence/stale.txt",
+      "kind": "file",
       "category": "historical-evidence",
       "policy": "frozen"
     },
@@ -499,6 +625,48 @@
     },
     {
       "path": "src/brichan/contracts/task_dossier/summary.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/techstacks/__init__.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/techstacks/model.py",
+      "kind": "file",
+      "category": "importable-api",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/techstacks/markdown.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/techstacks/filesystem.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/techstacks/safe_open_helper.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/techstacks/resolver.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/techstacks/cli.py",
       "kind": "file",
       "category": "importable-core",
       "policy": "canonical"
@@ -800,6 +968,31 @@
     {
       "source": ".agents/skills/herdr-orchestration/references/commands.md",
       "target": "bin/brichan-herdr-agent-observe"
+    },
+    {
+      "source": ".agents/skills/herdr-orchestration/SKILL.md",
+      "target": "docs/policy/techstacks.md",
+      "needle": "../../../docs/policy/techstacks.md"
+    },
+    {
+      "source": ".agents/skills/herdr-orchestration/references/task-packet.md",
+      "target": "docs/policy/techstacks.md",
+      "needle": "../../../../docs/policy/techstacks.md"
+    },
+    {
+      "source": ".agents/skills/herdr-orchestration/references/handoff-receipt.md",
+      "target": "docs/policy/techstacks.md",
+      "needle": "../../../../docs/policy/techstacks.md"
+    },
+    {
+      "source": "docs/index.md",
+      "target": "docs/policy/techstacks.md",
+      "needle": "policy/techstacks.md"
+    },
+    {
+      "source": "docs/policy/techstacks.md",
+      "target": "src/brichan/techstacks/cli.py",
+      "needle": "brichan techstacks resolve"
     }
   ]
 }

@@ -217,7 +217,12 @@ class InstalledDogfoodTest(unittest.TestCase):
             "brichan/resources/dogfood_v1/policy/identity.md",
             "brichan/resources/dogfood_v1/policy/operating-principles.md",
             "brichan/resources/dogfood_v1/policy/memory-policy.md",
+            "brichan/resources/dogfood_v1/policy/techstacks.md",
             "brichan/resources/dogfood_v1/skills/herdr-orchestration/SKILL.md",
+            "brichan/resources/dogfood_v1/skills/herdr-orchestration"
+            "/references/task-packet.md",
+            "brichan/resources/dogfood_v1/skills/herdr-orchestration"
+            "/references/handoff-receipt.md",
             "brichan/resources/dogfood_v1/project-memory/main/overview.md",
             "brichan/resources/dogfood_v1/agent-entry/AGENTS.md",
             "brichan/resources/dogfood_v1/agent-entry/CLAUDE.md",
@@ -824,6 +829,113 @@ class InstalledDogfoodTest(unittest.TestCase):
         self.assertIn("repository: INVALID", result.stdout)
         self.assertIn("schema_version 2 is not supported", result.stdout)
 
+    def test_state_predating_the_new_resources_needs_a_deliberate_reinit(self):
+        """Plan step 7: two resources join the immutable footprint.
+
+        A current-version state whose managed footprint is missing
+        `policy/techstacks.md` and the packaged handoff-receipt reference, and
+        whose manifest does not hash them, reports `malformed` and exit 2 —
+        the resource-inventory branch, which an incompatible `package_version`
+        would have short-circuited to exit 3 before it ran. This package must
+        refuse that state instead of quietly topping it up: no migration
+        exists, the state schema stays `1`, and the doctor report stays schema
+        `2`. The journey below is the only supported repair — inspect, back
+        up, remove, reinit.
+        """
+
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
+        self.assertEqual(0, result.returncode, result.stderr)
+        state = self.target / ".brichan"
+        manifest_path = state / "manifest.json"
+        healthy_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(1, healthy_manifest["schema_version"])
+
+        new_resources = (
+            "policy/techstacks.md",
+            "skills/herdr-orchestration/references/handoff-receipt.md",
+        )
+        for relative in new_resources:
+            self.assertIn(relative, healthy_manifest["resources"], relative)
+            self.assertTrue((state / relative).is_file(), relative)
+
+        # Roll the managed footprint back to what an earlier package wrote.
+        legacy = json.loads(json.dumps(healthy_manifest))
+        for relative in new_resources:
+            del legacy["resources"][relative]
+            (state / relative).unlink()
+        manifest_path.write_text(json.dumps(legacy, indent=2) + "\n", encoding="utf-8")
+        legacy_state = self.state_snapshot()
+
+        result = self.run_brichan("status", "--project", str(self.target))
+        self.assertEqual(2, result.returncode)
+        self.assertTrue(result.stdout.startswith("malformed:"))
+        self.assertIn("resource inventory does not match this package", result.stdout)
+
+        code, report = self.doctor_json("--project", str(self.target))
+        self.assertEqual(2, code)
+        self.assertEqual(2, report["schema_version"])
+        self.assertEqual("invalid", report["repository"]["status"])
+        self.assertEqual(
+            "MANAGED_STATE_MALFORMED",
+            report["agent_skill_export"]["detail_code"],
+        )
+
+        # No repair, no migration, and not one managed byte rewritten.
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
+        self.assertEqual(2, result.returncode)
+        self.assertIn("malformed:", result.stdout)
+        self.assertEqual(legacy_state, self.state_snapshot())
+        for relative in new_resources:
+            self.assertFalse((state / relative).exists(), relative)
+
+        # The supported repair: deliberate backup, removal, reinitialization.
+        backup = self.temp_path / "brichan-state-backup"
+        shutil.copytree(state, backup)
+        shutil.rmtree(state)
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
+        self.assertEqual(0, result.returncode, result.stderr)
+
+        reinitialized = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(1, reinitialized["schema_version"])
+        for relative in new_resources:
+            self.assertIn(relative, reinitialized["resources"], relative)
+            self.assertTrue((state / relative).is_file(), relative)
+        result = self.run_brichan("status", "--project", str(self.target))
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertTrue(result.stdout.startswith("healthy:"))
+        # The backup the user took is theirs and is never touched.
+        for relative in new_resources:
+            self.assertFalse((backup / relative).exists(), relative)
+
+    def test_installed_managed_policy_carries_the_techstack_contract(self):
+        """The installed coordinator reads `.brichan/policy/`, not `docs/`."""
+
+        result = self.run_brichan("init", "--apply", "--project", str(self.target))
+        self.assertEqual(0, result.returncode, result.stderr)
+        policy = (self.target / ".brichan/policy/techstacks.md").read_text(
+            encoding="utf-8"
+        )
+        for literal in (
+            "Techstack verification requirement: run-before-work",
+            "Techstack verification requirement: not-applicable",
+            "Techstack snapshot pointer: none; Techstack snapshot SHA-256: null",
+            ".brichan/project-memory/techstack-snapshots/<TASK-ID>",
+            "TASK_PACKET_BYTE_LIMIT",
+        ):
+            self.assertIn(literal, policy, literal)
+        reference = (
+            self.target
+            / ".brichan/skills/herdr-orchestration/references/handoff-receipt.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("adds no receipt field, section, or schema version", reference)
+
+        code, report = self.doctor_json("--project", str(self.target))
+        self.assertEqual(0, code, report)
+        self.assertIn("policy/techstacks.md", report["policies"]["files"])
+        self.assertEqual(
+            "ok", report["policies"]["files"]["policy/techstacks.md"]["status"]
+        )
+
     def test_installed_dangling_state_and_apply_failure_have_no_traceback(self):
         missing_state = self.temp_path / "missing-state"
         (self.target / ".brichan").symlink_to(
@@ -903,6 +1015,7 @@ class InstalledDogfoodTest(unittest.TestCase):
             {
                 "schema_version",
                 "ok",
+                "agent_skill_export",
                 "repository",
                 "git",
                 "policies",
@@ -912,7 +1025,12 @@ class InstalledDogfoodTest(unittest.TestCase):
             },
             set(report),
         )
-        self.assertEqual(1, report["schema_version"])
+        # The report schema is 2; the installed state schema stays 1.
+        self.assertEqual(2, report["schema_version"])
+        self.assertEqual(
+            "MANAGED_STATE_UNINITIALIZED",
+            report["agent_skill_export"]["detail_code"],
+        )
         self.assertEqual("installed_project", report["repository"]["kind"])
         self.assertEqual(str(self.resolved_target), report["repository"]["root"])
         self.assertEqual("missing", report["repository"]["status"])
@@ -941,6 +1059,34 @@ class InstalledDogfoodTest(unittest.TestCase):
         )
         self.assertTrue(report["dependencies"]["codex"]["required"])
         self.assertTrue(report["dependencies"]["herdr"]["required"])
+        export = report["agent_skill_export"]
+        self.assertEqual("EXPORT_CURRENT", export["detail_code"])
+        self.assertEqual("installed", export["mode"])
+        self.assertEqual(
+            str(
+                self.resolved_target
+                / ".brichan"
+                / "skills"
+                / "herdr-orchestration"
+            ),
+            export["managed_path"],
+        )
+        self.assertEqual(
+            str(self.resolved_target / ".agents" / "skills" / "herdr-orchestration"),
+            export["path"],
+        )
+        self.assertEqual(
+            [
+                "SKILL.md",
+                "references/commands.md",
+                "references/handoff-receipt.md",
+                "references/task-packet.md",
+            ],
+            [row["relative_path"] for row in export["files"]],
+        )
+        for row in export["files"]:
+            self.assertEqual("current", row["relation"])
+            self.assertEqual(row["managed_sha256"], row["exported_sha256"])
         # Read-only: neither managed state nor untouched root files change.
         self.assertEqual(before, self.state_snapshot())
         self.assertEqual(root_files_before, self.original_root_files)
@@ -968,6 +1114,34 @@ class InstalledDogfoodTest(unittest.TestCase):
         self.assertEqual(3, code)
         self.assertEqual("invalid", report["repository"]["status"])
         self.assertIn("incompatible", report["repository"]["detail"])
+        self.assertEqual(
+            "MANAGED_STATE_INCOMPATIBLE",
+            report["agent_skill_export"]["detail_code"],
+        )
+        self.assertEqual([], report["agent_skill_export"]["files"])
+
+    def test_installed_stale_export_is_diagnosed_from_the_wheel(self):
+        """The packaged doctor compares the two real trees it installed."""
+
+        self.run_brichan("init", "--apply", "--project", str(self.target))
+        export = self.target / ".agents" / "skills" / "herdr-orchestration"
+        drifted = b"user owned\n"
+        (export / "SKILL.md").write_bytes(drifted)
+
+        code, report = self.doctor_json("--project", str(self.target))
+        self.assertEqual(0, code)
+        self.assertFalse(report["ok"])
+        section = report["agent_skill_export"]
+        self.assertEqual("EXPORT_STALE", section["detail_code"])
+        self.assertEqual("invalid", section["status"])
+        rows = {row["relative_path"]: row for row in section["files"]}
+        self.assertEqual("FILE_STALE", rows["SKILL.md"]["detail_code"])
+        self.assertEqual(
+            hashlib.sha256(drifted).hexdigest(),
+            rows["SKILL.md"]["exported_sha256"],
+        )
+        # Diagnosis alone leaves the user's bytes untouched.
+        self.assertEqual(drifted, (export / "SKILL.md").read_bytes())
 
 
 if __name__ == "__main__":

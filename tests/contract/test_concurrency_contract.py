@@ -17,6 +17,11 @@ CONCURRENT_WRITERS_PATH = (
 WORKER_RECOVERY_PATH = (
     ROOT / ".agents/skills/herdr-orchestration/references/worker-recovery.md"
 )
+PACKAGED_RECEIPT_PATH = (
+    ROOT
+    / "src/brichan/resources/dogfood_v1/skills/herdr-orchestration"
+    / "references/handoff-receipt.md"
+)
 
 
 def normalize_markdown_prose(text):
@@ -233,6 +238,92 @@ class ConcurrencyContractTest(unittest.TestCase):
             "Concurrent-writer reference must not contain raw pipes inside inline "
             "code spans.",
         )
+
+
+    def test_techstack_pointers_reuse_the_existing_receipt_sections(self):
+        """Plan step 8: no receipt field, section, or schema version is added.
+
+        The validator expects eleven receipt sections, `Identity` through
+        `Cleanup status` (`REQUIRED_SECTIONS`,
+        `src/brichan/contracts/receipts/validation.py:15-27`). `Techstack
+        pointers` is a heading of this reference document only, which the
+        validator never reads; it must stay twelfth and last so the eleven
+        template headings remain contiguous and in validator order, with the
+        techstack prose appended rather than inserted as a receipt section.
+        """
+
+        template = RECEIPT_PATH.read_text(encoding="utf-8")
+        headings = re.findall(r"^## (.+)$", template, re.MULTILINE)
+        self.assertEqual(
+            (
+                "Identity",
+                "Plan version",
+                "Sessions",
+                "Scope",
+                "Non-goals",
+                "Acceptance criteria",
+                "Verification",
+                "Implementation evidence",
+                "Review verdict",
+                "Risks and open decisions",
+                "Cleanup status",
+                "Techstack pointers",
+            ),
+            tuple(headings),
+            "Receipt template headings must keep their order, with techstack "
+            "prose appended rather than inserted.",
+        )
+        self.assert_policy(
+            "adds no receipt field, section, or schema version",
+            template,
+            "The receipt reference must state that nothing structural changes.",
+        )
+
+    def test_both_receipt_references_place_the_pointer_in_scope(self):
+        for path, label in (
+            (RECEIPT_PATH, "checkout"),
+            (PACKAGED_RECEIPT_PATH, "packaged"),
+        ):
+            self.assertTrue(path.is_file(), label)
+            reference = path.read_text(encoding="utf-8")
+            self.assert_policy(
+                "In `## Scope`, the `In scope` value appends the exact tokens",
+                reference,
+                f"{label}: the pointer belongs to the existing Scope value.",
+            )
+            self.assertIn(
+                "Techstack snapshot pointer: none; "
+                "Techstack snapshot SHA-256: null",
+                normalize_markdown_prose(reference),
+                label,
+            )
+
+    def test_both_receipt_references_state_the_two_column_boundary(self):
+        """A pipe in a root breaks the row; the references must say so."""
+
+        for path, label in (
+            (RECEIPT_PATH, "checkout"),
+            (PACKAGED_RECEIPT_PATH, "packaged"),
+        ):
+            reference = normalize_markdown_prose(path.read_text(encoding="utf-8"))
+            self.assertIn("exactly two columns", reference, label)
+            self.assertIn("out of contract for receipt embedding", reference, label)
+            self.assertIn("a leading-dash final component", reference, label)
+
+    def test_neither_receipt_reference_has_path_or_code_span_hygiene_issues(self):
+        for path, label in (
+            (RECEIPT_PATH, "checkout"),
+            (PACKAGED_RECEIPT_PATH, "packaged"),
+        ):
+            reference = path.read_text(encoding="utf-8")
+            self.assertNotIn("/Users/", reference, label)
+            self.assertNotIn("/home/", reference, label)
+            code_spans = re.findall(r"`([^`\n]*)`", reference)
+            self.assertFalse(
+                any("|" in span for span in code_spans),
+                f"{label}: a raw pipe inside an inline code span would break "
+                "the very table row this reference documents.",
+            )
 
 
 if __name__ == "__main__":

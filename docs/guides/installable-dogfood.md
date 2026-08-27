@@ -94,11 +94,13 @@ The complete footprint is:
 │   ├── bootstrap.md
 │   ├── identity.md
 │   ├── memory-policy.md
-│   └── operating-principles.md
+│   ├── operating-principles.md
+│   └── techstacks.md
 ├── skills/herdr-orchestration/
 │   ├── SKILL.md
 │   └── references/
 │       ├── commands.md
+│       ├── handoff-receipt.md
 │       └── task-packet.md
 └── project-memory/
     ├── index.md
@@ -356,6 +358,35 @@ supported recovery is deliberate:
 3. Re-run `brichan init --apply`.
 4. Restore the backed-up project memory.
 
+## Techstack context
+
+An installed project opts in with a regular, non-symlink `techstacks/README.md`
+at its top-level Git root. The read-only resolver then answers:
+
+```bash
+brichan techstacks resolve --project-root <repo> --input-json <project-relative>
+brichan techstacks resolve --project-root <repo> --input-json <project-relative> \
+  --snapshot-directory .brichan/project-memory/techstack-snapshots/<TASK-ID>
+brichan techstacks verify --project-root <repo> --snapshot-json <project-relative> \
+  --as-of <YYYY-MM-DD>
+```
+
+`resolve` without a directory prints one canonical Resolution. With the
+authorized directory it publishes one to three immutable observation artifacts
+named `<attempt-id>-<snapshot-sha256>.snapshot.json` and prints one canonical
+SnapshotPublication. `verify` exits `0` on `match` and `5` on drift or blocked.
+Every form is read-only against `techstacks/**`: nothing there is created,
+edited, removed, or repaired, and the artifacts are the only writes.
+
+The installed artifact directory sits inside the existing project-memory
+authority. It is coordinator evidence, deliberately not a schema-v1 managed
+path and not recorded in `manifest.json`, so it is never hashed, health-checked,
+or reinitialized.
+
+Packet completeness, receipt pointer placement, and the planning-reread gate
+are coordinator policy in `.brichan/policy/techstacks.md` and the managed
+`references/handoff-receipt.md`. No package helper accepts a packet.
+
 ## Compatibility boundary
 
 The checkout workflow remains supported: `bin/brichan` sets `BRICHAN_ROOT` and
@@ -363,7 +394,11 @@ continues dispatching through repository `bin/brichan-codex` or
 `bin/brichan-claude`. Installed-project mode is Codex-only. Schema-v1 has no
 automatic migration or repair: malformed managed resources and package-version
 mismatches require deliberate reinitialization in a disposable or backed-up
-repository.
+repository. Adding `policy/techstacks.md` and
+`skills/herdr-orchestration/references/handoff-receipt.md` to the immutable
+footprint makes an already initialized state incompatible with this package for
+exactly that reason: the installed-state schema stays `1`, the doctor report
+schema stays `2`, and no migration runs.
 
 The `brichan-codex` and `brichan-claude` console commands remain checkout-oriented
 after `pip install brichan`. `brichan-codex` resolves coordinator configuration

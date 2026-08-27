@@ -7,7 +7,16 @@ export BRICHAN_ROOT
 PYTHONPATH="$BRICHAN_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONPATH
 
-# Call the checkout entrypoint explicitly with this wrapper's own root, so
-# checkout mode comes from the launch and never from BRICHAN_ROOT, the working
-# directory, or the shape of a target repository.
+# Call the checkout entrypoint explicitly with this wrapper's own root, passed
+# as the first argument, so checkout mode is selected by the launch and never
+# inferred from BRICHAN_ROOT, the working directory, or the shape of a target
+# repository. Package resolution is a separate matter and is not isolated:
+# `python3 -c` searches the working directory before the exported PYTHONPATH,
+# so a `brichan` package sitting in the working directory shadows this
+# checkout's `src`. The launcher then fails closed on that package unless the
+# package itself exposes a compatible `checkout_main`, in which case the
+# shadow's code runs; mode is still selected by the argv root, so nothing
+# silently switches mode. That resolution behavior predates and is outside the
+# TECHSTACK-001 helper isolation closure; removing the working directory from
+# sys.path is deferred hardening, not a claim this wrapper makes.
 exec python3 -c 'import sys; from brichan.cli.runtime import checkout_main; raise SystemExit(checkout_main(sys.argv[1], sys.argv[2:]))' "$BRICHAN_ROOT" "$@"

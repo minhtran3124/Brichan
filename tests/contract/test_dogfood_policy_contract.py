@@ -19,6 +19,8 @@ POLICY = ROOT / "src/brichan/resources/dogfood_v1/policy"
 PACKAGED_PRINCIPLES = POLICY / "operating-principles.md"
 CHECKOUT_PRINCIPLES = ROOT / "docs/policy/operating-principles.md"
 REVIEWER = ROOT / "docs/policy/reviewer.md"
+PACKAGED_TECHSTACKS = POLICY / "techstacks.md"
+CHECKOUT_TECHSTACKS = ROOT / "docs/policy/techstacks.md"
 
 #: Testing-discipline norms both operating policies must state. Each entry
 #: carries one requirement, not a topic heading, so removing the rule from
@@ -137,6 +139,55 @@ class TestingDisciplineContractTest(unittest.TestCase):
     def test_reviewers_must_flag_more_than_missing_tests(self):
         for marker in ("redundant", "non-owned", "implementation-coupled"):
             self.assertIn(marker, self.reviewer, marker)
+
+
+class ShippedTechstackPolicyTest(unittest.TestCase):
+    """The techstack contract must ship, not only exist in the checkout.
+
+    An installed coordinator reads `.brichan/policy/`, never `docs/policy/`.
+    A packaged policy that silently loses the delivery contract would leave
+    installed coordinators inventing packet and receipt shapes; each marker
+    below carries one obligation rather than a topic heading.
+    """
+
+    def setUp(self):
+        self.checkout = normalized(CHECKOUT_TECHSTACKS)
+        self.packaged = normalized(PACKAGED_TECHSTACKS)
+
+    def test_the_packaged_policy_ships_beside_the_other_managed_policies(self):
+        self.assertTrue(PACKAGED_TECHSTACKS.is_file(), PACKAGED_TECHSTACKS)
+        self.assertEqual(POLICY, PACKAGED_TECHSTACKS.parent)
+
+    def test_both_surfaces_keep_techstacks_project_owned(self):
+        for text, label in ((self.checkout, "checkout"), (self.packaged, "packaged")):
+            self.assertIn("belongs to the target project", text, label)
+            self.assertIn("`techstacks/README.md`", text, label)
+            self.assertIn("map-only", text, label)
+
+    def test_both_surfaces_forbid_rule_bodies_in_a_packet_or_receipt(self):
+        for text, label in ((self.checkout, "checkout"), (self.packaged, "packaged")):
+            self.assertIn("never", text, label)
+            self.assertIn("rule bodies", text, label)
+            self.assertIn("opens the pointers itself", text, label)
+
+    def test_the_installed_surface_names_only_the_installed_directory(self):
+        """A packaged policy must not send an installed coordinator to
+        `projects/<slug>/handoffs/`, which does not exist there."""
+
+        self.assertIn(
+            ".brichan/project-memory/techstack-snapshots/<TASK-ID>",
+            self.packaged,
+        )
+        self.assertNotIn(
+            "projects/<project-slug>/handoffs/<TASK-ID>/snapshots",
+            self.packaged,
+        )
+
+    def test_neither_surface_softens_the_delegated_acceptance_rule(self):
+        for text, label in ((self.checkout, "checkout"), (self.packaged, "packaged")):
+            self.assertNotIn("the worker may accept", text, label)
+            self.assertNotIn("trust the worker", text, label)
+            self.assertIn("is a claim, not evidence", text, label)
 
 
 if __name__ == "__main__":

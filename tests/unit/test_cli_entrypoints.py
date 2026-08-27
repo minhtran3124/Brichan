@@ -1,6 +1,7 @@
 import contextlib
 import io
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -17,6 +18,7 @@ from brichan.cli import claude as claude_cli
 from brichan.cli import codex as codex_cli
 from brichan.cli import runtime as runtime_cli
 from brichan.lifecycle import initialize_project
+from brichan.techstacks import cli as techstacks_cli
 from brichan.project import project_paths
 
 
@@ -323,6 +325,86 @@ class ForgedCheckoutClaimTest(_OutsideCheckoutTestCase):
         self.assertEqual(0, code)
         self.assertEqual(f"brichan-codex {__version__}\n", out)
         self.assertEqual("", err)
+
+
+class TechstacksDispatchTest(_OutsideCheckoutTestCase):
+    """`brichan techstacks` reaches the read-only surface in both modes.
+
+    The subcommand owns its own exact bytes and exits, so the dispatcher must
+    hand it the remaining vector untouched and must never fall through to a
+    provider launch, a lifecycle command, or the Brichan help path.
+    """
+
+    def test_installed_dispatch_reaches_the_techstacks_surface(self):
+        with mock.patch.object(runtime_cli, "run_project") as run_project:
+            code, out, err = self._run(runtime_cli.main, ["techstacks", "--help"])
+        run_project.assert_not_called()
+        self.assertEqual(0, code)
+        self.assertEqual(techstacks_cli.TOP_LEVEL_HELP, out)
+        self.assertEqual("", err)
+
+    def test_checkout_dispatch_reaches_the_same_surface(self):
+        out = io.StringIO()
+        err = io.StringIO()
+        with (
+            mock.patch.object(runtime_cli, "exec_runtime") as exec_wrapper,
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(err),
+        ):
+            code = runtime_cli.checkout_main(ROOT, ["techstacks", "--help"])
+        exec_wrapper.assert_not_called()
+        self.assertEqual(0, code)
+        self.assertEqual(techstacks_cli.TOP_LEVEL_HELP, out.getvalue())
+        self.assertEqual("", err.getvalue())
+
+    def test_the_remaining_vector_is_handed_over_verbatim(self):
+        with mock.patch.object(techstacks_cli, "main", return_value=7) as surface:
+            code, _, _ = self._run(
+                runtime_cli.main, ["techstacks", "resolve", "--project-root", "/x"]
+            )
+        self.assertEqual(7, code)
+        surface.assert_called_once_with(["resolve", "--project-root", "/x"])
+
+    def test_an_unrelated_invocation_never_imports_the_techstacks_package(self):
+        """Design section 11 scopes runtime.py to techstacks dispatch only.
+
+        The dispatch import is local, so `run`, `init`, `status`, `doctor`, and
+        every provider launch stay free of the resolver and of its import-time
+        helper-path freeze.
+        """
+
+        environment = os.environ.copy()
+        environment["PYTHONPATH"] = str(ROOT / "src")
+        environment["PYTHONDONTWRITEBYTECODE"] = "1"
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import brichan.cli.runtime; import sys; "
+                "assert not any(name == 'brichan.techstacks' "
+                "or name.startswith('brichan.techstacks.') for name in sys.modules)",
+            ],
+            cwd=str(ROOT),
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_a_healthy_project_does_not_forward_techstacks_to_codex(self):
+        target = self.outside / "project"
+        target.mkdir()
+        (target / ".git").mkdir()
+        paths = project_paths(explicit=target)
+        initialize_project(paths, apply=True)
+        os.chdir(target)
+        with mock.patch.object(runtime_cli, "run_project") as run_project:
+            code, out, err = self._run(runtime_cli.main, ["techstacks"])
+        run_project.assert_not_called()
+        self.assertEqual(2, code)
+        self.assertEqual("", out)
+        self.assertEqual(techstacks_cli.MISSING_SUBCOMMAND_LINE, err)
 
 
 class ExecRuntimeTest(unittest.TestCase):

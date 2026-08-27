@@ -1,10 +1,12 @@
 import json
 import os
+import shlex
 import shutil
 import stat
 import subprocess
 import sys
 import tempfile
+import unicodedata
 import unittest
 from pathlib import Path
 
@@ -258,6 +260,37 @@ class CliCompatibilityTest(unittest.TestCase):
         self.assertEqual(2, result.returncode)
         self.assertIn("unsupported runtime", result.stderr)
 
+    def test_techstacks_dispatch_never_reaches_a_provider_runtime(self):
+        """`brichan techstacks` is a Brichan surface, not a runtime prompt."""
+        result = self._brichan("techstacks", "--help")
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(
+            "usage: brichan techstacks {resolve,verify} ...\n"
+            "\n"
+            "Resolve or verify bounded project-owned techstack context.\n"
+            "\n"
+            "subcommands:\n"
+            "  resolve  resolve context and optionally publish a Snapshot artifact\n"
+            "  verify   verify a Snapshot artifact against the project\n",
+            result.stdout,
+        )
+        self.assertEqual("", result.stderr)
+
+    def test_techstacks_dispatch_is_the_same_from_a_descendant_directory(self):
+        result = subprocess.run(
+            [str(ROOT / "bin" / "brichan"), "techstacks"],
+            cwd=ROOT / "tests" / "integration",
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertEqual("", result.stdout)
+        self.assertEqual(
+            "brichan techstacks: MISSING_SUBCOMMAND: expected resolve or verify\n",
+            result.stderr,
+        )
+
     def test_receipt_validator_wrapper_uses_importable_core(self):
         result = subprocess.run(
             [
@@ -295,6 +328,45 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
         executable.write_text("#!/bin/sh\nexit 99\n", encoding="utf-8")
         executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
 
+    def doctor_path(self) -> str:
+        """PATH for a `bin/brichan doctor` subprocess.
+
+        `tool_bin` stays first so the fakes shadow any real codex/herdr. The
+        test runner's interpreter directory comes next, before the git
+        directory: `bin/brichan` does `exec python3`, and on a host whose git
+        lives in `/usr/bin` a git-first ordering would resolve Apple's
+        Python 3.9, fail platform predicate 6, and make the doctor honestly
+        report `UNSUPPORTED_SAFE_OPEN` instead of the export state under test.
+        """
+        path = os.pathsep.join(
+            [
+                str(self.tool_bin),
+                str(Path(sys.executable).parent),
+                str(Path(self.git).parent),
+                "/usr/bin",
+                "/bin",
+            ]
+        )
+        python3 = shutil.which("python3", path=path)
+        if python3 is None:
+            self.fail(f"no python3 resolves on the doctor PATH {path!r}")
+        probe = subprocess.run(
+            [python3, "-c", "import sys; print(sys.version_info[:2] >= (3, 10))"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if probe.stdout.strip() != "True":
+            self.fail(
+                f"python3 on the doctor PATH resolves to {python3!r}, which is "
+                f"older than 3.10 (stdout={probe.stdout!r}, "
+                f"stderr={probe.stderr!r}); bin/brichan would fail platform "
+                f"predicate 6 and the doctor would report UNSUPPORTED_SAFE_OPEN "
+                f"regardless of the export state. Runner: {sys.executable!r}, "
+                f"PATH={path!r}"
+            )
+        return path
+
     def doctor_json(
         self,
         *arguments: str,
@@ -310,15 +382,7 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
         # fakes plus what bin/brichan itself needs (a shell, python3, git).
         # Anything the test declares missing must be genuinely absent, which
         # the assertions below check rather than assume.
-        path = os.pathsep.join(
-            [
-                str(self.tool_bin),
-                str(Path(self.git).parent),
-                str(Path(sys.executable).parent),
-                "/usr/bin",
-                "/bin",
-            ]
-        )
+        path = self.doctor_path()
         result = subprocess.run(
             [str(ROOT / "bin" / "brichan"), "doctor", "--json", *arguments],
             cwd=ROOT,
@@ -348,8 +412,16 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
 
         self.assertEqual(0, code, text)
         self.assertTrue(report["ok"])
-        self.assertEqual(1, report["schema_version"])
+        self.assertEqual(2, report["schema_version"])
         self.assertEqual("source_checkout", report["repository"]["kind"])
+        export = report["agent_skill_export"]
+        self.assertEqual("SOURCE_CHECKOUT_NOT_APPLICABLE", export["detail_code"])
+        self.assertEqual("source_checkout", export["mode"])
+        self.assertEqual("ok", export["status"])
+        self.assertEqual("not_applicable", export["relation"])
+        self.assertIsNone(export["path"])
+        self.assertIsNone(export["managed_path"])
+        self.assertEqual([], export["files"])
         self.assertEqual(str(ROOT), report["repository"]["root"])
         self.assertEqual("ok", report["git"]["status"])
         self.assertIs(bool, type(report["git"]["dirty"]))
@@ -365,8 +437,8 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
         self.assertFalse(first.endswith("}\n\n"))
         self.assertEqual(1, first.count("\n}\n"))
         lines = first.splitlines()
-        # Sorted keys put "dependencies" first; two-space indent throughout.
-        self.assertEqual('  "dependencies": {', lines[1])
+        # Sorted keys put "agent_skill_export" first; two-space indent throughout.
+        self.assertEqual('  "agent_skill_export": {', lines[1])
         for line in lines:
             indent = len(line) - len(line.lstrip(" "))
             self.assertEqual(0, indent % 2, repr(line))
@@ -399,6 +471,18 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
         self.assertEqual("installed_project", report["repository"]["kind"])
         self.assertEqual(str(target.resolve()), report["repository"]["root"])
         self.assertFalse(report["ok"])
+        export = report["agent_skill_export"]
+        self.assertEqual("MANAGED_STATE_UNINITIALIZED", export["detail_code"])
+        self.assertEqual("installed", export["mode"])
+        self.assertEqual(
+            str(target.resolve() / ".brichan" / "skills" / "herdr-orchestration"),
+            export["managed_path"],
+        )
+        self.assertEqual(
+            str(target.resolve() / ".agents" / "skills" / "herdr-orchestration"),
+            export["path"],
+        )
+        self.assertEqual([], export["files"])
 
         subprocess.run(
             [
@@ -420,6 +504,20 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
         self.assertEqual("ok", report["repository"]["status"])
         self.assertIn("policy/identity.md", report["policies"]["files"])
         self.assertIn("project-memory/index.md", report["project_memory"]["files"])
+        export = report["agent_skill_export"]
+        self.assertEqual("EXPORT_CURRENT", export["detail_code"])
+        self.assertEqual("current", export["relation"])
+        self.assertEqual(
+            [
+                "SKILL.md",
+                "references/commands.md",
+                "references/handoff-receipt.md",
+                "references/task-packet.md",
+            ],
+            [row["relative_path"] for row in export["files"]],
+        )
+        for row in export["files"]:
+            self.assertEqual(row["managed_sha256"], row["exported_sha256"])
         self.assertEqual(before, self.git_state(target))
 
         code, report, text = self.doctor_json(
@@ -438,6 +536,58 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
         manifest.write_text(json.dumps(payload), encoding="utf-8")
         code, report, text = self.doctor_json("--project", str(target))
         self.assertEqual(3, code, text)
+
+    def test_a_non_nfc_project_root_reports_the_grammar_row(self):
+        """The real launcher, against a root ending in `b'e\\xcc\\x81xport'`.
+
+        Both absolute output strings inherit the root's decomposition, so
+        Design section 9's absolute-output-path grammar fails before managed
+        state is inspected and before either tree is read.
+        """
+
+        target = self.temp_path / "e\u0301xport"
+        if os.fsencode(target.name) != b"e\xcc\x81xport":
+            self.skipTest("this filesystem normalizes directory names")
+        subprocess.run(
+            [self.git, "init", "--quiet", str(target)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            [
+                str(ROOT / "bin" / "brichan"),
+                "init",
+                "--apply",
+                "--project",
+                str(target),
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        code, report, text = self.doctor_json("--project", str(target))
+        export = report["agent_skill_export"]
+        self.assertEqual(0, code, text)
+        self.assertFalse(report["ok"], text)
+        self.assertEqual("installed", export["mode"])
+        self.assertEqual("OUTPUT_PATH_NOT_CANONICAL", export["detail_code"], text)
+        self.assertEqual(
+            "an absolute skill path is not strict UTF-8 NFC", export["detail"]
+        )
+        self.assertEqual("unavailable", export["status"])
+        self.assertEqual("comparison_unavailable", export["relation"])
+        self.assertIsNone(export["path"])
+        self.assertIsNone(export["managed_path"])
+        self.assertEqual([], export["files"])
+        # The root itself is still reported, decomposed, by the section that
+        # owns it; only the export section states an absolute output path.
+        self.assertNotEqual(
+            unicodedata.normalize("NFC", report["repository"]["root"]),
+            report["repository"]["root"],
+        )
 
     def test_undecodable_routing_config_yields_one_json_document(self):
         """An unreadable byte sequence is a report, not a traceback."""
@@ -464,15 +614,7 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
         routing = target / ".brichan" / "config" / "model-routing.json"
         routing.write_bytes(b'{"schema_version": "\xff\xfe"}')
 
-        path = os.pathsep.join(
-            [
-                str(self.tool_bin),
-                str(Path(self.git).parent),
-                str(Path(sys.executable).parent),
-                "/usr/bin",
-                "/bin",
-            ]
-        )
+        path = self.doctor_path()
         self.fake_executable("codex")
         result = subprocess.run(
             [
@@ -531,15 +673,7 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
         # dedicated dependency tests above, not this formatting check.
         self.fake_executable("codex")
         self.fake_executable("herdr")
-        path = os.pathsep.join(
-            [
-                str(self.tool_bin),
-                str(Path(self.git).parent),
-                str(Path(sys.executable).parent),
-                "/usr/bin",
-                "/bin",
-            ]
-        )
+        path = self.doctor_path()
         result = subprocess.run(
             [str(ROOT / "bin" / "brichan"), "doctor"],
             cwd=ROOT,
@@ -553,6 +687,130 @@ class DoctorJsonCheckoutTest(unittest.TestCase):
         self.assertIn(f"project root: {ROOT}", result.stdout)
         self.assertIn("overall:", result.stdout)
         self.assertNotIn("manifest.json", result.stdout)
+        self.assertIn(
+            "[ok] agent skill export: OK\n"
+            "    detail: skill export comparison is not applicable in "
+            "source-checkout mode\n"
+            "    managed: null\n"
+            "    exported: null\n"
+            "[ok] dependencies: OK\n",
+            result.stdout,
+        )
+        self.assertNotIn("re-export:", result.stdout)
+
+    def initialized_target(self, name: str) -> Path:
+        target = self.temp_path / name
+        subprocess.run(
+            [self.git, "init", "--quiet", str(target)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            [
+                str(ROOT / "bin" / "brichan"),
+                "init",
+                "--apply",
+                "--project",
+                str(target),
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return target
+
+    def doctor_text(self, *arguments: str) -> subprocess.CompletedProcess[str]:
+        self.fake_executable("codex")
+        self.fake_executable("herdr")
+        path = self.doctor_path()
+        return subprocess.run(
+            [str(ROOT / "bin" / "brichan"), "doctor", *arguments],
+            cwd=ROOT,
+            env={**os.environ, "PATH": path},
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_a_stale_export_renders_the_six_line_block_with_quoted_commands(self):
+        """A root with a space and a single quote stays one pasteable token."""
+
+        target = self.initialized_target("a repo it's")
+        export = target / ".agents" / "skills" / "herdr-orchestration"
+        (export / "SKILL.md").write_text("user owned\n", encoding="utf-8")
+
+        result = self.doctor_text("--project", str(target))
+        quoted = shlex.quote(str(target.resolve()))
+        self.assertIn(
+            "[!] agent skill export: INVALID\n"
+            "    detail: managed and exported skill bytes differ\n"
+            f"    managed: {target.resolve() / '.brichan/skills/herdr-orchestration'}\n"
+            f"    exported: {export.resolve()}\n"
+            f"    re-export: brichan init --apply --project {quoted}\n"
+            f"    verify: brichan doctor --json --project {quoted}\n"
+            "[ok] dependencies: OK\n",
+            result.stdout,
+        )
+        self.assertIn("'", quoted)
+        self.assertNotIn("backup", result.stdout)
+        self.assertNotIn("rm -rf", result.stdout)
+
+    def test_the_user_owned_backup_remove_and_re_export_journey(self):
+        """Doctor diagnoses; only the user's own commands change any byte."""
+
+        target = self.initialized_target("journey")
+        export = target / ".agents" / "skills" / "herdr-orchestration"
+        drifted = b"user owned\n"
+        (export / "SKILL.md").write_bytes(drifted)
+
+        code, report, text = self.doctor_json("--project", str(target))
+        self.assertEqual(0, code, text)
+        self.assertFalse(report["ok"])
+        self.assertEqual("EXPORT_STALE", report["agent_skill_export"]["detail_code"])
+
+        # A second init refuses to overwrite the user's bytes.
+        subprocess.run(
+            [
+                str(ROOT / "bin" / "brichan"),
+                "init",
+                "--apply",
+                "--project",
+                str(target),
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(drifted, (export / "SKILL.md").read_bytes())
+
+        backup = self.temp_path / "journey-backup"
+        shutil.copytree(export, backup)
+        shutil.rmtree(export)
+        subprocess.run(
+            [
+                str(ROOT / "bin" / "brichan"),
+                "init",
+                "--apply",
+                "--project",
+                str(target),
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        code, report, text = self.doctor_json("--project", str(target))
+        self.assertEqual(0, code, text)
+        self.assertTrue(report["ok"])
+        rows = report["agent_skill_export"]["files"]
+        self.assertEqual("EXPORT_CURRENT", report["agent_skill_export"]["detail_code"])
+        self.assertTrue(rows)
+        for row in rows:
+            self.assertEqual(row["managed_sha256"], row["exported_sha256"])
+        self.assertEqual(drifted, (backup / "SKILL.md").read_bytes())
 
     def test_json_flag_is_rejected_for_the_other_lifecycle_commands(self):
         for command in ("init", "status"):

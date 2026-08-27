@@ -45,6 +45,8 @@ $ brichan init --apply --project <repo>    # create it
 $ brichan status --project <repo>          # one-line state verdict
 $ brichan doctor --project <repo>          # health summary (--json for CI)
 $ brichan run --project <repo> -- <args>   # launch the coordinator
+$ brichan techstacks resolve --project-root <repo> --input-json <path>
+$ brichan techstacks verify --project-root <repo> --snapshot-json <path> --as-of <date>
 ```
 
 ## Usage
@@ -97,7 +99,14 @@ $ brichan run --project <repo> -- --review the auth module
   deliberate backup and reinitialization.
 - **Machine-readable health.** `brichan doctor --json` emits one JSON document
   covering repository, Git, policy, routing, memory, and dependency checks for
-  scripts and CI.
+  scripts and CI. The report is schema `2` and adds a managed-versus-exported
+  skill comparison; the `.brichan/` state schema stays `1`.
+- **Project-owned techstack rules.** A repository opts in with a
+  `techstacks/README.md` at its top-level Git root. `brichan techstacks resolve`
+  answers which rules apply and can freeze the answer as an immutable Snapshot;
+  `brichan techstacks verify` re-checks it before work starts. Both are
+  read-only: Brichan never creates, edits, removes, or repairs `techstacks/**`,
+  and workers receive pointers and a digest rather than copies of the rules.
 
 ## License
 

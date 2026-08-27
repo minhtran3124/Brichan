@@ -1,4 +1,4 @@
-.PHONY: help release-preview test test-unit test-contract test-integration metrics receipts dossiers memory-check path-check readme-check phase5-preflight package-check contract-check check
+.PHONY: help release-preview test test-unit test-contract test-integration techstack-eval metrics receipts dossiers memory-check path-check readme-check phase5-preflight package-check contract-check check
 
 PYTHON ?= python3
 
@@ -8,6 +8,7 @@ help:
 	@echo "  make test-unit      Run importable-core unit tests"
 	@echo "  make test-contract  Run repository and durable-contract tests"
 	@echo "  make test-integration Run stable-wrapper integration tests"
+	@echo "  make techstack-eval Run the frozen techstack context evaluation"
 	@echo "  make metrics        Validate and summarize the metrics ledger"
 	@echo "  make receipts       Validate canonical handoff receipts"
 	@echo "  make dossiers       Validate checkout-mode task dossiers"
@@ -34,6 +35,9 @@ test-contract:
 
 test-integration:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover -s tests/integration -t . -v
+
+techstack-eval:
+	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest evals.techstack_context_v1.test_cases -v
 
 metrics:
 	$(PYTHON) metrics/validate_metrics.py metrics/runs.jsonl
@@ -68,5 +72,5 @@ package-check:
 contract-check: path-check test-contract
 	sh -n bin/brichan
 
-check: test metrics receipts dossiers memory-check path-check readme-check phase5-preflight package-check
+check: test techstack-eval metrics receipts dossiers memory-check path-check readme-check phase5-preflight package-check
 	sh -n bin/brichan

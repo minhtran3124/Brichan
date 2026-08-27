@@ -47,4 +47,42 @@ invocation or rejected path).
 - Before declaring a worker stale, record three timestamped no-progress
   observations, then allow one bounded replacement, then escalate.
 
-Read `references/commands.md` immediately before Herdr commands.
+## Techstack context
+
+When the target project opts in with a regular, non-symlink
+`techstacks/README.md` at its top-level Git root, read
+`.brichan/policy/techstacks.md` before writing the packet. Resolve and publish
+one Snapshot with
+
+```text
+brichan techstacks resolve --project-root <QROOT> --input-json <QINPUT> --snapshot-directory <QDIR>
+```
+
+into the authorized directory alone —
+`.brichan/project-memory/techstack-snapshots/<TASK-ID>` in an installed project
+— and never into a digest-bearing filename you chose. Publication derives
+`<attempt-id>-<snapshot-sha256>.snapshot.json` after each resolve, verifies it,
+and retries at most three drifted observations; blocked and not-applicable stop
+with no artifact, and an unmatched attempt can never enter a packet.
+
+The packet block, the exact not-applicable form, the whole-packet
+196,608-byte cap, and the receipt pointer placement are stated in
+`references/task-packet.md` and `references/handoff-receipt.md`. No packet or
+receipt embeds Snapshot bytes or rule bodies; the worker opens the selected
+pointers itself.
+
+Brichan — not a package helper — rejects a stale Snapshot digest, a missing or
+unmatched verification acknowledgement, a worker-authored exception approval,
+and plan acceptance before the mandatory reread. A newly discovered path,
+Context ID or chain, conflict, or exception need forces re-resolution: send the
+newly selected pointers, the requirement to reread each one, and the new
+Snapshot pointer to a plan worker, require a revised plan carrying the final
+scope, every acknowledgement, and the latest digest, check it semantically, and
+verify again before acceptance. An implementation worker rereading the new
+pointers is explicitly insufficient.
+
+## References
+
+Read `references/commands.md` immediately before Herdr commands. Read
+`references/handoff-receipt.md` for planner-to-implementer or reviewer
+handoffs, including techstack Snapshot pointer placement.

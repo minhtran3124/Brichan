@@ -168,6 +168,7 @@ These are the load-bearing contracts. Changing one changes the product.
 | Model routing | [`config/model-routing.json`](config/model-routing.json), [`docs/guides/model-routing.md`](docs/guides/model-routing.md) | Settings-driven coordinator defaults and `plan`/`implement`/`review`/`scan` routes |
 | Worker lifecycle | [`.agents/skills/herdr-orchestration/SKILL.md`](.agents/skills/herdr-orchestration/SKILL.md) | Task packets, `brichan-` naming, pane ownership, cleanup |
 | Handoff receipts | [`scripts/validate_handoff_receipts.py`](scripts/validate_handoff_receipts.py) | Machine-validated evidence for accepted plans and multi-writer work |
+| Techstack rules | [`docs/policy/techstacks.md`](docs/policy/techstacks.md) | Project-owned `techstacks/**`, pointer-only packets and receipts, planning reread |
 | Independent review | [`docs/policy/reviewer.md`](docs/policy/reviewer.md) | Fresh session, preferably a different model family |
 | Repository structure | [`config/repository-paths.json`](config/repository-paths.json) | Inventoried paths and valid local Markdown links |
 | Workflow metrics | [`metrics/runs.jsonl`](metrics/runs.jsonl) | Observed measurements only; `null` when unavailable |
@@ -188,6 +189,7 @@ docs/architecture/     module boundaries
 src/brichan/cli/         runtime dispatch and Codex/Claude adapters
 src/brichan/orchestration/  Herdr layout, launch, model routing
 src/brichan/contracts/   receipt schema, parser, discovery, validation
+src/brichan/techstacks/  read-only techstack resolve, publish, verify
 src/brichan/resources/   packaged dogfood_v1 policy, skills, memory templates
 bin/, scripts/         stable wrappers; bootstrap only, delegate to src/
 config/                repository paths, model routing, retirement gates
@@ -254,6 +256,11 @@ Before proposing or merging a change, confirm all of the following:
       missing `.agents/skills/herdr-orchestration/` export; it does not mutate
       pre-existing user-owned files or skills.
 - [ ] It does not silently repair or migrate state.
+- [ ] It leaves `techstacks/**` project-owned: no create, edit, remove, repair,
+      or inventory management, and no rule bodies in a packet, receipt, plan,
+      or memory entry.
+- [ ] It adds no production packet parser or acceptance helper: packet
+      completeness and receipt placement stay coordinator policy.
 - [ ] It does not report completion without evidence, or record unverified
       claims as durable memory.
 - [ ] It keeps policy canonical in one place (no duplicated active defaults in
