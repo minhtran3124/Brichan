@@ -5,7 +5,7 @@ All notable changes to Brichan are documented here.
 The format follows Keep a Changelog principles. The project does not yet claim
 Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
-## [Unreleased]
+## [0.13.0] - 2026-08-28
 
 ### Added
 
@@ -121,6 +121,18 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
   existing initialized `.brichan/` state report `incompatible` after
   upgrading; the documented recovery is deliberate reinitialization, not
   migration code.
+
+### Upgrade note
+
+- Two new immutable packaged resources join the managed footprint and the
+  packaged operating principles, task-packet reference, and
+  `herdr-orchestration` skill all changed. Because those resources are
+  hash-managed, existing `.brichan/` state reports `incompatible` after
+  upgrading (schema v1 is migration-free by design). Back up
+  `project-memory/`, delete `.brichan/`, and re-run `brichan init --apply`.
+  No migration runs and no state is silently repaired.
+- `brichan init --init-agents` is no longer accepted; the export it gated is
+  now the default. Remove the flag from any scripted initialization.
 
 ## [0.12.0] - 2026-08-10
 

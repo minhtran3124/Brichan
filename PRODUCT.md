@@ -9,7 +9,7 @@ It is descriptive of product intent. It is not runtime policy. The normative
 runtime policy lives under `docs/policy/`; see
 [Durable contracts](#7-durable-contracts) for the exact files.
 
-Last verified: 2026-08-10 (package version 0.12.0).
+Last verified: 2026-08-28 (package version 0.13.0).
 
 ## 1. What Brichan is
 
@@ -221,7 +221,7 @@ documentation updates in the same change. See
 
 Verified as of 2026-08-10:
 
-Latest published version: 0.12.0
+Latest published version: 0.13.0
 
 - The installed Codex vertical slice passed disposable-wheel verification and
   independent review.
