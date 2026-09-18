@@ -312,14 +312,25 @@ brichan-herdr-agent-observe observe <brichan-name> \
 both restart-need values, per-runtime integration health parsed from the
 plain-text `herdr integration status` rows, and capability findings such as the
 observed `trust_directory` manifest failure. A version or protocol outside the
-verified set (`0.7.3` / protocol `16`) is reported as `unverified`; that is an
+verified set (`0.9.1` / protocol `22`) is reported
+as `unverified`; that is an
 informational state. The command never updates, installs, or edits Herdr state,
 and widening the verified set requires a separately authorized Herdr upgrade.
+`0.9.1` is Brichan's minimum supported Herdr. It was verified on 2026-09-18
+after the user authorized the upgrade and the server restart; `0.7.3`, verified
+until then, was dropped in the same task because its `agent read` returned a
+JSON envelope the current plain-text adapter cannot parse. A `0.7.3` server now
+reports `unverified-version` and is still fully reported on.
 
 `observe` reports the scheduling state verbatim, the read text with its
 completeness metadata, and presence metadata for each declared evidence file.
 It deliberately has no completion, success, or done field: a scheduling state
 such as `idle` or `done` is not proof that acceptance criteria passed.
+
+Every `herdr agent wait` Brichan builds is bounded at 30000 ms and spells its
+state option `--until` (for example `herdr agent wait <brichan-name> --until
+idle --timeout 30000`). Herdr `0.9.1` removed `--status`; the client exits `2`
+on it. `herdr integration status` stays text-only.
 
 Both subcommands write one JSON document to stdout with sorted keys, two-space
 indentation, and exactly one trailing newline.
@@ -335,10 +346,14 @@ and path validation happens before any subprocess runs, so a rejected path
 always wins over a healthy worker. At exit 0 the findings are a union: a failed
 read and a missing evidence file appear together in one collected report.
 
-Truncation risk is `none`, `possible`, or `confirmed`. On Herdr `0.7.3` no
+Truncation risk is `none`, `possible`, or `confirmed`. On Herdr `0.9.1` no
 capability proves terminal-history completeness, so a successful read is at
 best `possible` — that is the normal healthy outcome, not an error, and `none`
-is unreachable by design. When the risk is `possible` or `confirmed`, the
+is unreachable by design. `herdr agent read` writes plain terminal
+text to stdout with no envelope and no native `truncated` flag, so the report
+carries `native_truncated: null`; a nonzero exit or a read that returns no
+screen at all is still `read-failed` with risk `confirmed`. When the risk is
+`possible` or `confirmed`, the
 authoritative fallback is reading the declared evidence files. The walk is
 descriptor-relative with `O_NOFOLLOW`, so absolute, `~`-prefixed, `..`, and
 symlinked paths are rejected with exit 2. Presence metadata is never acceptance

@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Start a Herdr worker while keeping the coordinator tab visually balanced."""
+"""Start a Herdr worker while keeping the coordinator tab visually balanced.
+
+Herdr ``0.9.1`` splits the launch in two: ``herdr pane split`` creates the pane
+and returns its ID, and ``herdr agent start --kind <runtime> --pane <id>`` runs
+the agent inside that existing pane. The ``0.7.3``
+``agent start --workspace/--tab/--split/--no-focus`` form was removed and is
+rejected by the client with ``unknown option: --workspace``.
+"""
 
 from __future__ import annotations
 
@@ -19,6 +26,14 @@ from .model_routing import (
     load_settings,
     resolve_route,
 )
+
+
+#: Bounded readiness wait for ``herdr agent start`` on Herdr ``0.9.1``, in
+#: milliseconds. This is the client's own default; it is spelled here so the
+#: launcher never inherits an unbounded or silently changed wait.
+AGENT_START_TIMEOUT_MS = 30000
+
+
 class HerdrError(RuntimeError):
     """Raised when a Herdr command cannot be completed."""
 
@@ -269,6 +284,12 @@ def _resize(op: ResizeOp) -> None:
     )
 
 
+def _close_pane(pane_id: str) -> None:
+    """Close exactly one pane. Only ever called for a pane Brichan just made."""
+
+    _run_json(["herdr", "pane", "close", pane_id])
+
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     raw_argv = sys.argv[1:] if argv is None else argv
     try:
@@ -399,10 +420,6 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
             _print_dry_run(args, resolution)
             return 0
 
-        anchor_payload, _ = _run_json(
-            ["herdr", "pane", "get", args.anchor_pane]
-        )
-        anchor = anchor_payload["result"]["pane"]
         layout = _layout(args.anchor_pane)
         plan = plan_spawn(layout, args.anchor_pane)
 
@@ -414,34 +431,66 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
             )
 
         applied_pre_resizes: list[ResizeOp] = []
+        worker_pane_id: str | None = None
         try:
             for resize in plan.pre_resizes:
                 _resize(resize)
                 applied_pre_resizes.append(resize)
             _focus_pane(args.anchor_pane, plan.target_pane_id)
 
-            command = [
+            split_command = [
+                "herdr",
+                "pane",
+                "split",
+                plan.target_pane_id,
+                "--direction",
+                plan.split,
+                "--cwd",
+                args.cwd,
+            ]
+            for item in args.env:
+                split_command.extend(["--env", item])
+            split_payload, _ = _run_json(split_command)
+            new_pane_id = split_payload["result"]["pane"]["pane_id"]
+            if not isinstance(new_pane_id, str) or not new_pane_id:
+                raise HerdrError("herdr pane split returned no pane id")
+            # Checked before the pane is recorded as Brichan-owned: a pane the
+            # launcher did not create must never enter the rollback path, and
+            # no agent may be started in the coordinator's own pane.
+            if new_pane_id == args.anchor_pane:
+                raise HerdrError("Herdr reused the coordinator pane unexpectedly")
+            worker_pane_id = new_pane_id
+
+            # ``--kind`` names the canonical executable, so it supplies
+            # ``resolution.command[0]`` itself and only the arguments after it
+            # are forwarded. The ``agent_started`` envelope echoes the
+            # reassembled argv with the executable back in front.
+            runtime, *agent_arguments = resolution.command
+            start_command = [
                 "herdr",
                 "agent",
                 "start",
                 args.name,
-                "--workspace",
-                anchor["workspace_id"],
-                "--tab",
-                anchor["tab_id"],
-                "--split",
-                plan.split,
-                "--cwd",
-                args.cwd,
-                "--no-focus",
+                "--kind",
+                runtime,
+                "--pane",
+                worker_pane_id,
+                "--timeout",
+                str(AGENT_START_TIMEOUT_MS),
             ]
-            for item in args.env:
-                command.extend(["--env", item])
-            command.append("--")
-            command.extend(resolution.command)
+            if agent_arguments:
+                start_command.append("--")
+                start_command.extend(agent_arguments)
 
-            start_payload, start_stdout = _run_json(command)
+            start_payload, start_stdout = _run_json(start_command)
         except HerdrError:
+            if worker_pane_id is not None:
+                # Only the pane this launcher created, and only when the agent
+                # never started in it.
+                try:
+                    _close_pane(worker_pane_id)
+                except HerdrError:
+                    pass
             for resize in reversed(applied_pre_resizes):
                 try:
                     _resize(
@@ -469,8 +518,14 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
         except HerdrError as exc:
             print(f"warning: worker started but focus restore failed: {exc}", file=sys.stderr)
 
-        if start_payload["result"]["agent"]["pane_id"] == args.anchor_pane:
+        started_pane_id = start_payload["result"]["agent"]["pane_id"]
+        if started_pane_id == args.anchor_pane:
             raise HerdrError("Herdr reused the coordinator pane unexpectedly")
+        if started_pane_id != worker_pane_id:
+            raise HerdrError(
+                f"Herdr started the agent in pane {started_pane_id!r}, not the "
+                f"pane Brichan created ({worker_pane_id!r})"
+            )
         sys.stdout.write(start_stdout)
         return 0
     except (HerdrError, KeyError, RoutingError, ValueError) as exc:

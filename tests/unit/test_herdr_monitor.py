@@ -1,16 +1,23 @@
 """Unit matrix for the read-only Herdr monitoring surface.
 
-Every payload in ``FIXTURES`` below was captured from live read-only Herdr
-``0.7.3`` (protocol ``16``) probes on 2026-08-14, before any parser was
-written, exactly as plan ``HERDR-HARDENING-PLAN-001`` version 5 Step 2.1
-requires. No test in this file needs a live Herdr, Codex, or Claude session.
+Every payload below was captured from a live read-only Herdr probe before any
+parser was written, exactly as plan ``HERDR-HARDENING-PLAN-001`` version 5 Step
+2.1 requires. Two control-plane versions are frozen here:
+
+* ``0.7.3`` (protocol ``16``), probed 2026-08-14.
+* ``0.9.1`` (protocol ``22``), probed 2026-09-18 for task ``HERDR-091`` and
+  recorded in ``herdr-0.9.1-probe.md``.
+
+No test in this file needs a live Herdr, Codex, or Claude session.
 
 Probes captured:
 
-* ``herdr status --json``
-* ``herdr integration status`` (the ``--json`` flag exits ``2`` on ``0.7.3``)
-* ``herdr agent get`` / ``herdr agent read`` JSON envelopes, including the
-  ``agent_not_found`` error shape
+* ``herdr status --json`` on both versions
+* ``herdr integration status`` on both versions (the ``--json`` flag exits
+  ``2`` on both), including the ``0.9.1`` ``outdated (vN < vM)`` and
+  ``<runtime> (experimental)`` row shapes
+* ``herdr agent get`` JSON envelopes, including the ``agent_not_found`` error
+  shape, and the ``0.9.1`` ``herdr agent read`` plain-text output
 * ``herdr agent explain --json``, including the ``trust_directory`` failure
 """
 
@@ -78,6 +85,74 @@ INTEGRATION_TEXT = (
     "mastracode: not installed (/Users/example/.mastracode/hooks/herdr-agent-state.sh)\n"
 )
 
+# ---------------------------------------------------------------------------
+# Fixtures frozen from the live Herdr 0.9.1 read-only probe (2026-09-18)
+# ---------------------------------------------------------------------------
+
+#: ``herdr status --json`` on ``0.9.1``. Keys were added, none removed; every
+#: field ``parse_status_payload`` requires is still present in the same place.
+STATUS_JSON_091 = {
+    "client": {
+        "version": "0.9.1",
+        "channel": "stable",
+        "protocol": 22,
+        "endpoint_protocol_generation": 1,
+        "endpoint_capabilities": ["surface_interest", "health_check"],
+        "remote_host_bridge": True,
+        "binary": "/Users/example/.local/bin/herdr",
+        "session": None,
+    },
+    "server": {
+        "status": "running",
+        "running": True,
+        "version": "0.9.1",
+        "protocol": 22,
+        "capabilities": {
+            "live_handoff": True,
+            "detached_server_daemon": True,
+            "surface_interest": True,
+            "health_check": True,
+        },
+        "compatible": True,
+        "endpoint_compatible": True,
+        "socket": "/Users/example/.config/herdr/herdr.sock",
+        "session": None,
+        "restart_needed": False,
+        "server_binary_stale": False,
+    },
+    "update": {"restart_needed": False, "server_binary_stale": False},
+}
+
+#: ``herdr integration status`` on ``0.9.1``, verbatim row shapes with the
+#: probe's home paths replaced by an example home. Four runtimes are new
+#: (``qwen``, ``antigravity-cli``, ``grok``, ``letta``), two rows carry the new
+#: ``outdated (vN < vM)`` comparison, and one carries the ``(experimental)``
+#: runtime qualifier.
+INTEGRATION_TEXT_091 = (
+    "pi: not installed (/Users/example/.pi/agent/extensions/herdr-agent-state.ts)\n"
+    "omp: not installed (/Users/example/.omp/agent/extensions/herdr-omp-agent-state.ts)\n"
+    "claude: current (v10) (/Users/example/.claude/hooks/herdr-agent-state.sh)\n"
+    "codex: current (v8) (/Users/example/.codex/herdr-agent-state.sh)\n"
+    "copilot: not installed (/Users/example/.copilot/hooks/herdr-agent-state.sh)\n"
+    "devin: not installed (/Users/example/.config/devin/herdr-agent-state.sh)\n"
+    "droid: outdated (v2 < v3) (/Users/example/.factory/hooks/herdr-agent-state.sh)\n"
+    "kimi: not installed (/Users/example/.kimi-code/hooks/herdr-agent-state.sh)\n"
+    "opencode: outdated (v8 < v12) "
+    "(/Users/example/.config/opencode/plugins/herdr-agent-state.js)\n"
+    "kilo: not installed (/Users/example/.config/kilo/plugin/herdr-agent-state.js)\n"
+    "hermes: not installed (/Users/example/.hermes/plugins/herdr-agent-state/__init__.py)\n"
+    "qodercli: not installed (/Users/example/.qoder/hooks/herdr-agent-state.sh)\n"
+    "qwen: not installed (/Users/example/.qwen/hooks/herdr-agent-session.sh)\n"
+    "cursor: current (v1) (/Users/example/.cursor/herdr-agent-state.sh)\n"
+    "mastracode: not installed (/Users/example/.mastracode/hooks/herdr-agent-state.sh)\n"
+    "antigravity-cli: not installed "
+    "(/Users/example/.gemini/config/hooks/herdr-agent-state.sh)\n"
+    "grok: not installed (/Users/example/.grok/hooks/herdr-agent-state.sh)\n"
+    "letta (experimental): not installed "
+    "(/Users/example/.letta/hooks/herdr-agent-session.sh)\n"
+)
+
+
 AGENT_GET_JSON = {
     "id": "cli:agent:get",
     "result": {
@@ -97,22 +172,10 @@ AGENT_GET_JSON = {
     },
 }
 
-AGENT_READ_JSON = {
-    "id": "cli:agent:read",
-    "result": {
-        "read": {
-            "format": "text",
-            "pane_id": "w37:p8",
-            "revision": 0,
-            "source": "recent_unwrapped",
-            "tab_id": "w37:t1",
-            "text": "line one\nline two\nline three",
-            "truncated": False,
-            "workspace_id": "w37",
-        },
-        "type": "pane_read",
-    },
-}
+#: ``herdr agent read <target> --source recent-unwrapped --lines N`` on
+#: ``0.9.1``. There is no envelope: the terminal snapshot itself is stdout, and
+#: nothing in it reports a source, a line count, or a ``truncated`` flag.
+AGENT_READ_TEXT = "line one\nline two\nline three"
 
 AGENT_NOT_FOUND_JSON = {
     "error": {
@@ -193,11 +256,17 @@ def fail(message="boom", code=1):
 
 
 def healthy_responses(**overrides):
+    """The supported control plane. Since plan v3 that is Herdr ``0.9.1``.
+
+    A 0.7.3 status payload is no longer "healthy": it reports
+    ``unverified-version``, which ``PreflightGateTest`` asserts explicitly.
+    """
+
     responses = {
-        "status": ok_json(STATUS_JSON),
+        "status": ok_json(STATUS_JSON_091),
         "integration status": ok_text(INTEGRATION_TEXT),
         "agent get": ok_json(AGENT_GET_JSON),
-        "agent read": ok_json(AGENT_READ_JSON),
+        "agent read": ok_text(AGENT_READ_TEXT),
         "agent explain": ok_json(EXPLAIN_HEALTHY_JSON),
     }
     responses.update(overrides)
@@ -205,7 +274,7 @@ def healthy_responses(**overrides):
 
 
 def status_with(**changes):
-    payload = copy.deepcopy(STATUS_JSON)
+    payload = copy.deepcopy(STATUS_JSON_091)
     for dotted, value in changes.items():
         section, _, field = dotted.partition("__")
         payload[section][field] = value
@@ -259,7 +328,7 @@ class ReadOnlyAllowlistTest(unittest.TestCase):
                 "200",
             ],
             ["herdr", "agent", "explain", "brichan-worker", "--json"],
-            ["herdr", "agent", "wait", "w", "--status", "idle", "--timeout", "30000"],
+            ["herdr", "agent", "wait", "w", "--until", "idle", "--timeout", "30000"],
         ):
             monitor.assert_read_only(argv)
 
@@ -353,9 +422,9 @@ class ReadOnlyAllowlistTest(unittest.TestCase):
                 "agent",
                 "wait",
                 "w",
-                "--status",
+                "--until",
                 "idle",
-                "--status",
+                "--until",
                 "blocked",
                 "--timeout",
                 "100",
@@ -383,7 +452,7 @@ class ReadOnlyAllowlistTest(unittest.TestCase):
             ["herdr", "agent", "explain", "brichan-worker"],
             ["herdr", "agent", "read", "brichan-worker", "--lines", "200"],
             ["herdr", "agent", "read", "brichan-worker", "--source", "recent-unwrapped"],
-            ["herdr", "agent", "wait", "w", "--status", "idle"],
+            ["herdr", "agent", "wait", "w", "--until", "idle"],
             ["herdr", "agent", "wait", "w", "--timeout", "100"],
         ):
             with self.assertRaises(monitor.MonitorError, msg=argv):
@@ -391,13 +460,39 @@ class ReadOnlyAllowlistTest(unittest.TestCase):
 
     def test_options_missing_their_value_are_refused(self):
         for argv in (
-            ["herdr", "agent", "wait", "w", "--status", "idle", "--timeout"],
-            ["herdr", "agent", "wait", "w", "--timeout", "--status", "idle"],
+            ["herdr", "agent", "wait", "w", "--until", "idle", "--timeout"],
+            ["herdr", "agent", "wait", "w", "--timeout", "--until", "idle"],
             ["herdr", "agent", "read", "brichan-worker", "--source", "--lines", "200"],
             ["herdr", "agent", "read", "brichan-worker", "--source", "recent", "--lines"],
         ):
             with self.assertRaises(monitor.MonitorError, msg=argv):
                 monitor.assert_read_only(argv)
+
+    def test_the_removed_status_wait_option_is_refused(self):
+        """Herdr 0.9.1 removed ``--status``; the client exits 2 on it.
+
+        Emitting it would turn every bounded wait into an immediate usage
+        error, so the grammar must reject it here rather than let it reach the
+        client.
+        """
+
+        for argv in (
+            ["herdr", "agent", "wait", "w", "--status", "idle", "--timeout", "30000"],
+            ["herdr", "agent", "wait", "w", "--until", "idle",
+             "--status", "blocked", "--timeout", "30000"],
+        ):
+            with self.assertRaises(monitor.MonitorError, msg=argv):
+                monitor.assert_read_only(argv)
+        self.assertNotIn(
+            "--status", monitor.COMMAND_GRAMMARS[("agent", "wait")].options
+        )
+        self.assertIn("--until", monitor.COMMAND_GRAMMARS[("agent", "wait")].required)
+
+    def test_wait_argv_spells_the_state_option_as_until(self):
+        argv = monitor.wait_argv("brichan-worker", "idle")
+        self.assertIn("--until", argv)
+        self.assertNotIn("--status", argv)
+        self.assertEqual("idle", argv[argv.index("--until") + 1])
 
     def test_each_command_is_bound_to_its_required_adapter(self):
         runner = FakeRunner(healthy_responses())
@@ -440,12 +535,12 @@ class BoundedWaitTest(unittest.TestCase):
                 monitor.wait_argv("brichan-worker", "idle", timeout)
 
     def test_hand_assembled_wait_argv_cannot_exceed_the_cap(self):
-        argv = ["herdr", "agent", "wait", "w", "--status", "idle", "--timeout", "45000"]
+        argv = ["herdr", "agent", "wait", "w", "--until", "idle", "--timeout", "45000"]
         with self.assertRaises(monitor.MonitorError):
             monitor.assert_read_only(argv)
 
     def test_wait_without_a_timeout_is_rejected(self):
-        argv = ["herdr", "agent", "wait", "w", "--status", "idle"]
+        argv = ["herdr", "agent", "wait", "w", "--until", "idle"]
         with self.assertRaises(monitor.MonitorError):
             monitor.assert_read_only(argv)
 
@@ -455,10 +550,10 @@ class BoundedWaitTest(unittest.TestCase):
         for second in ("30001", "60000", "999999999"):
             for argv in (
                 # An in-cap decoy first, the real over-cap value second.
-                ["herdr", "agent", "wait", "w", "--status", "idle",
+                ["herdr", "agent", "wait", "w", "--until", "idle",
                  "--timeout", "100", "--timeout", second],
                 # And the reverse order.
-                ["herdr", "agent", "wait", "w", "--status", "idle",
+                ["herdr", "agent", "wait", "w", "--until", "idle",
                  "--timeout", second, "--timeout", "100"],
             ):
                 with self.assertRaises(monitor.MonitorError, msg=argv):
@@ -466,7 +561,7 @@ class BoundedWaitTest(unittest.TestCase):
 
     def test_a_duplicate_in_cap_timeout_is_still_refused(self):
         argv = [
-            "herdr", "agent", "wait", "w", "--status", "idle",
+            "herdr", "agent", "wait", "w", "--until", "idle",
             "--timeout", "100", "--timeout", "200",
         ]
         with self.assertRaises(monitor.MonitorError):
@@ -475,7 +570,7 @@ class BoundedWaitTest(unittest.TestCase):
     def test_a_non_integer_or_non_positive_timeout_is_refused(self):
         for value in ("abc", "", "-1", "0", "1e9", "30000.0"):
             argv = [
-                "herdr", "agent", "wait", "w", "--status", "idle", "--timeout", value,
+                "herdr", "agent", "wait", "w", "--until", "idle", "--timeout", value,
             ]
             with self.assertRaises(monitor.MonitorError, msg=value):
                 monitor.assert_read_only(argv)
@@ -694,6 +789,62 @@ class IntegrationParserTest(unittest.TestCase):
         for row in rows:
             self.assertEqual("current", row.status)
 
+    def test_every_live_0_9_1_row_parses_as_valid(self):
+        rows = monitor.parse_integration_rows(INTEGRATION_TEXT_091)
+        self.assertEqual(18, len(rows))
+        for row in rows:
+            self.assertEqual("valid", row.classification, row.index)
+        by_runtime = {row.runtime: row.status for row in rows}
+        self.assertEqual("outdated", by_runtime["droid"])
+        self.assertEqual("outdated", by_runtime["opencode"])
+        self.assertEqual("current", by_runtime["claude"])
+        self.assertEqual("current", by_runtime["codex"])
+
+    def test_the_experimental_qualifier_is_matched_but_never_recorded(self):
+        rows = monitor.parse_integration_rows(
+            "letta (experimental): not installed (/Users/example/.letta/hook.sh)\n"
+        )
+        self.assertEqual(1, len(rows))
+        self.assertEqual("valid", rows[0].classification)
+        self.assertEqual("letta", rows[0].runtime)
+        self.assertEqual("not installed", rows[0].status)
+        self.assertNotIn("experimental", json.dumps(rows[0].as_dict()))
+
+    def test_the_upgrade_comparison_version_group_is_bounded_and_dropped(self):
+        rows = monitor.parse_integration_rows(
+            "droid: outdated (v2 < v3) (/Users/example/.factory/hook.sh)\n"
+        )
+        self.assertEqual("valid", rows[0].classification)
+        self.assertEqual("droid", rows[0].runtime)
+        self.assertEqual("outdated", rows[0].status)
+        self.assertNotIn("v2", json.dumps(rows[0].as_dict()))
+
+    def test_the_four_new_0_9_1_runtimes_are_known(self):
+        for runtime in ("qwen", "antigravity-cli", "grok", "letta"):
+            self.assertIn(runtime, monitor.KNOWN_INTEGRATION_RUNTIMES, runtime)
+
+    def test_the_widened_grammar_still_rejects_genuinely_malformed_rows(self):
+        """The qualifier and comparison are literal, not an escape hatch."""
+
+        for line in (
+            "letta (experimental): not installed",
+            "letta (experimental) (/Users/example/.letta/hook.sh)",
+            "letta (unstable): not installed (/Users/example/.letta/hook.sh)",
+            "letta (experimental) (experimental): not installed "
+            "(/Users/example/.letta/hook.sh)",
+            "droid: outdated (v2 < v3) /Users/example/.factory/hook.sh",
+            "droid: outdated (v2 < ) (/Users/example/.factory/hook.sh)",
+            "droid: outdated (v2 < v3 < v4) (/Users/example/.factory/hook.sh)",
+            "droid: outdated (v2 > v3) (/Users/example/.factory/hook.sh)",
+            "droid: outdated (v2 < v3) (~/.factory/hook.sh)",
+            "droid: outdated (v2 < v3) (/Users/example/.factory/hook.sh) extra",
+        ):
+            rows = monitor.parse_integration_rows(line + "\n")
+            self.assertEqual("malformed-row", rows[0].classification, line)
+            self.assertEqual("", rows[0].runtime, line)
+            self.assertEqual("", rows[0].status, line)
+            self.assertNotIn("/Users/", json.dumps(rows[0].as_dict()), line)
+
     def test_nonzero_integration_exit_is_a_collected_finding(self):
         runner = FakeRunner(
             healthy_responses(**{"integration status": fail("usage:", code=2)})
@@ -723,9 +874,65 @@ class PreflightGateTest(unittest.TestCase):
     def test_verified_version_and_protocol(self):
         report = monitor.run_preflight(runner=FakeRunner(healthy_responses()))
         self.assertEqual(monitor.SUPPORT_VERIFIED, report.support)
+        self.assertEqual("0.9.1", report.server_version)
+        self.assertEqual(22, report.protocol)
+        self.assertNotIn("unverified-version", report.findings)
+
+    def test_0_9_1_is_the_only_verified_pair(self):
+        """Plan v3: 0.9.1 is the minimum supported Herdr.
+
+        The text-only read adapter cannot parse a 0.7.3 JSON read envelope, so
+        claiming 0.7.3 as verified would be a promise the adapter cannot keep.
+        """
+
+        self.assertEqual(frozenset({("0.9.1", 22)}), monitor.VERIFIED_SUPPORT)
+        report = monitor.run_preflight(
+            runner=FakeRunner(healthy_responses(status=ok_json(STATUS_JSON_091)))
+        )
+        self.assertEqual(monitor.SUPPORT_VERIFIED, report.support)
+        self.assertEqual("0.9.1", report.server_version)
+        self.assertEqual(22, report.protocol)
+        self.assertNotIn("unverified-version", report.findings)
+
+    def test_0_7_3_now_reports_unverified_and_is_not_blocked(self):
+        """Dropping 0.7.3 reports a state; it never refuses to report.
+
+        The whole preflight still runs against a 0.7.3 payload — integration
+        rows are still parsed, nothing is updated or installed — so an operator
+        on an old server gets a report plus a finding, not a hard failure.
+        """
+
+        self.assertNotIn(("0.7.3", 16), monitor.VERIFIED_SUPPORT)
+        runner = FakeRunner(healthy_responses(status=ok_json(STATUS_JSON)))
+        report = monitor.run_preflight(runner=runner)
+        self.assertEqual(monitor.SUPPORT_UNVERIFIED, report.support)
+        self.assertIn("unverified-version", report.findings)
         self.assertEqual("0.7.3", report.server_version)
         self.assertEqual(16, report.protocol)
-        self.assertNotIn("unverified-version", report.findings)
+        self.assertEqual(14, len(report.integrations))
+        for argv in runner.calls:
+            self.assertNotIn("install", argv)
+            self.assertNotIn("update", argv)
+
+    def test_the_live_0_9_1_control_plane_reports_no_row_findings(self):
+        """AC3 at the unit layer: no malformed-row, no unknown-row."""
+
+        report = monitor.run_preflight(
+            runner=FakeRunner(
+                healthy_responses(
+                    status=ok_json(STATUS_JSON_091),
+                    **{"integration status": ok_text(INTEGRATION_TEXT_091)},
+                )
+            )
+        )
+        self.assertEqual(monitor.SUPPORT_VERIFIED, report.support)
+        for finding in report.findings:
+            self.assertFalse(finding.startswith("malformed-row"), finding)
+            self.assertFalse(finding.startswith("unknown-row"), finding)
+        # droid and opencode are genuinely outdated on the probed machine, and
+        # outdated stays a finding for every runtime.
+        self.assertIn("integration-unhealthy(droid=outdated)", report.findings)
+        self.assertIn("integration-unhealthy(opencode=outdated)", report.findings)
 
     def test_version_outside_the_verified_set_is_unverified_not_a_block(self):
         runner = FakeRunner(
@@ -853,6 +1060,33 @@ class StatusSchemaTest(unittest.TestCase):
         self.assertIs(False, fields["server_restart_needed"])
         self.assertIs(False, fields["update_restart_needed"])
 
+    def test_the_frozen_live_0_9_1_payload_validates_unchanged(self):
+        """0.9.1 added keys and removed none, so the schema still holds."""
+
+        fields = monitor.parse_status_payload(STATUS_JSON_091)
+        self.assertEqual("0.9.1", fields["server_version"])
+        self.assertEqual("0.9.1", fields["client_version"])
+        self.assertEqual(22, fields["protocol"])
+        self.assertIs(True, fields["compatible"])
+        self.assertIs(False, fields["server_restart_needed"])
+        self.assertIs(False, fields["update_restart_needed"])
+
+    def test_each_required_field_absent_from_the_0_9_1_payload_is_invalid(self):
+        for section, field in (
+            ("client", "version"),
+            ("server", "version"),
+            ("server", "protocol"),
+            ("server", "compatible"),
+            ("server", "restart_needed"),
+            ("update", "restart_needed"),
+        ):
+            payload = copy.deepcopy(STATUS_JSON_091)
+            del payload[section][field]
+            with self.assertRaises(
+                monitor.StatusSchemaError, msg=f"{section}.{field}"
+            ):
+                monitor.parse_status_payload(payload)
+
 
 class CapabilityFindingTest(unittest.TestCase):
     def test_trust_directory_explain_failure_is_reported_not_repaired(self):
@@ -918,15 +1152,61 @@ class TruncationTest(unittest.TestCase):
             ),
         )
 
-    def test_partial_payload_without_a_native_flag_yields_confirmed(self):
+    def test_an_absent_native_flag_on_a_successful_read_yields_possible(self):
+        """Herdr 0.9.1 reports no native flag; a successful read is bounded.
+
+        It must not be reported as ``confirmed`` — that would make every
+        healthy worker look truncated — and it must not be able to reach
+        ``none``, which the next test pins.
+        """
+
         self.assertEqual(
-            monitor.TRUNCATION_CONFIRMED,
+            monitor.TRUNCATION_POSSIBLE,
             monitor.classify_truncation(
                 read_failed=False,
                 native_truncated=None,
                 lines_counted=5,
                 lines_requested=200,
                 source="recent-unwrapped",
+            ),
+        )
+
+    def test_an_absent_native_flag_can_never_reach_none(self):
+        """Even a stubbed completeness capability cannot promise completeness.
+
+        Without a native flag nothing distinguishes a full screen from a
+        clipped one, so rule 2 has to win over the capability rule. If this
+        ordering were reversed, a 0.9.1 read would claim ``none``.
+        """
+
+        capability = {monitor.completeness_token("recent-unwrapped")}
+        for counted in (0, 1, 3, 199, 200, 500):
+            self.assertEqual(
+                monitor.TRUNCATION_POSSIBLE,
+                monitor.classify_truncation(
+                    read_failed=False,
+                    native_truncated=None,
+                    lines_counted=counted,
+                    lines_requested=200,
+                    source="recent-unwrapped",
+                    capabilities=capability,
+                ),
+                counted,
+            )
+
+    def test_a_failed_read_without_a_native_flag_is_still_confirmed(self):
+        """Rule 1 keeps precedence over the new absent-flag rule."""
+
+        capability = {monitor.completeness_token("recent-unwrapped")}
+        self.assertEqual(
+            monitor.TRUNCATION_CONFIRMED,
+            monitor.classify_truncation(
+                read_failed=True,
+                native_truncated=None,
+                lines_counted=0,
+                lines_requested=200,
+                source="recent-unwrapped",
+                capabilities=capability,
             ),
         )
 
@@ -987,8 +1267,12 @@ class TruncationTest(unittest.TestCase):
         self.assertEqual(1, monitor.count_lines("one"))
         self.assertEqual(3, monitor.count_lines("a\nb\nc"))
         self.assertEqual(3, monitor.count_lines("a\nb\nc\n"))
-        # Herdr 0.7.3 reports no line-count field, so nothing else can supply it.
-        self.assertNotIn("lines", AGENT_READ_JSON["result"]["read"])
+        # Herdr 0.9.1 writes bare terminal text, so the count can come from
+        # nowhere but the adapter itself.
+        self.assertEqual(
+            monitor.count_lines(AGENT_READ_TEXT),
+            len(AGENT_READ_TEXT.splitlines()),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -1016,29 +1300,38 @@ class ObservationTest(unittest.TestCase):
             )
             self.assertEqual(state, observation.scheduling_state)
 
-    def test_a_healthy_read_is_possible_not_none_on_0_7_3(self):
+    def test_a_healthy_text_read_is_possible_not_none_on_0_9_1(self):
         observation = monitor.observe_agent(
             "brichan-worker", runner=FakeRunner(healthy_responses()), lines=200
         )
         self.assertEqual(monitor.TRUNCATION_POSSIBLE, observation.truncation_risk)
-        self.assertIs(False, observation.native_truncated)
+        self.assertIsNone(observation.native_truncated)
+        self.assertIsNone(observation.source_reported)
+        self.assertEqual(AGENT_READ_TEXT, observation.text)
         self.assertEqual(3, observation.lines_counted)
         self.assertEqual(200, observation.lines_requested)
         self.assertEqual("recent-unwrapped", observation.source)
-        self.assertEqual("recent_unwrapped", observation.source_reported)
         self.assertIsNone(observation.read_error)
+        self.assertNotIn("read-failed", observation.findings)
 
-    def test_native_truncated_read_is_confirmed(self):
-        payload = copy.deepcopy(AGENT_READ_JSON)
-        payload["result"]["read"]["truncated"] = True
-        observation = monitor.observe_agent(
-            "brichan-worker",
-            runner=FakeRunner(healthy_responses(**{"agent read": ok_json(payload)})),
+    def test_the_read_argv_pins_the_text_format(self):
+        """Nothing may inherit a changed client default and parse ANSI bytes."""
+
+        runner = FakeRunner(healthy_responses())
+        monitor.observe_agent("brichan-worker", runner=runner)
+        read = next(
+            argv for argv in runner.calls if argv[1:3] == ["agent", "read"]
         )
-        self.assertEqual(monitor.TRUNCATION_CONFIRMED, observation.truncation_risk)
+        self.assertEqual("text", read[read.index("--format") + 1])
+        monitor.assert_read_only(read)
 
     def test_read_failure_is_a_collected_finding_not_a_failed_report(self):
-        for response in (fail("read failed"), ok_text("not json"), ok_json({"result": {}})):
+        for response in (
+            fail("read failed"),
+            fail("unknown option: --format", code=2),
+            ok_text(""),
+            ok_text("   \n\n"),
+        ):
             observation = monitor.observe_agent(
                 "brichan-worker",
                 runner=FakeRunner(healthy_responses(**{"agent read": response})),
@@ -1047,8 +1340,24 @@ class ObservationTest(unittest.TestCase):
             self.assertIsNotNone(observation.read_error)
             self.assertEqual(monitor.TRUNCATION_CONFIRMED, observation.truncation_risk)
             self.assertEqual("", observation.text)
+            self.assertIsNone(observation.native_truncated)
             # The scheduling probe still succeeded, so the report exists.
             self.assertEqual("working", observation.scheduling_state)
+
+    def test_a_failed_read_cannot_reach_none_even_with_a_stubbed_capability(self):
+        """The H1 invariant, carried over to the plain-text read path."""
+
+        capability = {monitor.completeness_token("recent-unwrapped")}
+        for response in (fail("read failed"), ok_text(""), ok_text("  \n")):
+            observation = monitor.observe_agent(
+                "brichan-worker",
+                runner=FakeRunner(healthy_responses(**{"agent read": response})),
+                lines=200,
+                capabilities=capability,
+            )
+            self.assertEqual(
+                monitor.TRUNCATION_CONFIRMED, observation.truncation_risk
+            )
 
     def test_agent_get_failure_makes_the_report_impossible(self):
         for response in (
@@ -1063,37 +1372,21 @@ class ObservationTest(unittest.TestCase):
                     runner=FakeRunner(healthy_responses(**{"agent get": response})),
                 )
 
-    # -- code review v2, finding H1: no partial read may reach `none` ---------
+    # -- code review v2, finding H1, on the 0.9.1 plain-text read path -------
 
-    #: Every payload here is a *successful* command (exit 0, valid JSON) that
-    #: is nonetheless a partial read. Each must be treated as failed.
-    PARTIAL_READ_PAYLOADS = {
-        "missing source": {"text": "a\nb", "truncated": False},
-        "null source": {"text": "a\nb", "truncated": False, "source": None},
-        "mistyped source": {"text": "a\nb", "truncated": False, "source": 7},
-        "empty source": {"text": "a\nb", "truncated": False, "source": "   "},
-        "mismatched source": {
-            "text": "a\nb",
-            "truncated": False,
-            "source": "visible",
-        },
-        "missing truncated": {"text": "a\nb", "source": "recent_unwrapped"},
-        "mistyped truncated": {
-            "text": "a\nb",
-            "truncated": "false",
-            "source": "recent_unwrapped",
-        },
-        "missing text": {"truncated": False, "source": "recent_unwrapped"},
-        "mistyped text": {
-            "text": ["a", "b"],
-            "truncated": False,
-            "source": "recent_unwrapped",
-        },
-        "empty read record": {},
+    #: Every entry is a command that exited ``0`` and is nonetheless not a
+    #: usable read. On ``0.7.3`` these were partial JSON envelopes; on ``0.9.1``
+    #: stdout *is* the read, so the equivalent defect is stdout that carries no
+    #: screen at all. A live pane always shows at least a shell prompt, so each
+    #: of these must be treated as failed rather than as a zero-line
+    #: observation.
+    EMPTY_READ_STDOUTS = {
+        "empty stdout": "",
+        "single newline": "\n",
+        "blank lines": "\n\n\n",
+        "spaces only": "    ",
+        "tabs and newlines": "\t\n \n",
     }
-
-    def _read_response(self, read_node):
-        return ok_json({"id": "cli:agent:read", "result": {"read": read_node}})
 
     def test_canonical_source_normalizes_the_live_spelling_pair(self):
         self.assertEqual(
@@ -1106,20 +1399,25 @@ class ObservationTest(unittest.TestCase):
             monitor.canonical_source("recent-unwrapped"),
         )
 
-    def test_the_live_underscore_source_spelling_is_accepted(self):
+    def test_the_read_reports_no_source_because_0_9_1_reports_none(self):
+        """The adapter states what it does not know instead of echoing input.
+
+        Reporting ``source_reported`` as the source that was *requested* would
+        manufacture a confirmation the control plane never gave.
+        """
+
         observation = monitor.observe_agent(
             "brichan-worker", runner=FakeRunner(healthy_responses())
         )
         self.assertIsNone(observation.read_error)
-        self.assertEqual("recent_unwrapped", observation.source_reported)
+        self.assertIsNone(observation.source_reported)
+        self.assertEqual("recent-unwrapped", observation.source)
 
-    def test_every_partial_read_payload_is_treated_as_failed(self):
-        for label, read_node in self.PARTIAL_READ_PAYLOADS.items():
+    def test_every_empty_read_is_treated_as_failed(self):
+        for label, stdout in self.EMPTY_READ_STDOUTS.items():
             observation = monitor.observe_agent(
                 "brichan-worker",
-                runner=FakeRunner(
-                    healthy_responses(**{"agent read": self._read_response(read_node)})
-                ),
+                runner=FakeRunner(healthy_responses(**{"agent read": ok_text(stdout)})),
             )
             self.assertIn("read-failed", observation.findings, label)
             self.assertIsNotNone(observation.read_error, label)
@@ -1130,27 +1428,30 @@ class ObservationTest(unittest.TestCase):
             self.assertIsNone(observation.native_truncated, label)
             self.assertIsNone(observation.source_reported, label)
 
-    def test_no_partial_read_can_reach_none_even_with_a_stubbed_capability(self):
-        """The H1 regression: a short partial payload must never look complete."""
+    def test_no_empty_read_can_reach_none_even_with_a_stubbed_capability(self):
+        """The H1 regression: a contentless read must never look complete."""
 
         capability = {monitor.completeness_token("recent-unwrapped")}
-        for label, read_node in self.PARTIAL_READ_PAYLOADS.items():
+        for label, stdout in self.EMPTY_READ_STDOUTS.items():
             observation = monitor.observe_agent(
                 "brichan-worker",
-                runner=FakeRunner(
-                    healthy_responses(**{"agent read": self._read_response(read_node)})
-                ),
+                runner=FakeRunner(healthy_responses(**{"agent read": ok_text(stdout)})),
                 lines=200,
                 capabilities=capability,
-            )
-            self.assertNotEqual(
-                monitor.TRUNCATION_NONE, observation.truncation_risk, label
             )
             self.assertEqual(
                 monitor.TRUNCATION_CONFIRMED, observation.truncation_risk, label
             )
 
-    def test_only_a_complete_short_read_reaches_none_with_a_capability(self):
+    def test_not_even_a_healthy_short_read_reaches_none_with_a_capability(self):
+        """On 0.9.1 ``none`` is unreachable through the CLI at all.
+
+        ``classify_truncation`` can still return ``none`` when it is handed an
+        explicit ``native_truncated=False`` — ``TruncationTest`` pins that, so
+        this assertion is not passing because the rule is inert. The adapter
+        simply never has such a flag to hand it.
+        """
+
         capability = {monitor.completeness_token("recent-unwrapped")}
         observation = monitor.observe_agent(
             "brichan-worker",
@@ -1158,22 +1459,39 @@ class ObservationTest(unittest.TestCase):
             lines=200,
             capabilities=capability,
         )
-        self.assertEqual(monitor.TRUNCATION_NONE, observation.truncation_risk)
+        self.assertEqual(monitor.TRUNCATION_POSSIBLE, observation.truncation_risk)
         self.assertIsNone(observation.read_error)
 
-    def test_parse_read_payload_rejects_each_partial_shape_directly(self):
-        for label, read_node in self.PARTIAL_READ_PAYLOADS.items():
-            payload = {"result": {"read": read_node}}
+    def test_parse_read_payload_rejects_each_contentless_read_directly(self):
+        for label, stdout in self.EMPTY_READ_STDOUTS.items():
             with self.assertRaises(monitor.AdapterError, msg=label):
-                monitor.parse_read_payload(payload, "brichan-worker", "recent-unwrapped")
+                monitor.parse_read_payload(stdout, "brichan-worker", 200)
 
-    def test_parse_read_payload_accepts_the_frozen_live_envelope(self):
-        parsed = monitor.parse_read_payload(
-            AGENT_READ_JSON, "brichan-worker", "recent-unwrapped"
-        )
-        self.assertEqual("recent_unwrapped", parsed["source"])
-        self.assertIs(False, parsed["truncated"])
-        self.assertEqual("line one\nline two\nline three", parsed["text"])
+    def test_parse_read_payload_accepts_the_frozen_live_text(self):
+        parsed = monitor.parse_read_payload(AGENT_READ_TEXT, "brichan-worker", 200)
+        self.assertEqual(AGENT_READ_TEXT, parsed["text"])
+        self.assertIsNone(parsed["truncated"])
+        self.assertIsNone(parsed["source"])
+
+    def test_the_read_adapter_refuses_the_json_path(self):
+        """0.9.1 has no JSON read form, so the JSON adapter must not run one."""
+
+        runner = FakeRunner(healthy_responses())
+        with self.assertRaises(monitor.MonitorError):
+            monitor.run_json(
+                [
+                    "herdr",
+                    "agent",
+                    "read",
+                    "brichan-worker",
+                    "--source",
+                    "recent-unwrapped",
+                    "--lines",
+                    "200",
+                ],
+                runner,
+            )
+        self.assertEqual([], runner.calls)
 
     # -- code review v3, finding M1-v3: malformed outer envelopes ------------
 
@@ -1197,41 +1515,9 @@ class ObservationTest(unittest.TestCase):
 
     def test_envelope_result_returns_the_object_when_well_formed(self):
         self.assertEqual(
-            AGENT_READ_JSON["result"],
-            monitor.envelope_result(AGENT_READ_JSON, "herdr agent read w"),
+            AGENT_GET_JSON["result"],
+            monitor.envelope_result(AGENT_GET_JSON, "herdr agent get w"),
         )
-
-    def test_a_malformed_result_on_the_read_path_is_an_owned_read_failure(self):
-        for label, payload in self.MALFORMED_RESULT_ENVELOPES.items():
-            observation = monitor.observe_agent(
-                "brichan-worker",
-                runner=FakeRunner(
-                    healthy_responses(**{"agent read": ok_json(payload)})
-                ),
-            )
-            self.assertIn("read-failed", observation.findings, label)
-            self.assertIsNotNone(observation.read_error, label)
-            self.assertEqual(
-                monitor.TRUNCATION_CONFIRMED, observation.truncation_risk, label
-            )
-            self.assertEqual("", observation.text, label)
-            # The primary probe still succeeded, so the report exists.
-            self.assertEqual("working", observation.scheduling_state, label)
-
-    def test_a_malformed_result_read_cannot_reach_none_with_a_capability(self):
-        capability = {monitor.completeness_token("recent-unwrapped")}
-        for label, payload in self.MALFORMED_RESULT_ENVELOPES.items():
-            observation = monitor.observe_agent(
-                "brichan-worker",
-                runner=FakeRunner(
-                    healthy_responses(**{"agent read": ok_json(payload)})
-                ),
-                lines=200,
-                capabilities=capability,
-            )
-            self.assertEqual(
-                monitor.TRUNCATION_CONFIRMED, observation.truncation_risk, label
-            )
 
     def test_a_malformed_result_on_the_get_path_is_an_owned_adapter_error(self):
         for label, payload in self.MALFORMED_RESULT_ENVELOPES.items():
@@ -1243,7 +1529,7 @@ class ObservationTest(unittest.TestCase):
         """Anything not derived from MonitorError would escape as a traceback."""
 
         for label, payload in self.MALFORMED_RESULT_ENVELOPES.items():
-            for command in ("agent get", "agent read"):
+            for command in ("agent get",):
                 runner = FakeRunner(
                     healthy_responses(**{command: ok_json(payload)})
                 )
@@ -1699,11 +1985,11 @@ class ExitTableTest(unittest.TestCase):
         self.assertEqual("confirmed", report["truncation_risk"])
         self.assertIsNotNone(report["read_error"])
 
-    def test_a_malformed_result_envelope_read_is_collected_at_0(self):
-        """Code review v3, finding M1-v3, through the exit table."""
+    def test_an_empty_read_is_collected_at_0(self):
+        """The 0.9.1 analogue of the M1-v3 row, through the exit table."""
 
-        for label, payload in ObservationTest.MALFORMED_RESULT_ENVELOPES.items():
-            runner = FakeRunner(healthy_responses(**{"agent read": ok_json(payload)}))
+        for label, stdout in ObservationTest.EMPTY_READ_STDOUTS.items():
+            runner = FakeRunner(healthy_responses(**{"agent read": ok_text(stdout)}))
             out, _ = self.assert_exit(0, ["observe", "brichan-worker"], runner)
             report = json.loads(out)
             self.assertIn("read-failed", report["findings"], label)
@@ -1719,11 +2005,11 @@ class ExitTableTest(unittest.TestCase):
 
     def test_truncation_risk_states_are_collected_at_0(self):
         out, _ = self.assert_exit(0, ["observe", "brichan-worker"])
-        self.assertEqual("possible", json.loads(out)["truncation_risk"])
+        report = json.loads(out)
+        self.assertEqual("possible", report["truncation_risk"])
+        self.assertIsNone(report["native_truncated"])
 
-        payload = copy.deepcopy(AGENT_READ_JSON)
-        payload["result"]["read"]["truncated"] = True
-        runner = FakeRunner(healthy_responses(**{"agent read": ok_json(payload)}))
+        runner = FakeRunner(healthy_responses(**{"agent read": fail("read failed")}))
         out, _ = self.assert_exit(0, ["observe", "brichan-worker"], runner)
         self.assertEqual("confirmed", json.loads(out)["truncation_risk"])
 

@@ -14,6 +14,12 @@ assert SPEC.loader is not None
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
+# The wrapper re-exports a fixed symbol list, so the launch-contract assertions
+# below read the implementation module itself.
+sys.path.insert(0, str(ROOT / "src"))
+
+from brichan.orchestration import worker_launch
+
 
 def pane(pane_id, x, y, width, height, focused=False):
     return {
@@ -187,6 +193,43 @@ class HerdrLayoutPlannerTest(unittest.TestCase):
         self.assertEqual("p3", plan.target_pane_id)
         self.assertEqual("right", plan.split)
         self.assertFalse(plan.exact_equal_area)
+
+
+class HerdrLaunchContractTest(unittest.TestCase):
+    """The 0.9.1 launch shape, pinned at the module level.
+
+    ``tests/integration/test_worker_routing_cli.py`` drives the real
+    subprocess; these assertions pin the constants and the removed options so a
+    regression is named here rather than only observed through a stub.
+    """
+
+    def test_the_start_timeout_is_bounded_and_single_sourced(self):
+        self.assertEqual(30000, worker_launch.AGENT_START_TIMEOUT_MS)
+        self.assertIsInstance(worker_launch.AGENT_START_TIMEOUT_MS, int)
+
+    def test_the_removed_0_7_3_start_options_are_gone_from_the_source(self):
+        """Herdr 0.9.1 rejects these with ``unknown option: --workspace``."""
+
+        source = Path(worker_launch.__file__).read_text(encoding="utf-8")
+        for removed in ('"--workspace"', '"--tab"', '"--split"', '"--no-focus"'):
+            self.assertNotIn(removed, source, removed)
+        for required in ('"--kind"', '"--pane"', '"split"', '"close"'):
+            self.assertIn(required, source, required)
+
+    def test_the_close_helper_closes_exactly_one_named_pane(self):
+        """Rollback must never widen to a workspace or an unrelated pane."""
+
+        executed = []
+        original = worker_launch._run_json
+        worker_launch._run_json = lambda argv: (
+            executed.append(list(argv)),
+            ({}, ""),
+        )[1]
+        try:
+            worker_launch._close_pane("w48:p9")
+        finally:
+            worker_launch._run_json = original
+        self.assertEqual([["herdr", "pane", "close", "w48:p9"]], executed)
 
 
 if __name__ == "__main__":

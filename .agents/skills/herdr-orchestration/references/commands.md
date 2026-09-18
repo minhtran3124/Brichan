@@ -1,6 +1,14 @@
 # Herdr command reference
 
-Verified against Herdr `0.7.3`, protocol `16`, on 2026-07-27.
+Verified against Herdr `0.9.1`, protocol `22`, on 2026-09-18 (task
+`HERDR-091`). `0.9.1` is Brichan's minimum supported Herdr and the only pair in
+the adapter's verified set.
+
+This file was previously verified against `0.7.3`, protocol `16`, on
+2026-07-27. `0.7.3` was dropped from the verified set in `HERDR-091` because
+its `agent read` returned a JSON envelope that the current plain-text adapter
+cannot parse. Where `0.7.3` appears below it is history or the unverified
+path, never a supported version.
 
 ## Health and discovery
 
@@ -71,8 +79,16 @@ compatible; `bypassPermissions` does not.
 
 Do not use Claude until `claude auth status` succeeds.
 
-The wrapper infers the coordinator workspace/tab, keeps focus on the
-coordinator, and targets these layouts:
+On Herdr `0.9.1` the wrapper launches in two steps, because
+`agent start --workspace/--tab/--split` was removed: it runs `herdr pane split
+<target-pane> --direction <right|down> --cwd <path> [--env K=V ...]`, takes the
+new `pane_id` out of the returned `pane_info` envelope, and then runs `herdr
+agent start <brichan-name> --kind <claude|codex> --pane <new-pane-id> --timeout
+30000 -- <agent arguments>`. `--kind` names the canonical executable, so only
+the arguments after it are forwarded. If the agent start fails, the wrapper
+closes the pane it just created and nothing else.
+
+The wrapper keeps focus on the coordinator and targets these layouts:
 
 | Total panes | Layout |
 |---:|---|
@@ -137,9 +153,11 @@ bin/brichan-herdr-agent-observe observe <brichan-name> \
 `preflight` reports the client/server version, protocol, compatibility, both
 restart-need values, per-runtime integration health, and capability findings
 such as the observed `trust_directory` manifest failure. A version or protocol
-outside the verified set {`0.7.3`/`16`} is reported as `unverified`; that is a
+outside the verified set {`0.9.1`/`22`} is reported as
+`unverified`; that is a
 state, never a block, and the helper never updates, installs, or edits Herdr
-state.
+state. A `0.7.3` server reports `unverified-version` and is still fully
+reported on.
 
 `observe` reports the scheduling state verbatim, the read text with its
 completeness metadata, and presence metadata for each declared evidence file.
@@ -154,14 +172,21 @@ It has no completion field by design.
 The raw commands remain available for manual inspection:
 
 ```text
-herdr agent wait <brichan-name> --status idle --timeout 30000
+herdr agent wait <brichan-name> --until idle --timeout 30000
 herdr agent get <brichan-name>
 herdr agent read <brichan-name> --source recent-unwrapped --lines 200 --format text
 herdr integration status
 ```
 
-`herdr integration status` is text-only on `0.7.3`; its `--json` flag exits `2`.
-The `--format text` read variant is for manual inspection, not for parsing.
+The wait state option is `--until` on `0.9.1`; `--status` was removed and the
+client exits `2` on it. `--until` is repeatable on the client, but Brichan
+emits one state per wait and always with `--timeout 30000` or less.
+
+`herdr integration status` is text-only on `0.9.1`; its
+`--json` flag exits `2`. On `0.9.1` its rows added an `(experimental)` runtime
+qualifier and an `outdated (vN < vM)` upgrade comparison, and four runtimes
+(`qwen`, `antigravity-cli`, `grok`, `letta`); the helper parses all of them and
+still rejects anything else as a malformed row.
 
 Wait in bounded intervals of at most 30 seconds so the user continues receiving
 progress updates. Treat `blocked` as a request to inspect output and decide
@@ -173,11 +198,17 @@ whether Brichan can respond within its authority.
 guarantee. The helper classifies truncation risk as `none`, `possible`, or
 `confirmed`:
 
-- `confirmed` — the read failed, or Herdr's native `truncated` flag is set.
-- `possible` — the normal healthy outcome on `0.7.3`. No capability proves
+- `confirmed` — the read failed, or Herdr's native `truncated` flag is set. On
+  `0.9.1` a read that exits nonzero, or returns no screen at all, is a failed
+  read.
+- `possible` — the normal healthy outcome on `0.9.1`. No capability
+  proves
   alternate-screen history completeness, so a short read cannot be trusted as
   complete. Do not treat it as an error.
-- `none` — unreachable on `0.7.3` by design. Reaching it requires an authorized
+- `none` — unreachable by design. `herdr agent read` returns
+  plain terminal text with no envelope and no native `truncated` flag — there
+  is no JSON form, and `--format json` is refused — so nothing can prove a read
+  complete. Reaching `none` requires an authorized
   Herdr upgrade plus a reviewed design revision.
 
 When risk is `possible` or `confirmed`, the authoritative fallback is reading

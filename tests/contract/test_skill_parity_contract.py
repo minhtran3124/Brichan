@@ -135,10 +135,43 @@ class SkillParityContractTest(unittest.TestCase):
         self.assertIn(phrase, self.checkout)
         self.assertIn(phrase, self.packaged)
 
-    def test_neither_tree_promises_a_reachable_truncation_none_on_0_7_3(self):
+    def test_neither_tree_promises_a_reachable_truncation_none(self):
+        """The verified control plane is named, and neither tree promises `none`.
+
+        The wording around the sentence may change as the verified set moves —
+        it no longer requires `0.7.3`, which stopped being supported in
+        HERDR-091 — but the sentence itself may not, because it is what stops a
+        coordinator over-escalating on the normal healthy outcome.
+        """
+
         for text in (self.checkout, self.packaged):
-            self.assertIn("0.7.3", text)
+            self.assertIn("0.9.1", text)
             self.assertIn("`possible` is the normal healthy outcome", text)
+            self.assertIn("unreachable", text)
+
+    def test_both_trees_name_the_minimum_supported_herdr(self):
+        """A coordinator must not read a dropped version as still supported.
+
+        Both trees have to say which version Brichan requires, not merely
+        mention one, so an operator on an older server knows the `unverified`
+        finding is expected rather than a defect.
+        """
+
+        for text in (self.checkout, self.packaged):
+            self.assertIn("minimum supported", text)
+            self.assertIn("0.9.1", text)
+        # The dropped version may still appear as history or as the unverified
+        # path, but never as a current verified pair.
+        for text in (self.checkout, self.packaged):
+            self.assertNotIn("verified set {`0.7.3`/`16`, `0.9.1`/`22`}", text)
+            self.assertNotIn("verified control planes are Herdr `0.7.3`", text)
+
+    def test_both_trees_spell_the_0_9_1_wait_state_option(self):
+        """``--status`` was removed in 0.9.1; a stale spelling exits 2."""
+
+        for text in (self.checkout, self.packaged):
+            self.assertIn("--until", text)
+            self.assertIn("--timeout 30000", text)
 
     def test_neither_tree_authorises_automatic_worker_input(self):
         for text in (self.checkout, self.packaged):
