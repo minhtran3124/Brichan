@@ -48,3 +48,4 @@
 Cursor was researched by a worker but its current official rules URL redirected
 to a broader page; detailed Cursor claims are intentionally excluded from the
 durable assessment pending re-verification.
+- `projects/brida-installable-tool/handoffs/HERDR-091/receipt.md` — HERDR-091 canonical receipt (Herdr 0.9.1 certification); probe evidence `herdr-0.9.1-probe.md`, plan v2, packets, Snapshots in the same directory.
