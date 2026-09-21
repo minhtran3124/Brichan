@@ -82,11 +82,14 @@ Do not use Claude until `claude auth status` succeeds.
 On Herdr `0.9.1` the wrapper launches in two steps, because
 `agent start --workspace/--tab/--split` was removed: it runs `herdr pane split
 <target-pane> --direction <right|down> --cwd <path> [--env K=V ...]`, takes the
-new `pane_id` out of the returned `pane_info` envelope, and then runs `herdr
+new `pane_id` out of the returned `pane_info` envelope, polls `herdr pane
+process-info --pane <new-pane-id>` for up to 10000 ms until the shell is alone
+in its own foreground process group (at its prompt), and then runs `herdr
 agent start <brichan-name> --kind <claude|codex> --pane <new-pane-id> --timeout
 30000 -- <agent arguments>`. `--kind` names the canonical executable, so only
-the arguments after it are forwarded. If the agent start fails, the wrapper
-closes the pane it just created and nothing else.
+the arguments after it are forwarded. If the shell never reaches its prompt,
+the agent start fails, or Herdr reports the agent in a different pane, the
+wrapper closes the pane it just created and nothing else.
 
 The wrapper keeps focus on the coordinator and targets these layouts:
 

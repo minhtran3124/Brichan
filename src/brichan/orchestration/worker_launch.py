@@ -16,6 +16,7 @@ import os
 import shlex
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,13 @@ from .model_routing import (
 #: milliseconds. This is the client's own default; it is spelled here so the
 #: launcher never inherits an unbounded or silently changed wait.
 AGENT_START_TIMEOUT_MS = 30000
+
+#: Bounded wait for a freshly split pane's shell to reach its prompt before
+#: ``agent start`` is issued, in milliseconds, and the poll interval inside it.
+#: ``agent start --timeout`` covers agent readiness only; a slow shell startup
+#: is the launcher's to wait out.
+SHELL_READY_TIMEOUT_MS = 10000
+SHELL_READY_POLL_MS = 100
 
 
 class HerdrError(RuntimeError):
@@ -307,6 +315,59 @@ def _resize(op: ResizeOp) -> None:
     )
 
 
+def _shell_at_prompt(process_info: Any) -> bool:
+    """Whether a pane's shell is idle at its interactive prompt.
+
+    Herdr ``0.9.1`` requires the shell itself in the foreground and no
+    foreground command, which ``pane process-info`` reports as the shell's own
+    process group holding only the shell. Anything else, including a shape
+    this reader does not recognise, counts as not ready yet.
+    """
+
+    if not isinstance(process_info, dict):
+        return False
+    shell_pid = process_info.get("shell_pid")
+    processes = process_info.get("foreground_processes")
+    if not isinstance(shell_pid, int) or not isinstance(processes, list):
+        return False
+    if process_info.get("foreground_process_group_id") != shell_pid:
+        return False
+    return all(
+        isinstance(process, dict) and process.get("pid") == shell_pid
+        for process in processes
+    )
+
+
+def _wait_for_shell_prompt(
+    pane_id: str,
+    *,
+    timeout_ms: int = SHELL_READY_TIMEOUT_MS,
+    poll_ms: int = SHELL_READY_POLL_MS,
+) -> None:
+    """Poll a new pane until its shell is at its prompt, or fail bounded.
+
+    ``agent start`` rejects a pane whose shell is still starting up (a slow
+    ``.zshrc``, nvm or pyenv init). A shell busy only with builtins looks idle
+    here too, which matches the check Herdr itself applies.
+    """
+
+    deadline = time.monotonic() + timeout_ms / 1000
+    while True:
+        payload, _ = _run_json(
+            ["herdr", "pane", "process-info", "--pane", pane_id]
+        )
+        result = payload.get("result")
+        info = result.get("process_info") if isinstance(result, dict) else None
+        if _shell_at_prompt(info):
+            return
+        if time.monotonic() >= deadline:
+            raise HerdrError(
+                f"pane {pane_id} shell did not reach its prompt within "
+                f"{timeout_ms} ms"
+            )
+        time.sleep(poll_ms / 1000)
+
+
 def _close_pane(pane_id: str) -> None:
     """Close exactly one pane. Only ever called for a pane Brichan just made."""
 
@@ -483,6 +544,7 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
             if new_pane_id == args.anchor_pane:
                 raise HerdrError("Herdr reused the coordinator pane unexpectedly")
             worker_pane_id = new_pane_id
+            _wait_for_shell_prompt(worker_pane_id)
 
             # ``--kind`` names the canonical executable, so it supplies
             # ``resolution.command[0]`` itself and only the arguments after it

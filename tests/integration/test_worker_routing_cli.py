@@ -32,6 +32,9 @@ class WorkerRoutingCliTest(unittest.TestCase):
     #: the rollback path. ``FAKE_HERDR_SPLIT_NO_PANE`` and
     #: ``FAKE_HERDR_START_PANE`` cover the envelopes a zero exit can still
     #: carry: a split that names no pane, and a start that landed elsewhere.
+    #: ``pane process-info`` reports an idle shell unless
+    #: ``FAKE_HERDR_SHELL_BUSY_POLLS`` asks for that many busy reads first,
+    #: the way a slow ``.zshrc`` looks while it is still running.
     FAKE_HERDR = """#!/usr/bin/env python3
 import json, os, sys
 args = sys.argv[1:]
@@ -48,6 +51,17 @@ elif args[:2] == ['pane', 'split']:
         payload = {'id': 'cli:pane:split', 'result': {
             'pane': {'pane_id': 'p2', 'tab_id': 't1', 'workspace_id': 'w1'},
             'type': 'pane_info'}}
+elif args[:2] == ['pane', 'process-info']:
+    with open(os.environ['FAKE_HERDR_LOG'], encoding='utf-8') as log:
+        polls = sum(1 for line in log if '"process-info"' in line)
+    busy = polls <= int(os.environ.get('FAKE_HERDR_SHELL_BUSY_POLLS', '0'))
+    shell = {'pid': 500, 'name': 'zsh', 'argv0': 'zsh'}
+    init = {'pid': 501, 'name': 'node', 'argv0': 'nvm'}
+    payload = {'id': 'cli:pane:process_info', 'result': {'process_info': {
+        'pane_id': args[args.index('--pane') + 1], 'shell_pid': 500,
+        'foreground_process_group_id': 500,
+        'foreground_processes': [shell, init] if busy else [shell]},
+        'type': 'pane_process_info'}}
 elif args[:2] == ['agent', 'start']:
     if os.environ.get('FAKE_HERDR_FAIL_START'):
         sys.stderr.write('agent_start_timeout\\n')
@@ -79,7 +93,7 @@ print(json.dumps(payload))
 
     def run_launcher(
         self, *arguments, fail_start=False, split_without_pane=False,
-        start_pane=None,
+        start_pane=None, shell_busy_polls=0,
     ):
         environment = self.environment()
         if fail_start:
@@ -88,6 +102,8 @@ print(json.dumps(payload))
             environment["FAKE_HERDR_SPLIT_NO_PANE"] = "1"
         if start_pane is not None:
             environment["FAKE_HERDR_START_PANE"] = start_pane
+        if shell_busy_polls:
+            environment["FAKE_HERDR_SHELL_BUSY_POLLS"] = str(shell_busy_polls)
         return subprocess.run(
             [str(LAUNCHER), *arguments],
             cwd=ROOT,
@@ -220,6 +236,23 @@ print(json.dumps(payload))
         closes = [call for call in self.calls() if call[:2] == ["pane", "close"]]
         self.assertEqual([["pane", "close", "p2"]], closes)
         self.assertNotIn(["pane", "close", "p1"], self.calls())
+
+    def test_the_start_waits_for_the_new_shell_to_reach_its_prompt(self):
+        """``agent start`` needs an idle shell; a slow startup is waited out."""
+
+        result = self.run_launcher(
+            *self.common_arguments(), "--route", "review", shell_busy_polls=2
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        verbs = [call[:2] for call in self.calls()]
+        polls = [i for i, verb in enumerate(verbs) if verb == ["pane", "process-info"]]
+        start = verbs.index(["agent", "start"])
+        self.assertEqual(3, len(polls))
+        self.assertTrue(all(poll < start for poll in polls))
+        self.assertEqual(
+            ["pane", "process-info", "--pane", "p2"], self.calls()[polls[0]]
+        )
 
     def test_the_started_envelope_carries_the_new_pane_id(self):
         result = self.run_launcher(*self.common_arguments(), "--route", "review")

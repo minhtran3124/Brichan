@@ -216,6 +216,58 @@ class HerdrLaunchContractTest(unittest.TestCase):
         for required in ('"--kind"', '"--pane"', '"split"', '"close"'):
             self.assertIn(required, source, required)
 
+    def test_the_shell_is_ready_only_alone_in_its_own_foreground_group(self):
+        """Herdr 0.9.1: the shell in the foreground and no foreground command."""
+
+        shell = {"pid": 500, "name": "zsh"}
+        child = {"pid": 501, "name": "node"}
+
+        def info(group, processes, shell_pid=500):
+            return {
+                "shell_pid": shell_pid,
+                "foreground_process_group_id": group,
+                "foreground_processes": processes,
+            }
+
+        self.assertTrue(worker_launch._shell_at_prompt(info(500, [shell])))
+        # An rc-file command still running in the shell's own group.
+        self.assertFalse(worker_launch._shell_at_prompt(info(500, [shell, child])))
+        # A foreground job in its own process group.
+        self.assertFalse(worker_launch._shell_at_prompt(info(501, [child])))
+        # Unrecognised shapes are never read as ready.
+        self.assertFalse(worker_launch._shell_at_prompt(None))
+        self.assertFalse(worker_launch._shell_at_prompt({}))
+        self.assertFalse(
+            worker_launch._shell_at_prompt(info(500, [shell], shell_pid="500"))
+        )
+
+    def test_a_shell_that_never_reaches_its_prompt_fails_bounded(self):
+        """The wait ends in a ``HerdrError``, which the rollback handles."""
+
+        polls = []
+        busy = {
+            "result": {
+                "process_info": {
+                    "shell_pid": 500,
+                    "foreground_process_group_id": 501,
+                    "foreground_processes": [{"pid": 501}],
+                }
+            }
+        }
+        original = worker_launch._run_json
+        worker_launch._run_json = lambda argv: (polls.append(list(argv)), (busy, ""))[1]
+        try:
+            with self.assertRaisesRegex(
+                worker_launch.HerdrError, "did not reach its prompt"
+            ):
+                worker_launch._wait_for_shell_prompt("w48:p9", timeout_ms=50, poll_ms=10)
+        finally:
+            worker_launch._run_json = original
+        self.assertGreater(len(polls), 1)
+        self.assertEqual(
+            ["herdr", "pane", "process-info", "--pane", "w48:p9"], polls[0]
+        )
+
     def test_the_close_helper_closes_exactly_one_named_pane(self):
         """Rollback must never widen to a workspace or an unrelated pane."""
 
