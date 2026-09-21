@@ -6,9 +6,9 @@ executable placed first on ``PATH``, and asserts both the exit code and the
 stdout/stderr shape: a deterministic JSON report on stdout for exit ``0``,
 diagnostics on stderr for exits ``1`` and ``2``.
 
-The stub payloads mirror the fixtures frozen from live read-only Herdr
-``0.7.3`` probes on 2026-08-14. No case requires a live Herdr, Codex, or
-Claude session.
+The stub payloads mirror the fixtures frozen from live read-only Herdr probes:
+``0.7.3`` on 2026-08-14 and ``0.9.1`` on 2026-09-18 (task ``HERDR-091``). No
+case requires a live Herdr, Codex, or Claude session.
 """
 
 from __future__ import annotations
@@ -60,19 +60,40 @@ AGENT_GET_JSON = {
     },
 }
 
-AGENT_READ_JSON = {
-    "id": "cli:agent:read",
-    "result": {
-        "read": {
-            "format": "text",
-            "pane_id": "w37:p8",
-            "source": "recent_unwrapped",
-            "text": "line one\nline two\nline three",
-            "truncated": False,
-        },
-        "type": "pane_read",
+#: ``herdr agent read`` on ``0.9.1`` writes the terminal snapshot itself to
+#: stdout: no envelope, no source echo, no native ``truncated`` flag.
+AGENT_READ_TEXT = "line one\nline two\nline three"
+
+#: ``herdr status --json`` on ``0.9.1``: keys added, none removed.
+STATUS_JSON_091 = {
+    "client": {"version": "0.9.1", "channel": "stable", "protocol": 22},
+    "server": {
+        "status": "running",
+        "running": True,
+        "version": "0.9.1",
+        "protocol": 22,
+        "compatible": True,
+        "endpoint_compatible": True,
+        "restart_needed": False,
+        "server_binary_stale": False,
     },
+    "update": {"restart_needed": False, "server_binary_stale": False},
 }
+
+#: The ``0.9.1`` row shapes the widened grammar has to accept: the
+#: ``outdated (vN < vM)`` comparison, the ``(experimental)`` runtime
+#: qualifier, and the four runtimes ``0.9.1`` added.
+INTEGRATION_TEXT_091 = (
+    "claude: current (v10) (/Users/example/.claude/hooks/herdr-agent-state.sh)\n"
+    "codex: current (v8) (/Users/example/.codex/herdr-agent-state.sh)\n"
+    "droid: outdated (v2 < v3) (/Users/example/.factory/hooks/herdr-agent-state.sh)\n"
+    "qwen: not installed (/Users/example/.qwen/hooks/herdr-agent-session.sh)\n"
+    "antigravity-cli: not installed "
+    "(/Users/example/.gemini/config/hooks/herdr-agent-state.sh)\n"
+    "grok: not installed (/Users/example/.grok/hooks/herdr-agent-state.sh)\n"
+    "letta (experimental): not installed "
+    "(/Users/example/.letta/hooks/herdr-agent-session.sh)\n"
+)
 
 AGENT_NOT_FOUND_JSON = {
     "error": {
@@ -141,8 +162,9 @@ raise SystemExit(entry.get("exit", 0))
 #: device/inode comparison must reject it (code review v2, finding M3).
 #:
 #: ``MONITOR_TEST_COMPLETENESS_SOURCE`` stubs a completeness capability so the
-#: stubbed-CLI layer can prove that a partial read still cannot reach
-#: truncation risk ``none`` (code review v2, finding H1).
+#: stubbed-CLI layer can prove that no read — failed, empty, or healthy — can
+#: reach truncation risk ``none`` on Herdr ``0.9.1`` (code review v2, finding
+#: H1, carried onto the plain-text read path).
 SITECUSTOMIZE_SOURCE = '''
 import os
 import sys
@@ -188,11 +210,13 @@ def failure(message="stub failure", code=1):
 
 
 def healthy(**overrides):
+    """The supported control plane. Since plan v3 that is Herdr ``0.9.1``."""
+
     responses = {
-        "status": payload(STATUS_JSON),
+        "status": payload(STATUS_JSON_091),
         "integration status": text(INTEGRATION_TEXT),
         "agent get": payload(AGENT_GET_JSON),
-        "agent read": payload(AGENT_READ_JSON),
+        "agent read": text(AGENT_READ_TEXT),
         "agent explain": payload(EXPLAIN_HEALTHY_JSON),
     }
     responses.update(overrides)
@@ -200,7 +224,7 @@ def healthy(**overrides):
 
 
 def status_with(**changes):
-    document = json.loads(json.dumps(STATUS_JSON))
+    document = json.loads(json.dumps(STATUS_JSON_091))
     for dotted, value in changes.items():
         section, _, field = dotted.partition("__")
         document[section][field] = value
@@ -208,13 +232,13 @@ def status_with(**changes):
 
 
 def status_without(section, field):
-    document = json.loads(json.dumps(STATUS_JSON))
+    document = json.loads(json.dumps(STATUS_JSON_091))
     del document[section][field]
     return document
 
 
 def status_mistyping(section, field):
-    document = json.loads(json.dumps(STATUS_JSON))
+    document = json.loads(json.dumps(STATUS_JSON_091))
     document[section][field] = ["mistyped"]
     return document
 
@@ -470,8 +494,68 @@ class WorkerMonitorCliTest(unittest.TestCase):
         report = self.assert_row(0, ["preflight"])
         self.assertEqual("verified", report["support"])
         self.assertEqual([], report["findings"])
+        self.assertEqual("0.9.1", report["server_version"])
+        self.assertEqual(22, report["protocol"])
+
+    def test_0_7_3_is_no_longer_verified_but_still_reports(self):
+        """Plan v3: 0.9.1 is the minimum supported Herdr.
+
+        The old control plane is a reported state, never a refusal: the rest of
+        the preflight is still collected at exit 0.
+        """
+
+        report = self.assert_row(
+            0, ["preflight"], healthy(status=payload(STATUS_JSON))
+        )
+        self.assertEqual("unverified", report["support"])
+        self.assertIn("unverified-version", report["findings"])
         self.assertEqual("0.7.3", report["server_version"])
         self.assertEqual(16, report["protocol"])
+        self.assertEqual(3, len(report["integrations"]))
+
+    def test_the_0_9_1_control_plane_preflights_cleanly(self):
+        """AC2 and AC3 at the stubbed-CLI layer.
+
+        The widened verified set and the widened row grammar have to hold
+        together: a 0.9.1 server reports ``verified``, and every row shape the
+        0.9.1 client prints parses without a ``malformed-row`` or
+        ``unknown-row`` finding.
+        """
+
+        report = self.assert_row(
+            0,
+            ["preflight"],
+            healthy(**{"integration status": text(INTEGRATION_TEXT_091)}),
+        )
+        self.assertEqual("verified", report["support"])
+        self.assertEqual("0.9.1", report["server_version"])
+        self.assertEqual(22, report["protocol"])
+        for finding in report["findings"]:
+            self.assertFalse(finding.startswith("malformed-row"), finding)
+            self.assertFalse(finding.startswith("unknown-row"), finding)
+        self.assertNotIn("unverified-version", report["findings"])
+        self.assertIn("integration-unhealthy(droid=outdated)", report["findings"])
+        for row in report["integrations"]:
+            self.assertEqual("valid", row["classification"], row)
+        self.assertNotIn("/Users/", json.dumps(report))
+        self.assertNotIn("experimental", json.dumps(report))
+        self.assertIn(
+            "letta", [row["runtime"] for row in report["integrations"]]
+        )
+
+    def test_a_genuinely_malformed_row_is_still_rejected_on_0_9_1(self):
+        """AC3's negative half: the widened grammar is not an escape hatch."""
+
+        rows = (
+            "letta (unstable): not installed (/Users/example/.letta/hook.sh)\n"
+            "droid: outdated (v2 < v3) /Users/example/.factory/hook.sh\n"
+        )
+        report = self.assert_row(
+            0, ["preflight"], healthy(**{"integration status": text(rows)})
+        )
+        self.assertIn("malformed-row(1)", report["findings"])
+        self.assertIn("malformed-row(2)", report["findings"])
+        self.assertNotIn("/Users/", json.dumps(report))
 
     def test_unverified_version_exits_0(self):
         for document in (
@@ -680,26 +764,39 @@ class WorkerMonitorCliTest(unittest.TestCase):
         self.assertEqual("working", report["scheduling_state"])
         self.assertEqual(3, report["lines_counted"])
         self.assertEqual(200, report["lines_requested"])
-        self.assertIs(False, report["native_truncated"])
+        self.assertIsNone(report["native_truncated"])
+        self.assertIsNone(report["read_error"])
+        self.assertNotIn("read-failed", report["findings"])
         for forbidden in ("done", "success", "complete", "completed"):
             self.assertNotIn(forbidden, report, forbidden)
 
-    def test_native_truncated_read_exits_0_with_confirmed_risk(self):
-        document = json.loads(json.dumps(AGENT_READ_JSON))
-        document["result"]["read"]["truncated"] = True
+    def test_the_0_9_1_control_plane_observes_cleanly(self):
+        """AC4 at the stubbed-CLI layer, against the 0.9.1 status fixture."""
+
         report = self.assert_row(
             0,
-            ["observe", "brichan-worker"],
-            healthy(**{"agent read": payload(document)}),
+            ["observe", "brichan-worker", "--lines", "50"],
+            healthy(**{"integration status": text(INTEGRATION_TEXT_091)}),
         )
-        self.assertEqual("confirmed", report["truncation_risk"])
+        self.assertEqual("possible", report["truncation_risk"])
+        self.assertGreater(report["lines_counted"], 0)
+        self.assertEqual([], report["findings"])
+        self.assertIsNone(report["read_error"])
 
-    def test_read_failure_and_malformed_read_payloads_exit_0(self):
+    def test_the_read_argv_asks_for_the_text_format(self):
+        self.run_observe("observe", "brichan-worker")
+        read = next(
+            argv for argv in self.stub_calls() if argv[:2] == ["agent", "read"]
+        )
+        self.assertEqual("text", read[read.index("--format") + 1])
+
+    def test_read_failure_and_contentless_reads_exit_0(self):
         for response in (
             failure("read failed"),
-            text("not json"),
-            payload({"result": {}}),
-            payload({"result": {"read": {"truncated": False}}}),
+            failure("unknown option: --format", code=2),
+            text(""),
+            text("\n\n"),
+            text("   "),
         ):
             report = self.assert_row(
                 0, ["observe", "brichan-worker"], healthy(**{"agent read": response})
@@ -708,33 +805,27 @@ class WorkerMonitorCliTest(unittest.TestCase):
             self.assertEqual("confirmed", report["truncation_risk"])
             self.assertIsNotNone(report["read_error"])
             self.assertEqual("", report["text"])
+            self.assertIsNone(report["native_truncated"])
 
-    # -- code review v2, finding H1: partial reads at the wrapper ------------
+    # -- code review v2, finding H1, on the 0.9.1 plain-text read path -------
 
-    PARTIAL_READ_NODES = {
-        "missing source": {"text": "a\nb", "truncated": False},
-        "null source": {"text": "a\nb", "truncated": False, "source": None},
-        "mistyped source": {"text": "a\nb", "truncated": False, "source": 7},
-        "mismatched source": {"text": "a\nb", "truncated": False, "source": "visible"},
-        "missing truncated": {"text": "a\nb", "source": "recent_unwrapped"},
-        "mistyped truncated": {
-            "text": "a\nb",
-            "truncated": "false",
-            "source": "recent_unwrapped",
-        },
-        "missing text": {"truncated": False, "source": "recent_unwrapped"},
-        "empty read record": {},
+    #: Reads that exit ``0`` but carry no screen. A live pane always shows at
+    #: least a shell prompt, so each of these is a failed read, not a zero-line
+    #: observation.
+    EMPTY_READ_STDOUTS = {
+        "empty stdout": "",
+        "single newline": "\n",
+        "blank lines": "\n\n\n",
+        "spaces only": "    ",
+        "tabs and newlines": "\t\n \n",
     }
 
-    def _read_payload(self, node):
-        return payload({"id": "cli:agent:read", "result": {"read": node}})
-
-    def test_partial_read_payloads_exit_0_as_confirmed_read_failures(self):
-        for label, node in self.PARTIAL_READ_NODES.items():
+    def test_contentless_reads_exit_0_as_confirmed_read_failures(self):
+        for label, stdout in self.EMPTY_READ_STDOUTS.items():
             report = self.assert_row(
                 0,
                 ["observe", "brichan-worker"],
-                healthy(**{"agent read": self._read_payload(node)}),
+                healthy(**{"agent read": text(stdout)}),
             )
             self.assertIn("read-failed", report["findings"], label)
             self.assertEqual("confirmed", report["truncation_risk"], label)
@@ -743,27 +834,34 @@ class WorkerMonitorCliTest(unittest.TestCase):
             self.assertIsNone(report["native_truncated"], label)
             self.assertIsNone(report["source_reported"], label)
 
-    def test_no_partial_read_reaches_none_even_with_a_stubbed_capability(self):
+    def test_no_contentless_read_reaches_none_even_with_a_stubbed_capability(self):
         seams = {"MONITOR_TEST_COMPLETENESS_SOURCE": "recent-unwrapped"}
-        for label, node in self.PARTIAL_READ_NODES.items():
+        for label, stdout in self.EMPTY_READ_STDOUTS.items():
             report = self.assert_row(
                 0,
                 ["observe", "brichan-worker", "--lines", "200"],
-                healthy(**{"agent read": self._read_payload(node)}),
+                healthy(**{"agent read": text(stdout)}),
                 seams=seams,
             )
             self.assertNotEqual("none", report["truncation_risk"], label)
             self.assertEqual("confirmed", report["truncation_risk"], label)
 
-    def test_the_stubbed_capability_seam_really_can_reach_none(self):
-        """Proves the previous test is not passing because the seam is inert."""
+    def test_not_even_a_healthy_read_reaches_none_with_a_stubbed_capability(self):
+        """AC4: on 0.9.1 ``none`` is unreachable through the CLI at all.
+
+        The seam is not inert — ``tests/unit/test_herdr_monitor.py`` pins that
+        ``classify_truncation`` still returns ``none`` when it is handed an
+        explicit ``native_truncated=False``. The 0.9.1 adapter simply never has
+        such a flag to hand it, so a short healthy read stays ``possible``.
+        """
 
         report = self.assert_row(
             0,
             ["observe", "brichan-worker", "--lines", "200"],
             seams={"MONITOR_TEST_COMPLETENESS_SOURCE": "recent-unwrapped"},
         )
-        self.assertEqual("none", report["truncation_risk"])
+        self.assertEqual("possible", report["truncation_risk"])
+        self.assertIsNone(report["read_error"])
 
     # -- code review v3, finding M1-v3: malformed outer envelopes ------------
 
@@ -779,41 +877,6 @@ class WorkerMonitorCliTest(unittest.TestCase):
         "result boolean": {"id": "cli:agent:x", "result": True},
         "result absent": {"id": "cli:agent:x"},
     }
-
-    def test_a_malformed_result_envelope_read_exits_0_without_a_traceback(self):
-        for label, document in self.MALFORMED_RESULT_ENVELOPES.items():
-            result = self.run_observe(
-                "observe",
-                "brichan-worker",
-                responses=healthy(**{"agent read": payload(document)}),
-            )
-            self.assertEqual(0, result.returncode, f"{label}: {result.stderr}")
-            self.assertEqual("", result.stderr, label)
-            self.assertNotIn("Traceback", result.stderr, label)
-            report = json.loads(result.stdout)
-            self.assertEqual(
-                json.dumps(report, sort_keys=True, indent=2, ensure_ascii=False) + "\n",
-                result.stdout,
-                label,
-            )
-            self.assertIn("read-failed", report["findings"], label)
-            self.assertIsNotNone(report["read_error"], label)
-            self.assertEqual("confirmed", report["truncation_risk"], label)
-            self.assertEqual("", report["text"], label)
-            self.assertIsNone(report["native_truncated"], label)
-            self.assertEqual("working", report["scheduling_state"], label)
-
-    def test_a_malformed_result_envelope_read_never_reaches_none(self):
-        seams = {"MONITOR_TEST_COMPLETENESS_SOURCE": "recent-unwrapped"}
-        for label, document in self.MALFORMED_RESULT_ENVELOPES.items():
-            report = self.assert_row(
-                0,
-                ["observe", "brichan-worker", "--lines", "200"],
-                healthy(**{"agent read": payload(document)}),
-                seams=seams,
-            )
-            self.assertNotEqual("none", report["truncation_risk"], label)
-            self.assertEqual("confirmed", report["truncation_risk"], label)
 
     def test_a_malformed_result_envelope_get_exits_1_without_a_traceback(self):
         for label, document in self.MALFORMED_RESULT_ENVELOPES.items():
@@ -832,9 +895,11 @@ class WorkerMonitorCliTest(unittest.TestCase):
                 f"{label}: {result.stderr}",
             )
 
-    def test_the_live_underscore_source_spelling_is_accepted_at_the_wrapper(self):
+    def test_the_wrapper_reports_no_source_because_0_9_1_reports_none(self):
+        """Echoing the requested source back would manufacture a confirmation."""
+
         report = self.assert_row(0, ["observe", "brichan-worker"])
-        self.assertEqual("recent_unwrapped", report["source_reported"])
+        self.assertIsNone(report["source_reported"])
         self.assertEqual("recent-unwrapped", report["source"])
         self.assertIsNone(report["read_error"])
 
@@ -949,11 +1014,15 @@ class WorkerMonitorCliTest(unittest.TestCase):
         self.assertEqual(30000, MAX_WAIT_TIMEOUT_MS)
         self.assertLessEqual(int(argv[argv.index("--timeout") + 1]), MAX_WAIT_TIMEOUT_MS)
         # A duplicated or over-cap timeout cannot be smuggled past the cap.
+        self.assertIn("--until", argv)
+        self.assertNotIn("--status", argv)
         for hostile in (
-            ["herdr", "agent", "wait", "w", "--status", "idle", "--timeout", "60000"],
-            ["herdr", "agent", "wait", "w", "--status", "idle",
+            ["herdr", "agent", "wait", "w", "--until", "idle", "--timeout", "60000"],
+            ["herdr", "agent", "wait", "w", "--until", "idle",
              "--timeout", "100", "--timeout", "60000"],
-            ["herdr", "agent", "wait", "w", "--status", "idle", "--timeout"],
+            ["herdr", "agent", "wait", "w", "--until", "idle", "--timeout"],
+            # The option Herdr 0.9.1 removed is refused before it can be run.
+            ["herdr", "agent", "wait", "w", "--status", "idle", "--timeout", "100"],
         ):
             with self.assertRaises(MonitorError, msg=hostile):
                 assert_read_only(hostile)

@@ -33,9 +33,16 @@ brichan-herdr-agent-observe observe <brichan-name> \
 ```
 
 It exits `0` report collected, `1` report impossible, `2` invalid invocation or
-rejected path. `herdr integration status` is text-only on `0.7.3`; its `--json`
-flag exits `2`. The raw `herdr agent get`, `herdr agent read`, and bounded
-`herdr agent wait` commands remain available for manual inspection.
+rejected path. Herdr `0.9.1` (protocol `22`) is the minimum supported version
+and the only verified control plane; anything else is reported as `unverified`,
+which is a state, never a block. `herdr integration status` is text-only;
+its `--json` flag exits `2`. The raw `herdr agent get`, `herdr agent read`, and
+bounded `herdr agent wait` commands remain available for manual inspection. The
+wait state option is `--until`, not `--status`:
+
+```text
+herdr agent wait <brichan-name> --until idle --timeout 30000
+```
 
 Safeguards that apply to every observation:
 
@@ -43,8 +50,10 @@ Safeguards that apply to every observation:
   `idle` state is not proof that acceptance criteria passed.
 - Wait in bounded intervals of at most 30 seconds; every `herdr agent wait`
   carries `--timeout 30000` or less.
-- Truncation risk is `none`, `possible`, or `confirmed`. On Herdr `0.7.3`,
-  `possible` is the normal healthy outcome; `none` is unreachable by design.
+- Truncation risk is `none`, `possible`, or `confirmed`. On Herdr `0.9.1`,
+  `possible` is the normal healthy outcome; `none` is unreachable by design,
+  because `herdr agent read` returns plain terminal text with no native
+  `truncated` flag and nothing can prove a read complete.
 - When risk is `possible` or `confirmed`, use the evidence-file fallback and
   read the declared durable files. Presence metadata is never acceptance
   evidence.

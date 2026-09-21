@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Start a Herdr worker while keeping the coordinator tab visually balanced."""
+"""Start a Herdr worker while keeping the coordinator tab visually balanced.
+
+Herdr ``0.9.1`` splits the launch in two: ``herdr pane split`` creates the pane
+and returns its ID, and ``herdr agent start --kind <runtime> --pane <id>`` runs
+the agent inside that existing pane. The ``0.7.3``
+``agent start --workspace/--tab/--split/--no-focus`` form was removed and is
+rejected by the client with ``unknown option: --workspace``.
+"""
 
 from __future__ import annotations
 
@@ -9,6 +16,7 @@ import os
 import shlex
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -19,6 +27,21 @@ from .model_routing import (
     load_settings,
     resolve_route,
 )
+
+
+#: Bounded readiness wait for ``herdr agent start`` on Herdr ``0.9.1``, in
+#: milliseconds. This is the client's own default; it is spelled here so the
+#: launcher never inherits an unbounded or silently changed wait.
+AGENT_START_TIMEOUT_MS = 30000
+
+#: Bounded wait for a freshly split pane's shell to reach its prompt before
+#: ``agent start`` is issued, in milliseconds, and the poll interval inside it.
+#: ``agent start --timeout`` covers agent readiness only; a slow shell startup
+#: is the launcher's to wait out.
+SHELL_READY_TIMEOUT_MS = 10000
+SHELL_READY_POLL_MS = 100
+
+
 class HerdrError(RuntimeError):
     """Raised when a Herdr command cannot be completed."""
 
@@ -55,6 +78,29 @@ def _run_json(argv: list[str]) -> tuple[dict[str, Any], str]:
         return json.loads(result.stdout), result.stdout
     except json.JSONDecodeError as exc:
         raise HerdrError(f"{' '.join(argv)} returned invalid JSON") from exc
+
+
+def _envelope_pane_id(
+    payload: dict[str, Any], section: str, command: str
+) -> str:
+    """Read ``result.<section>.pane_id`` out of a Herdr envelope.
+
+    Herdr can exit 0 with an envelope that omits the section, so the read is
+    defensive and reports the gap as a ``HerdrError``. A ``KeyError`` here
+    would escape the launcher's rollback handler and strand the pane Brichan
+    just created.
+    """
+
+    result = payload.get("result")
+    section_payload = result.get(section) if isinstance(result, dict) else None
+    pane_id = (
+        section_payload.get("pane_id")
+        if isinstance(section_payload, dict)
+        else None
+    )
+    if not isinstance(pane_id, str) or not pane_id:
+        raise HerdrError(f"{command} returned no pane id")
+    return pane_id
 
 
 def _layout(anchor_pane_id: str) -> dict[str, Any]:
@@ -269,6 +315,65 @@ def _resize(op: ResizeOp) -> None:
     )
 
 
+def _shell_at_prompt(process_info: Any) -> bool:
+    """Whether a pane's shell is idle at its interactive prompt.
+
+    Herdr ``0.9.1`` requires the shell itself in the foreground and no
+    foreground command, which ``pane process-info`` reports as the shell's own
+    process group holding only the shell. Anything else, including a shape
+    this reader does not recognise, counts as not ready yet.
+    """
+
+    if not isinstance(process_info, dict):
+        return False
+    shell_pid = process_info.get("shell_pid")
+    processes = process_info.get("foreground_processes")
+    if not isinstance(shell_pid, int) or not isinstance(processes, list):
+        return False
+    if process_info.get("foreground_process_group_id") != shell_pid:
+        return False
+    return all(
+        isinstance(process, dict) and process.get("pid") == shell_pid
+        for process in processes
+    )
+
+
+def _wait_for_shell_prompt(
+    pane_id: str,
+    *,
+    timeout_ms: int = SHELL_READY_TIMEOUT_MS,
+    poll_ms: int = SHELL_READY_POLL_MS,
+) -> None:
+    """Poll a new pane until its shell is at its prompt, or fail bounded.
+
+    ``agent start`` rejects a pane whose shell is still starting up (a slow
+    ``.zshrc``, nvm or pyenv init). A shell busy only with builtins looks idle
+    here too, which matches the check Herdr itself applies.
+    """
+
+    deadline = time.monotonic() + timeout_ms / 1000
+    while True:
+        payload, _ = _run_json(
+            ["herdr", "pane", "process-info", "--pane", pane_id]
+        )
+        result = payload.get("result")
+        info = result.get("process_info") if isinstance(result, dict) else None
+        if _shell_at_prompt(info):
+            return
+        if time.monotonic() >= deadline:
+            raise HerdrError(
+                f"pane {pane_id} shell did not reach its prompt within "
+                f"{timeout_ms} ms"
+            )
+        time.sleep(poll_ms / 1000)
+
+
+def _close_pane(pane_id: str) -> None:
+    """Close exactly one pane. Only ever called for a pane Brichan just made."""
+
+    _run_json(["herdr", "pane", "close", pane_id])
+
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     raw_argv = sys.argv[1:] if argv is None else argv
     try:
@@ -399,10 +504,6 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
             _print_dry_run(args, resolution)
             return 0
 
-        anchor_payload, _ = _run_json(
-            ["herdr", "pane", "get", args.anchor_pane]
-        )
-        anchor = anchor_payload["result"]["pane"]
         layout = _layout(args.anchor_pane)
         plan = plan_spawn(layout, args.anchor_pane)
 
@@ -414,34 +515,81 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
             )
 
         applied_pre_resizes: list[ResizeOp] = []
+        worker_pane_id: str | None = None
         try:
             for resize in plan.pre_resizes:
                 _resize(resize)
                 applied_pre_resizes.append(resize)
             _focus_pane(args.anchor_pane, plan.target_pane_id)
 
-            command = [
+            split_command = [
+                "herdr",
+                "pane",
+                "split",
+                plan.target_pane_id,
+                "--direction",
+                plan.split,
+                "--cwd",
+                args.cwd,
+            ]
+            for item in args.env:
+                split_command.extend(["--env", item])
+            split_payload, _ = _run_json(split_command)
+            new_pane_id = _envelope_pane_id(
+                split_payload, "pane", "herdr pane split"
+            )
+            # Checked before the pane is recorded as Brichan-owned: a pane the
+            # launcher did not create must never enter the rollback path, and
+            # no agent may be started in the coordinator's own pane.
+            if new_pane_id == args.anchor_pane:
+                raise HerdrError("Herdr reused the coordinator pane unexpectedly")
+            worker_pane_id = new_pane_id
+            _wait_for_shell_prompt(worker_pane_id)
+
+            # ``--kind`` names the canonical executable, so it supplies
+            # ``resolution.command[0]`` itself and only the arguments after it
+            # are forwarded. The ``agent_started`` envelope echoes the
+            # reassembled argv with the executable back in front.
+            runtime, *agent_arguments = resolution.command
+            start_command = [
                 "herdr",
                 "agent",
                 "start",
                 args.name,
-                "--workspace",
-                anchor["workspace_id"],
-                "--tab",
-                anchor["tab_id"],
-                "--split",
-                plan.split,
-                "--cwd",
-                args.cwd,
-                "--no-focus",
+                "--kind",
+                runtime,
+                "--pane",
+                worker_pane_id,
+                "--timeout",
+                str(AGENT_START_TIMEOUT_MS),
             ]
-            for item in args.env:
-                command.extend(["--env", item])
-            command.append("--")
-            command.extend(resolution.command)
+            if agent_arguments:
+                start_command.append("--")
+                start_command.extend(agent_arguments)
 
-            start_payload, start_stdout = _run_json(command)
+            start_payload, start_stdout = _run_json(start_command)
+            # Checked before the layout is settled so a start that landed
+            # somewhere else still unwinds: the rollback closes the empty pane
+            # this launcher created, and the message names the pane the stray
+            # agent is in so the caller can reach it.
+            started_pane_id = _envelope_pane_id(
+                start_payload, "agent", "herdr agent start"
+            )
+            if started_pane_id == args.anchor_pane:
+                raise HerdrError("Herdr reused the coordinator pane unexpectedly")
+            if started_pane_id != worker_pane_id:
+                raise HerdrError(
+                    f"Herdr started the agent in pane {started_pane_id!r}, not the "
+                    f"pane Brichan created ({worker_pane_id!r})"
+                )
         except HerdrError:
+            if worker_pane_id is not None:
+                # Only the pane this launcher created, and only when the agent
+                # never started in it.
+                try:
+                    _close_pane(worker_pane_id)
+                except HerdrError:
+                    pass
             for resize in reversed(applied_pre_resizes):
                 try:
                     _resize(
@@ -469,8 +617,6 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
         except HerdrError as exc:
             print(f"warning: worker started but focus restore failed: {exc}", file=sys.stderr)
 
-        if start_payload["result"]["agent"]["pane_id"] == args.anchor_pane:
-            raise HerdrError("Herdr reused the coordinator pane unexpectedly")
         sys.stdout.write(start_stdout)
         return 0
     except (HerdrError, KeyError, RoutingError, ValueError) as exc:

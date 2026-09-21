@@ -11,7 +11,9 @@ separated:
   completion.
 * Terminal text read through ``herdr agent read`` is a bounded observation, so
   every read carries conservative completeness metadata and a truncation-risk
-  classification dominated by Herdr's native ``truncated`` flag.
+  classification. Herdr ``0.9.1`` prints that text as plain terminal output
+  with no envelope and no native ``truncated`` flag, so the adapter reports an
+  absent flag as ``null`` and a successful read never rises above ``possible``.
 * Acceptance evidence is file-based only. The evidence fallback reports
   presence metadata (existence, regular-file status, size, mtime) and never
   parses or judges content.
@@ -41,19 +43,37 @@ from typing import Any, Callable, Iterable, Sequence
 
 #: Verified (server version, protocol) pairs. Widening this set requires an
 #: explicitly authorized Herdr upgrade (gate AG-2) plus re-verification of the
-#: command reference against the new version.
-VERIFIED_SUPPORT: frozenset[tuple[str, int]] = frozenset({("0.7.3", 16)})
+#: command reference against the new version. ``0.9.1``/``22`` was verified for
+#: task ``HERDR-091``: the user authorized the upgrade on 2026-09-17 and the
+#: server restart on 2026-09-18, and every command grammar below was
+#: re-verified against the live 0.9.1 control plane on 2026-09-18 (probe
+#: evidence ``herdr-0.9.1-probe.md``).
+#:
+#: ``0.9.1`` is Brichan's minimum supported Herdr. ``0.7.3``/``16`` was verified
+#: until HERDR-091 and is deliberately *not* listed any more: ``agent read`` on
+#: ``0.7.3`` returned a JSON envelope, the plain-text adapter below cannot parse
+#: one, and no ``0.7.3`` server remains to verify against. A ``0.7.3`` control
+#: plane therefore preflights as ``unverified-version`` — a reported state, not
+#: a block. Restoring it would need a version-keyed read path, not an entry
+#: here.
+VERIFIED_SUPPORT: frozenset[tuple[str, int]] = frozenset({("0.9.1", 22)})
 
 #: Capabilities that prove terminal-history completeness for a read source.
-#: Empty on Herdr ``0.7.3``: the ``agent read`` envelope exposes no
-#: alternate-screen or history-completeness signal, so truncation risk ``none``
-#: is unreachable by design. Widening this set requires gates AG-2 and AG-3.
+#: Empty on Herdr ``0.9.1``: it exposes no alternate-screen or
+#: history-completeness signal, so truncation risk ``none`` is unreachable by
+#: design — doubly so, because the plain-text read carries no native
+#: ``truncated`` flag either. Widening this set requires gates AG-2 and AG-3.
 COMPLETENESS_CAPABILITIES: frozenset[str] = frozenset()
 
 #: Hard cap on every ``herdr agent wait`` timeout, in milliseconds.
 MAX_WAIT_TIMEOUT_MS = 30000
 
-#: Runtime identifiers Herdr ``0.7.3`` reports in ``integration status``.
+#: Runtime identifiers Herdr reports in ``integration status``. Frozen from a
+#: live ``0.7.3`` probe on 2026-08-14 and extended with the four runtimes a
+#: live ``0.9.1`` probe added on 2026-09-18 (``qwen``, ``antigravity-cli``,
+#: ``grok``, ``letta``). The earlier entries are kept because ``0.9.1`` still
+#: reports every one of them, not because ``0.7.3`` is supported. An unlisted
+#: runtime is an ``unknown-row`` finding, not a parse failure.
 KNOWN_INTEGRATION_RUNTIMES: frozenset[str] = frozenset(
     {
         "pi",
@@ -70,10 +90,14 @@ KNOWN_INTEGRATION_RUNTIMES: frozenset[str] = frozenset(
         "qodercli",
         "cursor",
         "mastracode",
+        "qwen",
+        "antigravity-cli",
+        "grok",
+        "letta",
     }
 )
 
-#: Status vocabulary of the ``0.7.3`` plain-text integration rows.
+#: Status vocabulary of the plain-text integration rows; unchanged on ``0.9.1``.
 KNOWN_INTEGRATION_STATUSES: frozenset[str] = frozenset(
     {"current", "outdated", "not installed"}
 )
@@ -188,10 +212,15 @@ COMMAND_GRAMMARS: dict[tuple[str, ...], CommandGrammar] = {
     ),
     ("agent", "list"): CommandGrammar(adapter="json", positionals=0, options={}),
     ("agent", "get"): CommandGrammar(adapter="json", positionals=1, options={}),
+    # Herdr ``0.9.1`` writes terminal text to stdout for ``agent read``: there
+    # is no envelope, no ``--json``, and ``--format json`` is refused by the
+    # client. The command is therefore bound to the text adapter, and
+    # ``--format text`` is sent explicitly so a future change to the client's
+    # default format cannot silently feed ANSI bytes into the report.
     ("agent", "read"): CommandGrammar(
-        adapter="json",
+        adapter="text",
         positionals=1,
-        options={"--source": 1, "--lines": 1},
+        options={"--source": 1, "--lines": 1, "--format": 1},
         required=frozenset({"--source", "--lines"}),
     ),
     ("agent", "explain"): CommandGrammar(
@@ -200,11 +229,15 @@ COMMAND_GRAMMARS: dict[tuple[str, ...], CommandGrammar] = {
         options={"--json": 0},
         required=frozenset({"--json"}),
     ),
+    # ``--status`` was removed in Herdr ``0.9.1``; the state option is now
+    # ``--until``. It is repeatable on the client, but this grammar keeps the
+    # single-occurrence rule: one state per wait, always with a bounded
+    # ``--timeout``.
     ("agent", "wait"): CommandGrammar(
         adapter="json",
         positionals=1,
-        options={"--status": 1, "--timeout": 1},
-        required=frozenset({"--status", "--timeout"}),
+        options={"--until": 1, "--timeout": 1},
+        required=frozenset({"--until", "--timeout"}),
     ),
 }
 
@@ -333,7 +366,7 @@ def wait_argv(name: str, status: str, timeout_ms: int = MAX_WAIT_TIMEOUT_MS) -> 
         raise MonitorError(
             f"wait timeout must be 1..{MAX_WAIT_TIMEOUT_MS} ms, got {timeout_ms}"
         )
-    argv = ["herdr", "agent", "wait", name, "--status", status, "--timeout", str(timeout_ms)]
+    argv = ["herdr", "agent", "wait", name, "--until", status, "--timeout", str(timeout_ms)]
     assert_read_only(argv)
     return argv
 
@@ -370,8 +403,9 @@ def run_json(argv: Sequence[str], runner: Runner | None = None) -> dict[str, Any
 def run_text(argv: Sequence[str], runner: Runner | None = None) -> str:
     """Plain-text adapter for commands whose supported output is not JSON.
 
-    Used only for ``herdr integration status``, whose ``--json`` flag exits
-    ``2`` on Herdr ``0.7.3``. A JSON command is refused here.
+    Used for ``herdr integration status``, whose ``--json`` flag exits ``2`` on
+    ``0.9.1``, and for ``herdr agent read``, which on ``0.9.1`` has no JSON form
+    at all. A JSON command is refused here.
     """
 
     prefix, grammar = validate_argv(argv)
@@ -535,9 +569,16 @@ class AgentObservation:
 
 
 #: Anchored grammar for one ``herdr integration status`` row, frozen from a
-#: live read-only Herdr ``0.7.3`` probe on 2026-08-14::
+#: live read-only Herdr ``0.7.3`` probe on 2026-08-14 and widened from a live
+#: ``0.9.1`` probe on 2026-09-18::
 #:
-#:     <runtime>: <status token>[ (v<N>)] (<absolute path>)
+#:     <runtime>[ (experimental)]: <status token>[ (v<N>[ < v<M>])] (<absolute path>)
+#:
+#: ``0.9.1`` added exactly two shapes: an ``(experimental)`` qualifier after the
+#: runtime token (``letta (experimental): not installed (...)``) and an upgrade
+#: comparison in place of the single version (``droid: outdated (v2 < v3)
+#: (...)``). Both are literal, bounded extensions; the qualifier is matched but
+#: never captured into the report, so the recorded runtime stays ``letta``.
 #:
 #: The whole row must match. The trailing absolute-path group is required, and
 #: the runtime and status captures are bounded character classes that cannot
@@ -546,9 +587,11 @@ class AgentObservation:
 #: rejected as ``malformed-row`` with nothing retained from it at all.
 INTEGRATION_ROW = re.compile(
     r"^(?P<runtime>[a-z0-9][a-z0-9_-]{0,31})"
+    r"(?: \(experimental\))?"
     r": "
     r"(?P<status>[a-z][a-z-]{0,31}(?: [a-z][a-z-]{0,31}){0,3})"
-    r"(?: \(v(?P<version>[0-9][0-9a-z.+-]{0,31})\))?"
+    r"(?: \(v(?P<version>[0-9][0-9a-z.+-]{0,31})"
+    r"(?: < v(?P<version_available>[0-9][0-9a-z.+-]{0,31}))?\))?"
     r" \((?P<path>/[^()]{1,512})\)$"
 )
 
@@ -635,17 +678,30 @@ def classify_truncation(
 ) -> str:
     """Classify truncation risk in strict precedence order.
 
-    1. ``confirmed`` — the read failed or was partial, or Herdr's native
-       ``truncated`` flag is set. The native flag dominates.
-    2. ``possible`` — no verified completeness capability proves history
+    1. ``confirmed`` — the read failed, or Herdr's native ``truncated`` flag is
+       set. A failed read dominates everything below it.
+    2. ``possible`` — the control plane reports no native ``truncated`` flag at
+       all (``None``). This is every successful read on Herdr ``0.9.1``, whose
+       ``agent read`` is plain text: the read succeeded and is bounded, but
+       nothing proves it is complete, so it can never rise to ``none``.
+    3. ``possible`` — no verified completeness capability proves history
        completeness for this source. This holds even below budget.
-    3. ``possible`` — the counted lines equal the requested budget.
-    4. ``none`` — only with a proven capability, native ``truncated`` false,
-       and a below-budget read.
+    4. ``possible`` — the counted lines equal the requested budget.
+    5. ``none`` — only with a proven capability, a native ``truncated`` flag
+       explicitly reported as false, and a below-budget read.
+
+    Rule 2 replaces the previous treatment of ``None`` as ``confirmed``. That
+    older rule existed because ``None`` could only arise from a *partial* JSON
+    read envelope, which is a failure. On ``0.9.1`` an absent flag is the
+    normal healthy case, and a failed read is still caught by rule 1, which the
+    read adapter raises for a nonzero exit or an empty read. No path reaches
+    ``none`` with an absent flag, so no false completeness can be reported.
     """
 
-    if read_failed or native_truncated is None or native_truncated:
+    if read_failed or native_truncated:
         return TRUNCATION_CONFIRMED
+    if native_truncated is None:
+        return TRUNCATION_POSSIBLE
     if completeness_token(source) not in set(capabilities):
         return TRUNCATION_POSSIBLE
     if lines_counted >= lines_requested:
@@ -654,7 +710,7 @@ def classify_truncation(
 
 
 def count_lines(text: str) -> int:
-    """Count the lines the adapter itself sees; Herdr ``0.7.3`` reports none."""
+    """Count the lines the adapter itself sees; Herdr reports no line count."""
 
     if not text:
         return 0
@@ -845,7 +901,9 @@ def _require(payload: dict[str, Any], keys: Sequence[str], kind: type) -> Any:
 def parse_status_payload(payload: dict[str, Any]) -> dict[str, Any]:
     """Validate the required ``herdr status --json`` fields.
 
-    Key spellings frozen from a live read-only Herdr ``0.7.3`` probe.
+    Key spellings frozen from a live read-only Herdr ``0.7.3`` probe and
+    re-confirmed against ``0.9.1`` on 2026-09-18: ``0.9.1`` added keys and
+    removed none, so the required set is unchanged.
     """
 
     return {
@@ -863,9 +921,9 @@ def explain_capability_findings(
 ) -> tuple[CapabilityFinding, ...]:
     """Surface Herdr capability drift; never repair it.
 
-    Reproduced on Herdr ``0.7.3``: ``remote_update_status: failed`` with
-    ``remote_update_error: rule trust_directory uses invalid region:
-    top_non_empty_lines(20)``.
+    Reproduced on Herdr ``0.7.3`` and still shaped the same way on ``0.9.1``:
+    ``remote_update_status: failed`` with ``remote_update_error: rule
+    trust_directory uses invalid region: top_non_empty_lines(20)``.
     """
 
     findings: list[CapabilityFinding] = []
@@ -993,56 +1051,50 @@ def envelope_result(payload: dict[str, Any], prefix: str) -> dict[str, Any]:
 def canonical_source(value: str) -> str:
     """Normalize a read-source spelling.
 
-    Herdr ``0.7.3`` accepts ``recent-unwrapped`` on the command line and
-    reports ``recent_unwrapped`` in the envelope. Both spell the same source.
+    Herdr ``0.7.3`` accepted ``recent-unwrapped`` on the command line and
+    reported ``recent_unwrapped`` in the read envelope it used to return; both
+    spell the same source. ``0.9.1``, the minimum supported version, reports no
+    source back at all, so this normalization is kept for comparing spellings
+    rather than for validating a reply.
     """
 
     return value.strip().lower().replace("_", "-")
 
 
-def parse_read_payload(
-    payload: dict[str, Any], name: str, requested_source: str
-) -> dict[str, Any]:
-    """Validate the complete successful ``herdr agent read`` schema.
+def parse_read_payload(stdout: str, name: str, lines_requested: int) -> dict[str, Any]:
+    """Build the read record from ``herdr agent read`` plain-text stdout.
 
-    Every field the truncation contract depends on is required *before*
-    classification: a string ``text``, a boolean native ``truncated``, and a
-    string ``source`` that canonically matches the source actually requested.
-    A payload that omits, mistypes, or mismatches any of them is a partial
-    read, not a successful one — it raises here, so
-    :func:`classify_truncation` sees ``read_failed`` and yields ``confirmed``.
-    Without this gate a short partial payload could reach the ``none`` rule and
-    report false completeness (code review v2, finding H1).
+    The ``payload`` in the name is now that stdout: Herdr ``0.9.1`` has no read
+    envelope. The exported name is deliberately unchanged, because
+    ``bin/brichan-herdr-agent-observe`` imports it by name and that wrapper is
+    outside this task's scope.
+
+    Herdr ``0.9.1`` writes the terminal snapshot itself to stdout. There is no
+    envelope, so there is nothing to validate structurally — and, crucially,
+    nothing that can report completeness. The record therefore carries
+    ``truncated`` as ``None`` and ``source`` as ``None``: the adapter states
+    what it does not know instead of inferring it from the source it asked for.
+
+    The one failure this function owns is an empty read for a nonempty
+    request. Whitespace-only stdout cannot tell a snapshot that never arrived
+    from a pane that really is blank: a worker pane that was just cleared, or a
+    ``recent`` / ``recent-unwrapped`` read with no scrollback yet, looks the
+    same. The adapter takes the fail-safe reading and raises, keeping the case
+    on the ``read-failed`` / ``confirmed`` path, so a genuinely blank pane is
+    reported as a false alarm rather than a lost snapshot being reported as a
+    healthy zero-line observation. A zero-line request is exempt because empty
+    stdout is then the complete answer; the CLI never sends one, but direct
+    callers of this exported function can.
     """
 
     prefix = f"herdr agent read {name}"
-    read_node = envelope_result(payload, prefix).get("read")
-    if not isinstance(read_node, dict):
-        raise AdapterError(f"{prefix} returned no read record")
-
-    text = read_node.get("text")
-    if not isinstance(text, str):
-        raise AdapterError(f"{prefix} returned a partial read: text is missing or not a string")
-
-    truncated = read_node.get("truncated")
-    if not isinstance(truncated, bool):
+    if not isinstance(stdout, str):
+        raise AdapterError(f"{prefix} returned no text")
+    if lines_requested > 0 and not stdout.strip():
         raise AdapterError(
-            f"{prefix} returned a partial read: native truncated flag is "
-            "missing or not a boolean"
+            f"{prefix} returned an empty read for a {lines_requested}-line request"
         )
-
-    reported = read_node.get("source")
-    if not isinstance(reported, str) or not reported.strip():
-        raise AdapterError(
-            f"{prefix} returned a partial read: source is missing or not a string"
-        )
-    if canonical_source(reported) != canonical_source(requested_source):
-        raise AdapterError(
-            f"{prefix} returned a mismatched source: requested "
-            f"{canonical_source(requested_source)!r}, reported "
-            f"{canonical_source(reported)!r}"
-        )
-    return {"text": text, "truncated": truncated, "source": reported}
+    return {"text": stdout, "truncated": None, "source": None}
 
 
 def observe_agent(
@@ -1079,7 +1131,7 @@ def observe_agent(
     native_truncated: bool | None = None
 
     try:
-        payload = run_json(
+        stdout = run_text(
             [
                 "herdr",
                 "agent",
@@ -1089,10 +1141,12 @@ def observe_agent(
                 source,
                 "--lines",
                 str(lines),
+                "--format",
+                "text",
             ],
             runner,
         )
-        read_node = parse_read_payload(payload, name, source)
+        read_node = parse_read_payload(stdout, name, lines)
     except AdapterError as error:
         read_error = str(error)
         findings.append("read-failed")

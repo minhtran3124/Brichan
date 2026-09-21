@@ -111,9 +111,14 @@ Three authority classes stay separate:
   wait, and when to escalate. A worker's `done` or `idle` state is not proof
   that acceptance criteria passed.
 - Terminal text is a bounded observation. Every read carries a truncation risk
-  of `none`, `possible`, or `confirmed`. On Herdr `0.7.3` no capability proves
+  of `none`, `possible`, or `confirmed`. Herdr `0.9.1` (protocol `22`) is the
+  minimum supported version and the only verified control plane; anything else
+  preflights as `unverified`, which is a reported state, never a block. No
+  capability proves
   history completeness, so `possible` is the normal healthy outcome, not an
-  error — do not over-escalate on it.
+  error — do not over-escalate on it. The read is plain terminal
+  text carrying no native `truncated` flag, so `none` cannot be reached at
+  all.
 - Acceptance evidence is durable files only. When truncation risk is `possible`
   or `confirmed`, use the evidence-file fallback: declare the evidence paths and
   read those files. Presence metadata is never acceptance evidence: read and

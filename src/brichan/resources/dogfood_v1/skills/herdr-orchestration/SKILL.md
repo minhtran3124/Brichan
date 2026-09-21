@@ -31,9 +31,14 @@ invocation or rejected path).
 - Herdr scheduling state is a scheduling signal only. A worker's `done` or
   `idle` state is not proof that acceptance criteria passed.
 - Wait in bounded intervals of at most 30 seconds. Never busy-poll.
+- Herdr `0.9.1` (protocol `22`) is the minimum supported version and the only
+  verified control plane. Anything older or newer preflights as `unverified` —
+  a reported state, never a block.
 - Terminal text is a bounded observation with a truncation risk of `none`,
-  `possible`, or `confirmed`. On Herdr `0.7.3`,
-  `possible` is the normal healthy outcome — not an error.
+  `possible`, or `confirmed`. On `0.9.1`,
+  `possible` is the normal healthy outcome — not an error. The read is plain
+  terminal text with no native `truncated` flag, so `none` is unreachable by
+  design.
 - When risk is `possible` or `confirmed`, use the evidence-file fallback: read
   the declared durable evidence files instead of re-reading the screen.
   Presence metadata is never acceptance evidence: read and judge the content.

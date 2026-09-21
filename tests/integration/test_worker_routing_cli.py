@@ -24,28 +24,62 @@ class WorkerRoutingCliTest(unittest.TestCase):
         self.manifest_path.write_text(json.dumps(self.manifest), encoding="utf-8")
         self._write_fake_herdr()
 
+    #: Stubbed Herdr ``0.9.1``. ``pane split`` returns the ``pane_info``
+    #: envelope carrying the new pane ID, and ``agent start`` returns the
+    #: ``agent_started`` envelope for that same pane. Setting
+    #: ``FAKE_HERDR_FAIL_START`` makes ``agent start`` fail the way the real
+    #: client does when readiness is never observed, which is what exercises
+    #: the rollback path. ``FAKE_HERDR_SPLIT_NO_PANE`` and
+    #: ``FAKE_HERDR_START_PANE`` cover the envelopes a zero exit can still
+    #: carry: a split that names no pane, and a start that landed elsewhere.
+    #: ``pane process-info`` reports an idle shell unless
+    #: ``FAKE_HERDR_SHELL_BUSY_POLLS`` asks for that many busy reads first,
+    #: the way a slow ``.zshrc`` looks while it is still running.
+    FAKE_HERDR = """#!/usr/bin/env python3
+import json, os, sys
+args = sys.argv[1:]
+with open(os.environ['FAKE_HERDR_LOG'], 'a', encoding='utf-8') as log:
+    log.write(json.dumps(args) + '\\n')
+if args[:2] == ['pane', 'layout']:
+    payload = {'result': {'layout': {'focused_pane_id': 'p1',
+        'panes': [{'pane_id': 'p1', 'rect': {'x': 0, 'y': 0,
+        'width': 120, 'height': 80}}], 'splits': []}}}
+elif args[:2] == ['pane', 'split']:
+    if os.environ.get('FAKE_HERDR_SPLIT_NO_PANE'):
+        payload = {'id': 'cli:pane:split', 'result': {'type': 'pane_info'}}
+    else:
+        payload = {'id': 'cli:pane:split', 'result': {
+            'pane': {'pane_id': 'p2', 'tab_id': 't1', 'workspace_id': 'w1'},
+            'type': 'pane_info'}}
+elif args[:2] == ['pane', 'process-info']:
+    with open(os.environ['FAKE_HERDR_LOG'], encoding='utf-8') as log:
+        polls = sum(1 for line in log if '"process-info"' in line)
+    busy = polls <= int(os.environ.get('FAKE_HERDR_SHELL_BUSY_POLLS', '0'))
+    shell = {'pid': 500, 'name': 'zsh', 'argv0': 'zsh'}
+    init = {'pid': 501, 'name': 'node', 'argv0': 'nvm'}
+    payload = {'id': 'cli:pane:process_info', 'result': {'process_info': {
+        'pane_id': args[args.index('--pane') + 1], 'shell_pid': 500,
+        'foreground_process_group_id': 500,
+        'foreground_processes': [shell, init] if busy else [shell]},
+        'type': 'pane_process_info'}}
+elif args[:2] == ['agent', 'start']:
+    if os.environ.get('FAKE_HERDR_FAIL_START'):
+        sys.stderr.write('agent_start_timeout\\n')
+        raise SystemExit(1)
+    kind = args[args.index('--kind') + 1]
+    forwarded = args[args.index('--') + 1:] if '--' in args else []
+    started_pane = os.environ.get('FAKE_HERDR_START_PANE', 'p2')
+    payload = {'id': 'cli:agent:start', 'result': {
+        'agent': {'agent': kind, 'name': args[2], 'pane_id': started_pane},
+        'argv': [kind, *forwarded], 'type': 'agent_started'}}
+else:
+    payload = {'result': {}}
+print(json.dumps(payload))
+"""
+
     def _write_fake_herdr(self):
         executable = self.temp_path / "herdr"
-        executable.write_text(
-            "#!/usr/bin/env python3\n"
-            "import json, os, sys\n"
-            "args = sys.argv[1:]\n"
-            "with open(os.environ['FAKE_HERDR_LOG'], 'a', encoding='utf-8') as log:\n"
-            "    log.write(json.dumps(args) + '\\n')\n"
-            "if args[:2] == ['pane', 'get']:\n"
-            "    payload = {'result': {'pane': {'workspace_id': 'w1', "
-            "'tab_id': 't1'}}}\n"
-            "elif args[:2] == ['pane', 'layout']:\n"
-            "    payload = {'result': {'layout': {'focused_pane_id': 'p1', "
-            "'panes': [{'pane_id': 'p1', 'rect': {'x': 0, 'y': 0, "
-            "'width': 120, 'height': 80}}], 'splits': []}}}\n"
-            "elif args[:2] == ['agent', 'start']:\n"
-            "    payload = {'result': {'agent': {'pane_id': 'p2'}}}\n"
-            "else:\n"
-            "    payload = {'result': {}}\n"
-            "print(json.dumps(payload))\n",
-            encoding="utf-8",
-        )
+        executable.write_text(self.FAKE_HERDR, encoding="utf-8")
         executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
 
     def environment(self):
@@ -57,15 +91,39 @@ class WorkerRoutingCliTest(unittest.TestCase):
         environment["BRICHAN_MODEL_ROUTING_FILE"] = str(self.manifest_path)
         return environment
 
-    def run_launcher(self, *arguments):
+    def run_launcher(
+        self, *arguments, fail_start=False, split_without_pane=False,
+        start_pane=None, shell_busy_polls=0,
+    ):
+        environment = self.environment()
+        if fail_start:
+            environment["FAKE_HERDR_FAIL_START"] = "1"
+        if split_without_pane:
+            environment["FAKE_HERDR_SPLIT_NO_PANE"] = "1"
+        if start_pane is not None:
+            environment["FAKE_HERDR_START_PANE"] = start_pane
+        if shell_busy_polls:
+            environment["FAKE_HERDR_SHELL_BUSY_POLLS"] = str(shell_busy_polls)
         return subprocess.run(
             [str(LAUNCHER), *arguments],
             cwd=ROOT,
-            env=self.environment(),
+            env=environment,
             check=False,
             capture_output=True,
             text=True,
         )
+
+    def start_call(self):
+        return next(call for call in self.calls() if call[:2] == ["agent", "start"])
+
+    def split_call(self):
+        return next(call for call in self.calls() if call[:2] == ["pane", "split"])
+
+    def forwarded_agent_argv(self):
+        """The argv Herdr passes to the agent, after ``--kind`` and ``--``."""
+
+        start = self.start_call()
+        return start[start.index("--") + 1 :] if "--" in start else []
 
     def calls(self):
         if not self.log_path.exists():
@@ -84,14 +142,133 @@ class WorkerRoutingCliTest(unittest.TestCase):
             str(ROOT),
         ]
 
+    def test_the_launch_is_a_split_then_a_start_in_that_pane(self):
+        """The 0.9.1 two-step launch, including the pane-ID handoff.
+
+        The ``0.7.3`` single ``agent start --workspace/--tab/--split`` call is
+        rejected by the 0.9.1 client, so the removed options must not reappear
+        and the started pane must be the one ``pane split`` returned.
+        """
+
+        result = self.run_launcher(*self.common_arguments(), "--route", "review")
+        self.assertEqual(0, result.returncode, result.stderr)
+
+        calls = self.calls()
+        split, start = self.split_call(), self.start_call()
+        self.assertLess(calls.index(split), calls.index(start))
+
+        self.assertEqual("p1", split[2])
+        self.assertEqual("right", split[split.index("--direction") + 1])
+        self.assertEqual(str(ROOT), split[split.index("--cwd") + 1])
+
+        # The pane ID comes from the split envelope, never from the anchor.
+        self.assertEqual("p2", start[start.index("--pane") + 1])
+        self.assertEqual(
+            self.manifest["routes"]["review"]["runtime"],
+            start[start.index("--kind") + 1],
+        )
+        self.assertEqual("30000", start[start.index("--timeout") + 1])
+        for removed in ("--workspace", "--tab", "--split", "--no-focus", "--cwd"):
+            self.assertNotIn(removed, start, removed)
+        # A successful launch closes nothing.
+        self.assertEqual([], [call for call in calls if call[:2] == ["pane", "close"]])
+
+    def test_the_kind_supplies_the_executable_so_it_is_not_forwarded(self):
+        """``--kind claude`` runs the executable; only its arguments follow."""
+
+        result = self.run_launcher(*self.common_arguments(), "--route", "review")
+        self.assertEqual(0, result.returncode, result.stderr)
+
+        runtime = self.manifest["routes"]["review"]["runtime"]
+        forwarded = self.forwarded_agent_argv()
+        self.assertTrue(forwarded)
+        self.assertNotEqual(runtime, forwarded[0])
+        self.assertNotIn(runtime, forwarded)
+        # Herdr echoes the reassembled argv with the executable back in front.
+        self.assertEqual(
+            [runtime, *forwarded], json.loads(result.stdout)["result"]["argv"]
+        )
+
+    def test_a_failed_start_closes_only_the_pane_the_launcher_created(self):
+        result = self.run_launcher(
+            *self.common_arguments(), "--route", "review", fail_start=True
+        )
+
+        self.assertNotEqual(0, result.returncode)
+        closes = [call for call in self.calls() if call[:2] == ["pane", "close"]]
+        self.assertEqual([["pane", "close", "p2"]], closes)
+        # The anchor is never closed, whatever else fails.
+        self.assertNotIn(["pane", "close", "p1"], self.calls())
+
+    def test_a_split_envelope_without_a_pane_id_is_a_clean_failure(self):
+        """A zero exit is not a pane: the missing key must not escape.
+
+        Reading the ID with a bare subscript raised ``KeyError`` here, which
+        the rollback handler does not catch, so the launch died with the
+        layout half-applied instead of failing cleanly.
+        """
+
+        result = self.run_launcher(
+            *self.common_arguments(), "--route", "review", split_without_pane=True
+        )
+
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("returned no pane id", result.stderr)
+        # No agent may be started against a pane that was never identified.
+        self.assertEqual(
+            [], [call for call in self.calls() if call[:2] == ["agent", "start"]]
+        )
+
+    def test_a_start_in_another_pane_closes_the_pane_the_launcher_created(self):
+        """The mismatch check must unwind, not just exit.
+
+        The agent is live somewhere Brichan does not own, so the empty pane
+        the launcher made is closed and the stray pane is named for the
+        caller.
+        """
+
+        result = self.run_launcher(
+            *self.common_arguments(), "--route", "review", start_pane="p9"
+        )
+
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("p9", result.stderr)
+        closes = [call for call in self.calls() if call[:2] == ["pane", "close"]]
+        self.assertEqual([["pane", "close", "p2"]], closes)
+        self.assertNotIn(["pane", "close", "p1"], self.calls())
+
+    def test_the_start_waits_for_the_new_shell_to_reach_its_prompt(self):
+        """``agent start`` needs an idle shell; a slow startup is waited out."""
+
+        result = self.run_launcher(
+            *self.common_arguments(), "--route", "review", shell_busy_polls=2
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        verbs = [call[:2] for call in self.calls()]
+        polls = [i for i, verb in enumerate(verbs) if verb == ["pane", "process-info"]]
+        start = verbs.index(["agent", "start"])
+        self.assertEqual(3, len(polls))
+        self.assertTrue(all(poll < start for poll in polls))
+        self.assertEqual(
+            ["pane", "process-info", "--pane", "p2"], self.calls()[polls[0]]
+        )
+
+    def test_the_started_envelope_carries_the_new_pane_id(self):
+        result = self.run_launcher(*self.common_arguments(), "--route", "review")
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        started = json.loads(result.stdout)["result"]["agent"]
+        self.assertEqual("p2", started["pane_id"])
+        self.assertNotEqual("p1", started["pane_id"])
+
     def test_named_route_builds_guarded_provider_command(self):
         result = self.run_launcher(*self.common_arguments(), "--route", "review")
 
         self.assertEqual(0, result.returncode, result.stderr)
-        start = next(call for call in self.calls() if call[:2] == ["agent", "start"])
-        command = start[start.index("--") + 1 :]
+        command = self.forwarded_agent_argv()
         runtime = self.manifest["routes"]["review"]["runtime"]
-        self.assertEqual(runtime, command[0])
+        self.assertEqual(runtime, self.start_call()[self.start_call().index("--kind") + 1])
         if runtime == "codex":
             self.assertIn("agents.enabled=false", command)
             self.assertIn("multi_agent_v2", command)
@@ -120,8 +297,8 @@ class WorkerRoutingCliTest(unittest.TestCase):
         )
 
         self.assertEqual(0, result.returncode, result.stderr)
-        start = next(call for call in self.calls() if call[:2] == ["agent", "start"])
-        command = start[start.index("--") + 1 :]
+        command = self.forwarded_agent_argv()
+        self.assertEqual("claude", self.start_call()[self.start_call().index("--kind") + 1])
         self.assertIn("override-model", command)
         self.assertIn("max", command)
         self.assertNotIn(self.manifest["routes"]["scan"]["model"], command)
@@ -251,8 +428,8 @@ class WorkerRoutingCliTest(unittest.TestCase):
         )
 
         self.assertEqual(0, result.returncode, result.stderr)
-        start = next(call for call in self.calls() if call[:2] == ["agent", "start"])
-        command = start[start.index("--") + 1 :]
+        command = self.forwarded_agent_argv()
+        self.assertEqual("codex", self.start_call()[self.start_call().index("--kind") + 1])
         self.assertEqual(["--model", "legacy-model", "--help"], command[-3:])
         self.assertIn("agents.enabled=false", command)
         self.assertIn("multi_agent_v2", command)
@@ -270,9 +447,7 @@ class WorkerRoutingCliTest(unittest.TestCase):
         )
 
         self.assertEqual(0, result.returncode, result.stderr)
-        start = next(call for call in self.calls() if call[:2] == ["agent", "start"])
-        command = start[start.index("--") + 1 :]
-        self.assertIn("legacy-model", command)
+        self.assertIn("legacy-model", self.forwarded_agent_argv())
 
     def test_legacy_claude_deny_flag_precedes_argument_separator(self):
         result = self.run_launcher(
@@ -284,8 +459,7 @@ class WorkerRoutingCliTest(unittest.TestCase):
         )
 
         self.assertEqual(0, result.returncode, result.stderr)
-        start = next(call for call in self.calls() if call[:2] == ["agent", "start"])
-        command = start[start.index("--") + 1 :]
+        command = self.forwarded_agent_argv()
         self.assertLess(command.index("--disallowed-tools=Task"), command.index("--"))
 
 
