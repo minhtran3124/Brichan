@@ -1467,6 +1467,18 @@ class ObservationTest(unittest.TestCase):
             with self.assertRaises(monitor.AdapterError, msg=label):
                 monitor.parse_read_payload(stdout, "brichan-worker", 200)
 
+    def test_parse_read_payload_accepts_an_empty_read_for_a_zero_line_request(self):
+        """Empty stdout is the complete answer when no lines were asked for.
+
+        The CLI's ``--lines`` is always positive, so only a direct caller of
+        the exported function reaches this; it pins the guard against being
+        removed as dead code.
+        """
+
+        parsed = monitor.parse_read_payload("", "brichan-worker", 0)
+        self.assertEqual("", parsed["text"])
+        self.assertIsNone(parsed["truncated"])
+
     def test_parse_read_payload_accepts_the_frozen_live_text(self):
         parsed = monitor.parse_read_payload(AGENT_READ_TEXT, "brichan-worker", 200)
         self.assertEqual(AGENT_READ_TEXT, parsed["text"])

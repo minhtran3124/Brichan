@@ -1076,11 +1076,15 @@ def parse_read_payload(stdout: str, name: str, lines_requested: int) -> dict[str
     what it does not know instead of inferring it from the source it asked for.
 
     The one failure this function owns is an empty read for a nonempty
-    request. A live pane always has at least a shell prompt on screen, so empty
-    stdout means the snapshot did not arrive, not that the worker's screen is
-    blank. Raising here keeps that case on the ``read-failed`` /
-    ``confirmed`` path rather than reporting a zero-line observation as a
-    healthy one.
+    request. Whitespace-only stdout cannot tell a snapshot that never arrived
+    from a pane that really is blank: a worker pane that was just cleared, or a
+    ``recent`` / ``recent-unwrapped`` read with no scrollback yet, looks the
+    same. The adapter takes the fail-safe reading and raises, keeping the case
+    on the ``read-failed`` / ``confirmed`` path, so a genuinely blank pane is
+    reported as a false alarm rather than a lost snapshot being reported as a
+    healthy zero-line observation. A zero-line request is exempt because empty
+    stdout is then the complete answer; the CLI never sends one, but direct
+    callers of this exported function can.
     """
 
     prefix = f"herdr agent read {name}"
