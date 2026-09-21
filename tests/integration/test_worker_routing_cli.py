@@ -29,7 +29,9 @@ class WorkerRoutingCliTest(unittest.TestCase):
     #: ``agent_started`` envelope for that same pane. Setting
     #: ``FAKE_HERDR_FAIL_START`` makes ``agent start`` fail the way the real
     #: client does when readiness is never observed, which is what exercises
-    #: the rollback path.
+    #: the rollback path. ``FAKE_HERDR_SPLIT_NO_PANE`` and
+    #: ``FAKE_HERDR_START_PANE`` cover the envelopes a zero exit can still
+    #: carry: a split that names no pane, and a start that landed elsewhere.
     FAKE_HERDR = """#!/usr/bin/env python3
 import json, os, sys
 args = sys.argv[1:]
@@ -40,17 +42,21 @@ if args[:2] == ['pane', 'layout']:
         'panes': [{'pane_id': 'p1', 'rect': {'x': 0, 'y': 0,
         'width': 120, 'height': 80}}], 'splits': []}}}
 elif args[:2] == ['pane', 'split']:
-    payload = {'id': 'cli:pane:split', 'result': {
-        'pane': {'pane_id': 'p2', 'tab_id': 't1', 'workspace_id': 'w1'},
-        'type': 'pane_info'}}
+    if os.environ.get('FAKE_HERDR_SPLIT_NO_PANE'):
+        payload = {'id': 'cli:pane:split', 'result': {'type': 'pane_info'}}
+    else:
+        payload = {'id': 'cli:pane:split', 'result': {
+            'pane': {'pane_id': 'p2', 'tab_id': 't1', 'workspace_id': 'w1'},
+            'type': 'pane_info'}}
 elif args[:2] == ['agent', 'start']:
     if os.environ.get('FAKE_HERDR_FAIL_START'):
         sys.stderr.write('agent_start_timeout\\n')
         raise SystemExit(1)
     kind = args[args.index('--kind') + 1]
     forwarded = args[args.index('--') + 1:] if '--' in args else []
+    started_pane = os.environ.get('FAKE_HERDR_START_PANE', 'p2')
     payload = {'id': 'cli:agent:start', 'result': {
-        'agent': {'agent': kind, 'name': args[2], 'pane_id': 'p2'},
+        'agent': {'agent': kind, 'name': args[2], 'pane_id': started_pane},
         'argv': [kind, *forwarded], 'type': 'agent_started'}}
 else:
     payload = {'result': {}}
@@ -71,10 +77,17 @@ print(json.dumps(payload))
         environment["BRICHAN_MODEL_ROUTING_FILE"] = str(self.manifest_path)
         return environment
 
-    def run_launcher(self, *arguments, fail_start=False):
+    def run_launcher(
+        self, *arguments, fail_start=False, split_without_pane=False,
+        start_pane=None,
+    ):
         environment = self.environment()
         if fail_start:
             environment["FAKE_HERDR_FAIL_START"] = "1"
+        if split_without_pane:
+            environment["FAKE_HERDR_SPLIT_NO_PANE"] = "1"
+        if start_pane is not None:
+            environment["FAKE_HERDR_START_PANE"] = start_pane
         return subprocess.run(
             [str(LAUNCHER), *arguments],
             cwd=ROOT,
@@ -169,6 +182,43 @@ print(json.dumps(payload))
         closes = [call for call in self.calls() if call[:2] == ["pane", "close"]]
         self.assertEqual([["pane", "close", "p2"]], closes)
         # The anchor is never closed, whatever else fails.
+        self.assertNotIn(["pane", "close", "p1"], self.calls())
+
+    def test_a_split_envelope_without_a_pane_id_is_a_clean_failure(self):
+        """A zero exit is not a pane: the missing key must not escape.
+
+        Reading the ID with a bare subscript raised ``KeyError`` here, which
+        the rollback handler does not catch, so the launch died with the
+        layout half-applied instead of failing cleanly.
+        """
+
+        result = self.run_launcher(
+            *self.common_arguments(), "--route", "review", split_without_pane=True
+        )
+
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("returned no pane id", result.stderr)
+        # No agent may be started against a pane that was never identified.
+        self.assertEqual(
+            [], [call for call in self.calls() if call[:2] == ["agent", "start"]]
+        )
+
+    def test_a_start_in_another_pane_closes_the_pane_the_launcher_created(self):
+        """The mismatch check must unwind, not just exit.
+
+        The agent is live somewhere Brichan does not own, so the empty pane
+        the launcher made is closed and the stray pane is named for the
+        caller.
+        """
+
+        result = self.run_launcher(
+            *self.common_arguments(), "--route", "review", start_pane="p9"
+        )
+
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("p9", result.stderr)
+        closes = [call for call in self.calls() if call[:2] == ["pane", "close"]]
+        self.assertEqual([["pane", "close", "p2"]], closes)
         self.assertNotIn(["pane", "close", "p1"], self.calls())
 
     def test_the_started_envelope_carries_the_new_pane_id(self):

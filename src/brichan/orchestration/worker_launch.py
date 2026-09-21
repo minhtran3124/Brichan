@@ -72,6 +72,29 @@ def _run_json(argv: list[str]) -> tuple[dict[str, Any], str]:
         raise HerdrError(f"{' '.join(argv)} returned invalid JSON") from exc
 
 
+def _envelope_pane_id(
+    payload: dict[str, Any], section: str, command: str
+) -> str:
+    """Read ``result.<section>.pane_id`` out of a Herdr envelope.
+
+    Herdr can exit 0 with an envelope that omits the section, so the read is
+    defensive and reports the gap as a ``HerdrError``. A ``KeyError`` here
+    would escape the launcher's rollback handler and strand the pane Brichan
+    just created.
+    """
+
+    result = payload.get("result")
+    section_payload = result.get(section) if isinstance(result, dict) else None
+    pane_id = (
+        section_payload.get("pane_id")
+        if isinstance(section_payload, dict)
+        else None
+    )
+    if not isinstance(pane_id, str) or not pane_id:
+        raise HerdrError(f"{command} returned no pane id")
+    return pane_id
+
+
 def _layout(anchor_pane_id: str) -> dict[str, Any]:
     payload, _ = _run_json(
         ["herdr", "pane", "layout", "--pane", anchor_pane_id]
@@ -451,9 +474,9 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
             for item in args.env:
                 split_command.extend(["--env", item])
             split_payload, _ = _run_json(split_command)
-            new_pane_id = split_payload["result"]["pane"]["pane_id"]
-            if not isinstance(new_pane_id, str) or not new_pane_id:
-                raise HerdrError("herdr pane split returned no pane id")
+            new_pane_id = _envelope_pane_id(
+                split_payload, "pane", "herdr pane split"
+            )
             # Checked before the pane is recorded as Brichan-owned: a pane the
             # launcher did not create must never enter the rollback path, and
             # no agent may be started in the coordinator's own pane.
@@ -483,6 +506,20 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
                 start_command.extend(agent_arguments)
 
             start_payload, start_stdout = _run_json(start_command)
+            # Checked before the layout is settled so a start that landed
+            # somewhere else still unwinds: the rollback closes the empty pane
+            # this launcher created, and the message names the pane the stray
+            # agent is in so the caller can reach it.
+            started_pane_id = _envelope_pane_id(
+                start_payload, "agent", "herdr agent start"
+            )
+            if started_pane_id == args.anchor_pane:
+                raise HerdrError("Herdr reused the coordinator pane unexpectedly")
+            if started_pane_id != worker_pane_id:
+                raise HerdrError(
+                    f"Herdr started the agent in pane {started_pane_id!r}, not the "
+                    f"pane Brichan created ({worker_pane_id!r})"
+                )
         except HerdrError:
             if worker_pane_id is not None:
                 # Only the pane this launcher created, and only when the agent
@@ -518,14 +555,6 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
         except HerdrError as exc:
             print(f"warning: worker started but focus restore failed: {exc}", file=sys.stderr)
 
-        started_pane_id = start_payload["result"]["agent"]["pane_id"]
-        if started_pane_id == args.anchor_pane:
-            raise HerdrError("Herdr reused the coordinator pane unexpectedly")
-        if started_pane_id != worker_pane_id:
-            raise HerdrError(
-                f"Herdr started the agent in pane {started_pane_id!r}, not the "
-                f"pane Brichan created ({worker_pane_id!r})"
-            )
         sys.stdout.write(start_stdout)
         return 0
     except (HerdrError, KeyError, RoutingError, ValueError) as exc:
