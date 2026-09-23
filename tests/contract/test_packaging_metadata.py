@@ -24,6 +24,8 @@ class PackagingMetadataTest(unittest.TestCase):
             'brichan-claude = "brichan.cli.claude:main"',
             'brichan-herdr-agent-start = "brichan.orchestration.worker_launch:main"',
             'brichan-herdr-agent-observe = "brichan.orchestration.monitor:main"',
+            'brichan-herdr-worker-ledger = '
+            '"brichan.orchestration.worker_ledger:main"',
             'brichan-validate-receipts = "brichan.contracts.receipts.validation:main"',
         ):
             self.assertIn(entry_point, pyproject)

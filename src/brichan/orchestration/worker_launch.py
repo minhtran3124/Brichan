@@ -17,6 +17,7 @@ import shlex
 import subprocess
 import sys
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,15 @@ from .model_routing import (
     RoutingError,
     load_settings,
     resolve_route,
+)
+from .worker_ledger import (
+    NO_LOCATION_NOTE,
+    LedgerLocation,
+    LedgerPathError,
+    installed_location,
+    legacy_launch_location,
+    record_launch,
+    resolve_checkout_location,
 )
 
 
@@ -67,6 +77,10 @@ class LaunchResolution:
     command: tuple[str, ...]
     route_name: str | None = None
     route: ResolvedRoute | None = None
+    #: Where this launch's ``launched`` record goes, or ``None`` when no ledger
+    #: location resolves. Resolution never fails a launch (R7): an unresolvable
+    #: location degrades to one stderr note.
+    ledger: LedgerLocation | None = None
 
 
 def _run_json(argv: list[str]) -> tuple[dict[str, Any], str]:
@@ -374,7 +388,11 @@ def _close_pane(pane_id: str) -> None:
     _run_json(["herdr", "pane", "close", pane_id])
 
 
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def _parse_args(
+    argv: list[str] | None = None,
+    *,
+    checkout_root: Path | None = None,
+) -> argparse.Namespace:
     raw_argv = sys.argv[1:] if argv is None else argv
     try:
         separator = raw_argv.index("--")
@@ -402,6 +420,24 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--model")
     parser.add_argument("--effort")
     parser.add_argument(
+        "--task",
+        help=(
+            "task identifier recorded verbatim in the worker ledger; never "
+            "inferred when the flag is absent"
+        ),
+    )
+    if checkout_root is not None:
+        # Checkout only: installed mode always uses the one fixed state-root
+        # ledger, so the installed parser does not define the flag at all and
+        # passing it there is an ordinary usage error before any Herdr call.
+        parser.add_argument(
+            "--ledger-file",
+            help=(
+                "relative path of the checkout ledger file, for example "
+                "projects/<slug>/ledger/workers.jsonl"
+            ),
+        )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="resolve and validate the worker command without calling Herdr",
@@ -426,6 +462,20 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         args.dry_run = True
     if not args.dry_run and not args.anchor_pane:
         parser.error("--anchor-pane is required unless --dry-run or --json is used")
+    # Validated here, before any Herdr call, so an invalid value is an ordinary
+    # usage error and can never affect a launch that has already started.
+    args.ledger_location = None
+    # Tested against ``None``, not truthiness: an empty value is a value the
+    # coordinator passed, and the resolver refuses it explicitly. Skipping the
+    # resolver for it would turn a usage error into a silent not-recorded
+    # launch, while ``finish`` still exits 2 for the same input.
+    if checkout_root is not None and args.ledger_file is not None:
+        try:
+            args.ledger_location = resolve_checkout_location(
+                checkout_root, args.ledger_file
+            )
+        except LedgerPathError as exc:
+            parser.error(str(exc))
     return args
 
 
@@ -467,12 +517,27 @@ def _resolve_launch(
             command=tuple(worker_command(route)),
             route_name=args.route,
             route=route,
+            ledger=(
+                args.ledger_location
+                if checkout_root is not None
+                else installed_location(paths.project_root)
+            ),
         )
     # Legacy commands need the provider guard only when that compatibility
     # path is selected, not while importing orchestration primitives.
     from brichan.cli.provider_commands import secure_legacy_command
 
-    return LaunchResolution(command=tuple(secure_legacy_command(args.argv)))
+    return LaunchResolution(
+        command=tuple(secure_legacy_command(args.argv)),
+        ledger=(
+            args.ledger_location
+            if checkout_root is not None
+            # A legacy launch touches no project state today, so its ledger is
+            # discovered by an upward Git-root walk inside a never-raise guard:
+            # any resolution failure degrades to a note, never a launch failure.
+            else legacy_launch_location(args.cwd)
+        ),
+    )
 
 
 def _print_dry_run(
@@ -497,7 +562,7 @@ def _print_dry_run(
 
 
 def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -> int:
-    args = _parse_args(argv)
+    args = _parse_args(argv, checkout_root=checkout_root)
     try:
         resolution = _resolve_launch(args, checkout_root=checkout_root)
         if args.dry_run:
@@ -606,6 +671,37 @@ def _main(argv: list[str] | None = None, *, checkout_root: Path | None = None) -
             except HerdrError:
                 pass
             raise
+
+        # The launch is definitively successful here: the started-pane checks
+        # passed and the rollback scope is closed, so no record can ever name a
+        # worker that is not running. Later resize and focus problems are
+        # already warning-only.
+        if resolution.ledger is None:
+            print(NO_LOCATION_NOTE, file=sys.stderr)
+        else:
+            launch_id = str(uuid.uuid4())
+            ledger_warning = record_launch(
+                resolution.ledger,
+                launch_id=launch_id,
+                worker=args.name,
+                task_id=args.task,
+                route_name=resolution.route_name,
+                route=resolution.route,
+                command=resolution.command,
+                pane_id=worker_pane_id,
+                split_payload=split_payload,
+            )
+            if ledger_warning is None:
+                # stdout stays reserved for the verbatim `agent_started`
+                # envelope, so the identifier the coordinator carries into the
+                # matching `finish` goes to stderr.
+                print(f"ledger: launch_id={launch_id}", file=sys.stderr)
+            else:
+                print(
+                    "warning: worker started but ledger write failed: "
+                    f"{ledger_warning}",
+                    file=sys.stderr,
+                )
 
         for resize in plan.post_resizes:
             try:

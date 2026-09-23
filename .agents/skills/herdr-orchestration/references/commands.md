@@ -60,6 +60,54 @@ Use a unique name beginning with `brichan-`. The launcher rejects unsupported
 runtimes and efforts, Codex `ultra`, arbitrary settings, native-agent options,
 and permission-bypass controls before Herdr mutation.
 
+Add `--task <TASK-ID>` to record the task this worker serves; the value is
+recorded verbatim and is never inferred when the flag is absent. In a source
+checkout, add `--ledger-file projects/<slug>/ledger/workers.jsonl` to persist
+the launch. The flag exists in checkout mode only, is relative, must already be
+normalized, may contain no `.`, `..`, or `.brichan` component in any letter
+case, and must end in `.jsonl`; anything else is a usage error before any Herdr
+call. An installed launch always uses the target's fixed
+`.brichan/ledger/workers.jsonl` and rejects the flag.
+
+## Worker ledger
+
+A successful launch appends exactly one `launched` record and prints
+`ledger: launch_id=<uuid>` on stderr; stdout stays the verbatim
+`agent_started` envelope. A launch that rolls back appends nothing, and
+`--dry-run` and `--json` write nothing. A ledger failure after a start prints
+`warning: worker started but ledger write failed: <reason>` and changes
+nothing else: the exit code stays `0` and the worker stays up. When no ledger
+location resolves, the launch prints
+`ledger: no ledger location for this launch; not recorded` and proceeds.
+
+Record the worker's end only from evidence, never from scheduling state:
+
+```text
+bin/brichan-herdr-worker-ledger finish \
+  --worker <brichan-name> \
+  --launch-id <uuid> \
+  --evidence <repo-relative-path> [--evidence <citation> ...] \
+  [--task <TASK-ID>] [--pane <pane-id>] \
+  --ledger-file projects/<slug>/ledger/workers.jsonl
+```
+
+The installed command takes `--project <absolute-target-project>` instead of
+`--ledger-file`, and otherwise behaves identically. A `finished` record is a
+coordinator attestation, not proof: the command cannot verify completion, so
+it refuses a `--launch-id` that matches no `launched` record, a worker name
+without the `brichan-` prefix, and an empty or whitespace-only evidence item,
+each with exit `1` and nothing written. Each launch takes at most one
+attestation, and a second `finish` for the same `--launch-id` is refused; when
+two `finish` runs overlap, consumers take the first `finished` record for that
+`launch_id` in file order as the winning one. Absence of a `finished` record
+means "unknown", never "still running" or "failed".
+
+| Exit | Meaning |
+|---:|---|
+| `0` | Attestation recorded |
+| `1` | Refused or failed (no ledger, unmatched or already-finished `launch_id`, write failure) |
+| `2` | Invalid invocation, including a rejected `--ledger-file` value |
+
 ## Legacy explicit commands
 
 The explicit provider command remains available during migration:

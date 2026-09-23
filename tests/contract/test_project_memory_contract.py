@@ -25,7 +25,7 @@ class ProjectMemoryContractTest(unittest.TestCase):
         )
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertEqual("", result.stderr)
-        self.assertIn("project memory consistent: 7 indexed projects", result.stdout)
+        self.assertIn("project memory consistent: 8 indexed projects", result.stdout)
 
     def test_makefile_wires_memory_check_into_the_full_gate(self):
         makefile = MAKEFILE.read_text(encoding="utf-8")

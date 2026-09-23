@@ -24,6 +24,16 @@ projects/evals/metrics    durable data; never imported by the core
   acceptance evidence. Its evidence fallback uses a descriptor-relative
   `O_DIRECTORY | O_NOFOLLOW` walk, the same discipline as
   `src/brichan/contracts/task_dossier/generate.py`.
+  `worker_ledger.py` owns the append-only worker ledger behind
+  `bin/brichan-herdr-worker-ledger`: the launcher appends exactly one
+  `launched` record per confirmed start, outside the rollback scope and
+  through a never-raise guard, so a ledger failure of any exception class
+  costs one stderr warning and never the launch. `finished` records are
+  coordinator attestations written only by that command's `finish`
+  subcommand — never by `monitor.py`, which stays read-only. Storage is
+  `.brichan/ledger/workers.jsonl` in installed mode and an explicit
+  `--ledger-file` relative path in checkout mode; no ledger code path creates
+  a `.brichan` or writes inside one that lacks a regular `manifest.json`.
 - `src/brichan/cli/` owns runtime dispatch and the Codex/Claude adapters.
 - `src/brichan/techstacks/` owns read-only techstack resolution, Snapshot
   publication, and verification behind `brichan techstacks resolve|verify`. It

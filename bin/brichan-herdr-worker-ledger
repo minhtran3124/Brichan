@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Compatibility wrapper for Brichan's worker-ledger attestation command."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from brichan.orchestration.worker_ledger import (
+    LedgerError,
+    LedgerLocation,
+    LedgerPathError,
+    LedgerRead,
+    append_record,
+    build_finished_record,
+    build_launched_record,
+    checkout_main,
+    finished_record,
+    installed_location,
+    launched_record,
+    legacy_launch_location,
+    main,
+    parse_records,
+    read_records,
+    record_finish,
+    record_launch,
+    resolve_checkout_location,
+    resolve_installed_location,
+)
+
+
+if __name__ == "__main__":
+    raise SystemExit(checkout_main(ROOT, sys.argv[1:]))

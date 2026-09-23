@@ -23,6 +23,7 @@ class RepositoryContractTest(unittest.TestCase):
             "bin/brichan-codex",
             "bin/brichan-claude",
             "bin/brichan-herdr-agent-start",
+            "bin/brichan-herdr-worker-ledger",
             "scripts/install-brichan",
             "CLAUDE.md",
             "docs/index.md",
@@ -189,6 +190,14 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("checkout_main(ROOT)", worker_wrapper)
         self.assertNotIn("SystemExit(main())", worker_wrapper)
 
+        # `SCRIPT-002`: the ledger wrapper calls the explicit checkout
+        # entrypoint too, so checkout routing stays a property of the launch.
+        ledger_wrapper = (ROOT / "bin/brichan-herdr-worker-ledger").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("checkout_main(ROOT, sys.argv[1:])", ledger_wrapper)
+        self.assertNotIn("SystemExit(main())", ledger_wrapper)
+
     def test_installed_entrypoints_never_select_mode_from_the_environment(self):
         """No installed console script may consult a checkout claim."""
         entrypoints = {
@@ -197,6 +206,7 @@ class RepositoryContractTest(unittest.TestCase):
             "src/brichan/cli/codex.py",
             "src/brichan/cli/claude.py",
             "src/brichan/orchestration/worker_launch.py",
+            "src/brichan/orchestration/worker_ledger.py",
         }
         for name in entrypoints:
             source = (ROOT / name).read_text(encoding="utf-8")
@@ -209,6 +219,15 @@ class RepositoryContractTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertNotIn(".brichan", routing)
 
+        # The ledger module never consults the environment at all: an
+        # installed ledger's location is the target's own fixed state root,
+        # and a checkout ledger's is the root the wrapper passes in.
+        ledger = (
+            ROOT / "src/brichan/orchestration/worker_ledger.py"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("os.environ", ledger)
+        self.assertNotIn("getenv", ledger)
+
         codex = (ROOT / "src/brichan/cli/codex.py").read_text(encoding="utf-8")
         installed_main = codex.split("def main(", 1)[1].split("\ndef ", 1)[0]
         self.assertNotIn("BRICHAN_ROOT", installed_main)
@@ -216,13 +235,17 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn("run_project(", installed_main)
 
     def test_balanced_herdr_launcher_is_executable_python(self):
-        launcher = ROOT / "bin/brichan-herdr-agent-start"
-        self.assertTrue(os.access(launcher, os.X_OK))
-        compile(
-            launcher.read_text(encoding="utf-8"),
-            str(launcher),
-            "exec",
-        )
+        for name in (
+            "bin/brichan-herdr-agent-start",
+            "bin/brichan-herdr-worker-ledger",
+        ):
+            launcher = ROOT / name
+            self.assertTrue(os.access(launcher, os.X_OK), name)
+            compile(
+                launcher.read_text(encoding="utf-8"),
+                str(launcher),
+                "exec",
+            )
 
     def test_launcher_disables_native_agents(self):
         providers = (
