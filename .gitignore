@@ -66,5 +66,8 @@ internal-docs/
 # Local Brichan task dossiers (kept on disk for agent continuity)
 /projects/*/handoffs/*/
 
+# Local Brichan checkout worker ledgers (machine-local launch records)
+/projects/*/ledger/
+
 # Local, machine-specific Claude Code overrides
 /CLAUDE.local.md

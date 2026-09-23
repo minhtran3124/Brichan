@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import stat
 import subprocess
 import tempfile
@@ -11,7 +12,9 @@ ROOT = Path(__file__).resolve().parents[2]
 LAUNCHER = ROOT / "bin/brichan-herdr-agent-start"
 
 
-class WorkerRoutingCliTest(unittest.TestCase):
+class FakeHerdrTestCase(unittest.TestCase):
+    """Fake-Herdr harness shared by the routing and ledger launcher suites."""
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -142,6 +145,8 @@ print(json.dumps(payload))
             str(ROOT),
         ]
 
+
+class WorkerRoutingCliTest(FakeHerdrTestCase):
     def test_the_launch_is_a_split_then_a_start_in_that_pane(self):
         """The 0.9.1 two-step launch, including the pane-ID handoff.
 
@@ -461,6 +466,415 @@ print(json.dumps(payload))
         self.assertEqual(0, result.returncode, result.stderr)
         command = self.forwarded_agent_argv()
         self.assertLess(command.index("--disallowed-tools=Task"), command.index("--"))
+
+
+class WorkerLedgerLaunchTest(FakeHerdrTestCase):
+    """The launcher is the one point where resolution data becomes durable.
+
+    Every case runs the committed wrappers against a throwaway checkout root,
+    so the record, its null rules, and the never-fails-a-launch policy are
+    exercised end to end without touching this repository's own tree.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.checkout = self.temp_path / "checkout"
+        (self.checkout / "bin").mkdir(parents=True)
+        (self.checkout / "projects" / "slug").mkdir(parents=True)
+        # The committed wrapper is copied byte for byte and finds its root from
+        # its own location, so the launcher under test is the real one; only
+        # the root it derives is a throwaway.
+        self.launcher = self.checkout / "bin/brichan-herdr-agent-start"
+        shutil.copy2(LAUNCHER, self.launcher)
+        os.symlink(ROOT / "src", self.checkout / "src")
+        self.ledger_value = "projects/slug/ledger/workers.jsonl"
+        self.ledger_path = self.checkout / self.ledger_value
+        self.installed_launcher = self.temp_path / "installed-agent-start"
+        self.installed_launcher.write_text(
+            "#!/usr/bin/env python3\n"
+            "import sys\n"
+            f"sys.path.insert(0, {str(ROOT / 'src')!r})\n"
+            "from brichan.orchestration.worker_launch import main\n"
+            "raise SystemExit(main())\n",
+            encoding="utf-8",
+        )
+        self.installed_launcher.chmod(
+            self.installed_launcher.stat().st_mode | stat.S_IXUSR
+        )
+
+    def run_checkout_launcher(self, *arguments, launcher=None, **kwargs):
+        environment = self.environment()
+        if kwargs.pop("fail_start", False):
+            environment["FAKE_HERDR_FAIL_START"] = "1"
+        self.assertEqual({}, kwargs)
+        return subprocess.run(
+            [str(launcher or self.launcher), *arguments],
+            cwd=self.checkout,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    def checkout_arguments(self, *extra):
+        return [
+            "brichan-test-worker",
+            "--anchor-pane",
+            "p1",
+            "--cwd",
+            str(self.checkout),
+            *extra,
+        ]
+
+    def records(self, path=None):
+        target = self.ledger_path if path is None else path
+        return [
+            json.loads(line)
+            for line in target.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    def printed_launch_id(self, result):
+        prefix = "ledger: launch_id="
+        lines = [
+            line for line in result.stderr.splitlines() if line.startswith(prefix)
+        ]
+        self.assertEqual(1, len(lines), result.stderr)
+        return lines[0][len(prefix) :]
+
+    def test_a_routed_launch_records_the_resolution_and_the_split_envelope(self):
+        """R1, R4, M7: the launch data exists in-process and nowhere else.
+
+        Without this the resolved route, runtime, model, effort, and the pane
+        Herdr actually returned are lost the moment the launcher exits.
+        """
+
+        result = self.run_checkout_launcher(
+            *self.checkout_arguments(
+                "--route", "review", "--ledger-file", self.ledger_value
+            )
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
+        (record,) = self.records()
+        route = self.manifest["routes"]["review"]
+        self.assertEqual("launched", record["event"])
+        self.assertEqual(1, record["schema_version"])
+        self.assertEqual("review", record["route"])
+        self.assertEqual(route["runtime"], record["runtime"])
+        self.assertEqual(route["model"], record["model"])
+        self.assertEqual(route["effort"], record["effort"])
+        self.assertEqual("p2", record["pane_id"])
+        self.assertEqual("w1", record["workspace_id"])
+        self.assertEqual("t1", record["tab_id"])
+        self.assertEqual("brichan-herdr-agent-start", record["source"])
+        self.assertEqual(self.printed_launch_id(result), record["launch_id"])
+        # stdout stays the verbatim envelope.
+        self.assertEqual("p2", json.loads(result.stdout)["result"]["agent"]["pane_id"])
+
+    def test_a_legacy_launch_nulls_route_model_and_effort(self):
+        """R4: the compatibility path must never invent what it cannot know."""
+
+        result = self.run_checkout_launcher(
+            *self.checkout_arguments("--ledger-file", self.ledger_value),
+            "--",
+            "codex",
+            "--model",
+            "legacy-model",
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
+        (record,) = self.records()
+        self.assertIsNone(record["route"])
+        self.assertIsNone(record["model"])
+        self.assertIsNone(record["effort"])
+        self.assertEqual("codex", record["runtime"])
+
+    def test_a_task_identifier_is_recorded_verbatim_and_never_inferred(self):
+        """R5: `task_id` comes only from the flag."""
+
+        result = self.run_checkout_launcher(
+            *self.checkout_arguments(
+                "--route",
+                "review",
+                "--task",
+                "WLG-X",
+                "--ledger-file",
+                self.ledger_value,
+            )
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual("WLG-X", self.records()[0]["task_id"])
+
+        self.ledger_path.unlink()
+        result = self.run_checkout_launcher(
+            *self.checkout_arguments(
+                "--route", "review", "--ledger-file", self.ledger_value
+            )
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIsNone(self.records()[0]["task_id"])
+
+    def test_a_dry_run_and_a_json_run_leave_no_ledger_behind(self):
+        """R3: both return before any Herdr call and before the write site."""
+
+        for flag in ("--dry-run", "--json"):
+            with self.subTest(flag=flag):
+                result = self.run_checkout_launcher(
+                    "brichan-dry-run",
+                    "--cwd",
+                    str(self.checkout),
+                    "--route",
+                    "implement",
+                    "--ledger-file",
+                    self.ledger_value,
+                    flag,
+                )
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertFalse(self.ledger_path.exists())
+                self.assertEqual([], self.calls())
+
+    def test_a_rolled_back_launch_appends_nothing(self):
+        """R1: the ledger must never name a worker that is not running."""
+
+        result = self.run_checkout_launcher(
+            *self.checkout_arguments(
+                "--route", "review", "--ledger-file", self.ledger_value
+            ),
+            fail_start=True,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertFalse(self.ledger_path.exists())
+
+    def test_a_checkout_launch_without_the_flag_notes_it_and_writes_nothing(self):
+        """A ledger location is explicit in checkout mode, never guessed."""
+
+        result = self.run_checkout_launcher(
+            *self.checkout_arguments("--route", "review")
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(
+            "ledger: no ledger location for this launch; not recorded",
+            result.stderr,
+        )
+        self.assertFalse((self.checkout / "projects/slug/ledger").exists())
+
+    def test_a_refused_ledger_file_value_fails_before_any_herdr_call(self):
+        """PR2-M2: one mistaken flag must never reach managed state.
+
+        Validating at parse time also means the refusal can never affect a
+        launch that has already started.
+        """
+
+        for value in (
+            ".brichan/manifest.json",
+            ".BRICHAN/ledger/workers.jsonl",
+            "../outside/workers.jsonl",
+            "/absolute/workers.jsonl",
+            "projects/slug/ledger/notes.txt",
+        ):
+            with self.subTest(value=value):
+                result = self.run_checkout_launcher(
+                    *self.checkout_arguments(
+                        "--route", "review", "--ledger-file", value
+                    )
+                )
+                self.assertEqual(2, result.returncode, result.stderr)
+                self.assertEqual([], self.calls())
+        self.assertFalse((self.checkout / ".brichan").exists())
+
+    def test_an_empty_ledger_file_value_is_refused_like_any_other(self):
+        """WLG-001-CR-L1: an empty value is a value, not an absent flag.
+
+        The resolver refuses `""` explicitly, but a truthiness guard skipped
+        the resolver for it, so the launch proceeded with only the
+        not-recorded note while `finish` exited 2 for the same input — a
+        coordinator would read that as "no ledger configured" rather than as
+        the typo it is. Per `TEST-003` this must fail if the guard reverts to
+        testing truthiness.
+        """
+
+        result = self.run_checkout_launcher(
+            *self.checkout_arguments("--route", "review", "--ledger-file", "")
+        )
+
+        self.assertEqual(2, result.returncode, result.stderr)
+        self.assertIn("--ledger-file must not be empty", result.stderr)
+        self.assertNotIn(
+            "ledger: no ledger location for this launch; not recorded",
+            result.stderr,
+        )
+        self.assertEqual([], self.calls())
+        self.assertFalse((self.checkout / "projects/slug/ledger").exists())
+
+    def test_the_installed_launcher_rejects_a_ledger_file_flag(self):
+        """Installed mode has exactly one ledger path, so the flag cannot exist."""
+
+        result = self.run_checkout_launcher(
+            *self.checkout_arguments(
+                "--route", "review", "--ledger-file", self.ledger_value
+            ),
+            launcher=self.installed_launcher,
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertEqual([], self.calls())
+
+    def test_an_unwritable_ledger_path_still_reports_a_successful_launch(self):
+        """R7: a filesystem failure after a start never changes the outcome."""
+
+        result = self.run_checkout_launcher(
+            *self.checkout_arguments(
+                "--route",
+                "review",
+                "--ledger-file",
+                "projects/absent/ledger/workers.jsonl",
+            )
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(
+            "p2", json.loads(result.stdout)["result"]["agent"]["pane_id"]
+        )
+        warnings = [
+            line
+            for line in result.stderr.splitlines()
+            if line.startswith("warning: worker started but ledger write failed:")
+        ]
+        self.assertEqual(1, len(warnings), result.stderr)
+        self.assertFalse((self.checkout / "projects/absent").exists())
+
+    def test_a_non_oserror_ledger_defect_still_reports_a_successful_launch(self):
+        """M3: the v2 guard covered only `OSError`.
+
+        Any other class escaping ledger code would reach the launcher's outer
+        handler and turn a live worker into exit 1, which is the failure R7
+        forbids. The fault is injected in a throwaway wrapper because no
+        production code carries a test hook.
+        """
+
+        faulty = self.checkout / "bin/faulty-agent-start"
+        faulty.write_text(
+            "#!/usr/bin/env python3\n"
+            "import sys\n"
+            "from pathlib import Path\n"
+            "ROOT = Path(__file__).resolve().parents[1]\n"
+            "sys.path.insert(0, str(ROOT / 'src'))\n"
+            "from brichan.orchestration import worker_ledger\n"
+            "def broken(*args, **kwargs):\n"
+            "    raise TypeError('malformed envelope value')\n"
+            "worker_ledger.append_record = broken\n"
+            "from brichan.orchestration.worker_launch import checkout_main\n"
+            "raise SystemExit(checkout_main(ROOT, sys.argv[1:]))\n",
+            encoding="utf-8",
+        )
+        faulty.chmod(faulty.stat().st_mode | stat.S_IXUSR)
+
+        result = self.run_checkout_launcher(
+            *self.checkout_arguments(
+                "--route", "review", "--ledger-file", self.ledger_value
+            ),
+            launcher=faulty,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(
+            "p2", json.loads(result.stdout)["result"]["agent"]["pane_id"]
+        )
+        warnings = [
+            line
+            for line in result.stderr.splitlines()
+            if line.startswith("warning: worker started but ledger write failed:")
+        ]
+        self.assertEqual(1, len(warnings), result.stderr)
+        self.assertIn("TypeError", warnings[0])
+        self.assertFalse(self.ledger_path.exists())
+
+
+class LegacyInstalledLedgerTest(FakeHerdrTestCase):
+    """M4: legacy ledger resolution must never fail a working launch.
+
+    `project_paths` raises for any `--cwd` that is not itself a Git root, and
+    the launcher's outer handler turns that into exit 1 — the regression the
+    reviewer reproduced against plan version 2.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.project = self.temp_path / "target"
+        (self.project / "subdirectory").mkdir(parents=True)
+        (self.project / ".git").mkdir()
+        self.launcher = self.temp_path / "installed-agent-start"
+        self.launcher.write_text(
+            "#!/usr/bin/env python3\n"
+            "import sys\n"
+            f"sys.path.insert(0, {str(ROOT / 'src')!r})\n"
+            "from brichan.orchestration.worker_launch import main\n"
+            "raise SystemExit(main())\n",
+            encoding="utf-8",
+        )
+        self.launcher.chmod(self.launcher.stat().st_mode | stat.S_IXUSR)
+
+    def run_legacy(self, cwd):
+        return subprocess.run(
+            [
+                str(self.launcher),
+                "brichan-test-worker",
+                "--anchor-pane",
+                "p1",
+                "--cwd",
+                str(cwd),
+                "--",
+                "codex",
+                "--model",
+                "legacy-model",
+            ],
+            cwd=self.temp_path,
+            env=self.environment(),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_a_subdirectory_cwd_launch_still_starts_and_notes_the_gap(self):
+        result = self.run_legacy(self.project / "subdirectory")
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(
+            "ledger: no ledger location for this launch; not recorded",
+            result.stderr,
+        )
+        self.assertFalse((self.project / ".brichan").exists())
+
+    def test_a_non_git_cwd_launch_still_starts_and_notes_the_gap(self):
+        outside = self.temp_path / "not-a-repository"
+        outside.mkdir()
+
+        result = self.run_legacy(outside)
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(
+            "ledger: no ledger location for this launch; not recorded",
+            result.stderr,
+        )
+        self.assertFalse((outside / ".brichan").exists())
+
+    def test_a_subdirectory_cwd_records_into_the_git_roots_fixed_ledger(self):
+        """R15: the upward walk is the same discovery `finish` uses."""
+
+        (self.project / ".brichan").mkdir()
+        (self.project / ".brichan/manifest.json").write_text("{}", encoding="utf-8")
+
+        result = self.run_legacy(self.project / "subdirectory")
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        ledger = self.project / ".brichan/ledger/workers.jsonl"
+        self.assertTrue(ledger.is_file())
+        (record,) = [
+            json.loads(line)
+            for line in ledger.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.assertEqual("codex", record["runtime"])
+        self.assertIsNone(record["route"])
+        self.assertIn(f"ledger: launch_id={record['launch_id']}", result.stderr)
 
 
 if __name__ == "__main__":

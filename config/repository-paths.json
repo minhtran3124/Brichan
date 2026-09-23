@@ -211,6 +211,12 @@
       "policy": "stable-wrapper"
     },
     {
+      "path": "bin/brichan-herdr-worker-ledger",
+      "kind": "file",
+      "category": "runtime-entrypoint",
+      "policy": "stable-wrapper"
+    },
+    {
       "path": "scripts/validate_handoff_receipts.py",
       "kind": "file",
       "category": "automation-entrypoint",
@@ -506,6 +512,12 @@
     },
     {
       "path": "src/brichan/orchestration/monitor.py",
+      "kind": "file",
+      "category": "importable-core",
+      "policy": "canonical"
+    },
+    {
+      "path": "src/brichan/orchestration/worker_ledger.py",
       "kind": "file",
       "category": "importable-core",
       "policy": "canonical"
@@ -965,6 +977,16 @@
       "source": "pyproject.toml",
       "target": "src/brichan/orchestration/monitor.py",
       "needle": "brichan.orchestration.monitor:main"
+    },
+    {
+      "source": "bin/brichan-herdr-worker-ledger",
+      "target": "src/brichan/orchestration/worker_ledger.py",
+      "needle": "brichan.orchestration.worker_ledger"
+    },
+    {
+      "source": "pyproject.toml",
+      "target": "src/brichan/orchestration/worker_ledger.py",
+      "needle": "brichan.orchestration.worker_ledger:main"
     },
     {
       "source": ".agents/skills/herdr-orchestration/references/commands.md",

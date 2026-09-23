@@ -35,6 +35,11 @@
 - Summary: Evaluate an adaptive per-task dossier spanning intake, exploration, design, planning, implementation, review, and ship evidence.
 - Memory: projects/brida-task-dossier-workflow/
 
+## Brida worker ledger and agent visibility
+- Status: active
+- Summary: Persist which agent (route, runtime, model, effort) did each task step, as the base for `brichan status` and a Herdr plugin monitor.
+- Memory: projects/brida-worker-ledger/
+
 ## Entry template
 
 ```text

@@ -182,6 +182,36 @@ class TaskDossierDocumentationContractTest(unittest.TestCase):
                 )
                 self.assertEqual(expected, result.returncode)
 
+    def test_checkout_worker_ledgers_are_gitignored(self):
+        """Durable machine-local launch records must not be published.
+
+        A checkout ledger holds this machine's own worker launches. An ignore
+        regression would silently commit them, and a ledger is appended to by
+        every launch, so the leak would be continuous rather than one-off.
+        """
+
+        gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("/projects/*/ledger/", gitignore)
+
+        ledger = "projects/example/ledger/workers.jsonl"
+        memory = "projects/example/current-state.md"
+        for path, expected in ((ledger, 0), (memory, 1)):
+            with self.subTest(path=path):
+                result = subprocess.run(
+                    [
+                        "git",
+                        "-c",
+                        "core.excludesFile=/dev/null",
+                        "check-ignore",
+                        "--no-index",
+                        "--quiet",
+                        path,
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                )
+                self.assertEqual(expected, result.returncode)
+
     def test_repository_manifest_inventories_the_new_boundaries(self):
         manifest = json.loads(
             (ROOT / "config/repository-paths.json").read_text(encoding="utf-8")

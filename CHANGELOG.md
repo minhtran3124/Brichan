@@ -5,6 +5,41 @@ All notable changes to Brichan are documented here.
 The format follows Keep a Changelog principles. The project does not yet claim
 Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
+## [Unreleased]
+
+### Added
+
+- A persisted worker ledger (`src/brichan/orchestration/worker_ledger.py`,
+  `bin/brichan-herdr-worker-ledger`, console script
+  `brichan-herdr-worker-ledger`). `brichan-herdr-agent-start` appends exactly
+  one `launched` record per confirmed start, carrying the route, runtime,
+  model, effort, Herdr pane, a generated `launch_id`, and an optional
+  `--task ID` recorded verbatim; it prints `ledger: launch_id=<uuid>` on
+  stderr while stdout stays the verbatim `agent_started` envelope. Worker
+  finishes are coordinator attestations written only by
+  `brichan-herdr-worker-ledger finish`; the read-only monitor still writes
+  nothing, and absence of a `finished` record means "unknown". Storage is
+  `.brichan/ledger/workers.jsonl` for an installed target and an explicit
+  checkout-only `--ledger-file` relative path (conventionally
+  `projects/<slug>/ledger/workers.jsonl`, now gitignored) in a source
+  checkout. No ledger code path creates a `.brichan` directory or writes
+  inside one lacking a regular `manifest.json`.
+- The ledger never fails a launch. A ledger failure of any exception class
+  after a successful start costs one stderr warning and nothing else: the exit
+  code stays `0`, the envelope still reaches stdout, and there is no retry or
+  rollback. Ledger path resolution obeys the same rule, degrading to a
+  one-line note. Writes are fail-closed: the directory chain is walked
+  descriptor-relative with `O_NOFOLLOW`, at most the file's own parent
+  directory is created, and the file is opened
+  `O_RDWR | O_APPEND | O_CREAT | O_NOFOLLOW | O_NONBLOCK` and type-checked
+  with `fstat`, so a FIFO, directory, or symlink is refused without blocking.
+- Two stated limits. Records are append-only single writes that rely on POSIX
+  `O_APPEND`, whose atomicity is **not guaranteed on networked filesystems
+  such as NFS**; version 1 targets local filesystems. And because every
+  package upgrade makes installed state `incompatible` and requires deliberate
+  backup and reinitialization, **the installed ledger resets at every Brichan
+  release** until ledger carry-over across reinitialization lands.
+
 ## [0.13.0] - 2026-08-28
 
 ### Added
