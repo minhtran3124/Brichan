@@ -4,9 +4,8 @@ Last updated: 2026-09-23
 
 ## Summary
 
-WLG-001 (persisted worker ledger) is implemented and independently reviewed
-(`PASS`) on branch `feat/worker-ledger`, uncommitted. `make check` exits 0 on
-Python 3.10 and 3.14. Commit and PR await user approval.
+WLG-001 (persisted worker ledger) is merged to `main` via PR #35 (`e179bfc`,
+2026-09-23) after independent review `PASS` and CI 8/8 green.
 
 ## Completed recently
 
@@ -26,14 +25,13 @@ Python 3.10 and 3.14. Commit and PR await user approval.
 
 ## Risks
 
-- Plan and code reviews ran on Claude only (Codex usage limit until
-  2026-09-27); no cross-provider review has been done.
+- Plan and code reviews ran on Claude only; the user merged without a
+  cross-provider review (2026-09-23).
 - Installed ledger history resets at every package upgrade.
 - `O_APPEND` atomicity is not guaranteed on network filesystems (documented).
 
 ## Next actions
 
-- User approval: commit on `feat/worker-ledger` and open a PR.
 - Follow-ups: packaged-skill and installable-dogfood guidance plus the
   memory-policy note (next release); ledger carry-over across upgrades;
   `brichan status` timeline; then the Herdr plugin monitor pane.
