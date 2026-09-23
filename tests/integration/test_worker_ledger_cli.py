@@ -77,7 +77,11 @@ class LedgerStorageInvariantTest(LedgerCliTestCase):
         )
         before_init = self.run_brichan("init", "--project", str(project))
         self.assertEqual(0, before_status.returncode, before_status.stderr)
-        self.assertEqual(0, before_doctor.returncode, before_doctor.stderr)
+        # Doctor's installed exit is owned by state plus Codex availability:
+        # 0 when Codex is present, 4 when it is not (as on CI runners). Either
+        # way the state is healthy; the before/after equality below is the
+        # invariant under test.
+        self.assertIn(before_doctor.returncode, (0, 4), before_doctor.stderr)
 
         ledger = project / ".brichan/ledger/workers.jsonl"
         ledger.parent.mkdir()

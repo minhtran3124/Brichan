@@ -4,7 +4,7 @@
 
 | ID | Task | Owner/session | Model | Status | Acceptance criteria |
 |---|---|---|---|---|---|
-| WLG-001-SHIP | Commit and open a PR for `feat/worker-ledger` | coordinator | n/a | awaiting user approval | PR description from `handoffs/WLG-001/pr-desc.md` |
+| WLG-001-SHIP | PR #35 open for `feat/worker-ledger` (user-approved commit, push, PR; not merged) | coordinator | n/a | awaiting CI and merge decision | PR description from `handoffs/WLG-001/pr-desc.md` |
 
 ## Blocked
 
