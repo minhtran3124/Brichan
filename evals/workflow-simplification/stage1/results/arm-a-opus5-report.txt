@@ -1,0 +1,400 @@
+       24 +        for value in [
+       25 +            "./ledger/workers.jsonl",
+       26 +            "ledger/././workers.jsonl",
+       27 +            "ledger///workers.jsonl",
+       28 +            "ledger/./workers.jsonl/",
+       29 +            "ledger/workers.jsonl/.",
+       30 +        ]:
+       31 +            with self.subTest(value=value):
+       32 +                self.assertEqual("ledger/workers.jsonl", validate
+          +_ledger_path(value))
+       33 +
+       34 +    def test_value_that_normalizes_to_nothing_is_rejected(self):
+       35 +        for value in [".", "./.", "/", "//"]:
+       36 +            with self.subTest(value=value):
+       37 +                with self.assertRaises(ValueError):
+       38 +                    validate_ledger_path(value)
+       39 +
+       40 +
+       41 +class InvariantTest(unittest.TestCase):
+       42 +    def test_empty_value_rejected(self):
+       43 +        with self.assertRaises(ValueError):
+       44 +            validate_ledger_path("")
+       45 +
+       46 +    def test_absolute_path_rejected(self):
+       47 +        # Normalization must not turn an absolute path into a rel
+          +ative one.
+       48 +        for value in ["/workers.jsonl", "//workers.jsonl", "/./wo
+          +rkers.jsonl"]:
+       49 +            with self.subTest(value=value):
+       50 +                with self.assertRaises(ValueError):
+       51 +                    validate_ledger_path(value)
+       52 +
+       53 +    def test_parent_component_rejected_anywhere(self):
+       54 +        # Rejected as supplied: "a/../b" must not be normalized i
+          +nto "b".
+       55 +        for value in [
+       56 +            "../workers.jsonl",
+       57 +            "a/../workers.jsonl",
+       58 +            "workers.jsonl/..",
+       59 +            "a/..//b/workers.jsonl",
+       60 +            "./../workers.jsonl",
+       61 +        ]:
+       62 +            with self.subTest(value=value):
+       63 +                with self.assertRaises(ValueError):
+       64 +                    validate_ledger_path(value)
+       65 +
+       66 +    def test_dotted_names_that_are_not_dot_or_dotdot_are_allowed(
+          +self):
+       67 +        self.assertEqual("...jsonl", validate_ledger_path("...jso
+          +nl"))
+       68 +        self.assertEqual("..a/b.jsonl", validate_ledger_path("..a
+          +/b.jsonl"))
+       69 +
+       70 +    def test_brichan_component_rejected_in_any_case(self):
+       71 +        for value in [
+       72 +            ".brichan/workers.jsonl",
+       73 +            "a/.BRICHAN/workers.jsonl",
+       74 +            "a/.Brichan/workers.jsonl",
+       75 +            "a/./.brichan//workers.jsonl",
+       76 +        ]:
+       77 +            with self.subTest(value=value):
+       78 +                with self.assertRaises(ValueError):
+       79 +                    validate_ledger_path(value)
+       80 +
+       81 +    def test_brichan_prefix_is_not_a_brichan_component(self):
+       82 +        self.assertEqual(
+       83 +            ".brichan-old/workers.jsonl",
+       84 +            validate_ledger_path(".brichan-old/workers.jsonl"),
+       85 +        )
+       86 +
+       87 +    def test_backslash_and_nul_rejected(self):
+       88 +        for value in ["a\\b.jsonl", "workers.jsonl\\", "a\x00b.js
+          +onl"]:
+       89 +            with self.subTest(value=value):
+       90 +                with self.assertRaises(ValueError):
+       91 +                    validate_ledger_path(value)
+       92 +
+       93 +    def test_suffix_checked_on_the_normalized_final_component(sel
+          +f):
+       94 +        for value in ["workers.txt", "workers.jsonl/next", "ledge
+          +r/./notes", "a.jsonl/b"]:
+       95 +            with self.subTest(value=value):
+       96 +                with self.assertRaises(ValueError):
+       97 +                    validate_ledger_path(value)
+       98 +
+       99 +
+      100 +if __name__ == "__main__":
+      101 +    unittest.main()
+
+⏺ Bash(cd ../brichan-wfs-s1-a && for
+  t in t1-ledger-summary t2-prerelease-order t3-path-guard; do echo "=== $t ===";
+  python3 -m unittest discover -s evals/workflow-simplification/stage1/$t -p
+  'test_*.py' -v 2>&1 | tail -4; done; echo "=== git status --short ==="; git
+  status --short)
+  ⎿  === t1-ledger-summary ===
+     ----------------------------------------------------------------------
+     Ran 14 tests in 0.000s
+
+     OK
+     === t2-prerelease-order ===
+     ----------------------------------------------------------------------
+     Ran 15 tests in 0.001s
+
+     OK
+     === t3-path-guard ===
+     ----------------------------------------------------------------------
+     Ran 14 tests in 0.000s
+
+     OK
+     === git status --short ===
+      M evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py
+      M evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py
+      M evals/workflow-simplification/stage1/t3-path-guard/path_guard.py
+     ??
+     evals/workflow-simplification/stage1/t1-ledger-summary/test_ledger_summary.py
+     ??
+     evals/workflow-simplification/stage1/t2-prerelease-order/test_semver_order.py
+     ?? evals/workflow-simplification/stage1/t3-path-guard/test_path_guard.py
+
+⏺ Bash(find evals -name __pycache__ -type d -print -exec rm -rf {} + ; git status
+  --porcelain --ignored evals | head)
+  ⎿  evals/workflow-simplification/stage1/t2-prerelease-order/__pycache__
+     evals/workflow-simplification/stage1/t1-ledger-summary/__pycache__
+     evals/workflow-simplification/stage1/t3-path-guard/__pycache__
+      M evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py
+      M evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py
+      M evals/workflow-simplification/stage1/t3-path-guard/path_guard.py
+     ??
+     evals/workflow-simplification/stage1/t1-ledger-summary/test_ledger_summary.py
+     ??
+     evals/workflow-simplification/stage1/t2-prerelease-order/test_semver_order.py
+     ?? evals/workflow-simplification/stage1/t3-path-guard/test_path_guard.py
+
+⏺ Policy §5 names make check as the repo completion gate, so let me confirm my
+  changes don't disturb it.
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 timeout 900 make check 2>&1 | tail -25; echo
+  "EXIT=${PIPESTATUS[0]}")
+  ⎿  (eval):1: command not found: timeout
+     EXIT=
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 make check 2>&1 | tail -25; echo
+  "EXIT=${PIPESTATUS[0]}")
+  ⎿  ======================================================================
+     FAIL: test_current_path_and_link_contracts_pass
+     (tests.contract.test_repository_paths.RepositoryPathContractTest)
+     ----------------------------------------------------------------------
+     Traceback (most recent call last):
+       File "../brichan-wfs-s1-a/test
+     s/contract/test_repository_paths.py", line 159, in
+     test_current_path_and_link_contracts_pass
+         self.assertEqual(0, result.returncode, result.stderr)
+     AssertionError: 0 != 1 : unclassified root files: .git
+
+
+     ======================================================================
+     FAIL: test_every_non_ephemeral_root_file_is_classified
+     (tests.contract.test_repository_paths.RepositoryPathContractTest)
+     ----------------------------------------------------------------------
+     Traceback (most recent call last):
+       File "../brichan-wfs-s1-a/test
+     s/contract/test_repository_paths.py", line 64, in
+     test_every_non_ephemeral_root_file_is_classified
+         self.assertEqual(actual, inventoried)
+     AssertionError: Items in the first set but not the second:
+     '.git'
+
+     ----------------------------------------------------------------------
+     Ran 148 tests in 0.932s
+
+     FAILED (failures=2, skipped=1)
+     make[1]: *** [test-contract] Error 1
+     make: *** [test] Error 2
+     EXIT=
+  ⎿  (timeout 10m)
+
+⏺ Bash(ls -ld .git && sed -n '50,70p' tests/contract/test_repository_paths.py)
+  ⎿  -rw-r--r--@ 1 minhtran  staff  95 Sep 25 11:32 .git
+
+         def test_every_non_ephemeral_root_file_is_classified(self):
+             ignored = set(self.manifest["ignored_root_files"])
+             inventoried = {
+                 entry["path"]
+                 for entry in self.manifest["entries"]
+                 if entry["kind"] == "file"
+                 and len(Path(entry["path"]).parts) == 1
+             }
+             actual = {
+                 path.name
+                 for path in ROOT.iterdir()
+                 if path.is_file() and path.name not in ignored
+             }
+             self.assertEqual(actual, inventoried)
+
+         def test_the_techstack_surfaces_are_inventoried_with_real_targets(self):
+             """Step 7 adds a policy, a source package, and two skill references.
+
+             Each must be classified, and each declared reference must name an
+             inventoried target that really contains its needle — a dangling
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 make check 2>&1 | grep -Ei '^(=+|make|Ran
+  |OK|FAILED|[a-z].*\.\.\.)|Ran [0-9]+ tests|^OK' | grep -vE '^(=|FAIL:|  )' | head
+  -30)
+  ⎿  test_invalid_verdict_fails
+     (metrics.test_validate_metrics.MetricsValidationTest) ... ok
+     test_missing_required_field_fails
+     (metrics.test_validate_metrics.MetricsValidationTest) ... ok
+     test_negative_tokens_fail
+     (metrics.test_validate_metrics.MetricsValidationTest) ... ok
+     test_partial_timing_fails
+     (metrics.test_validate_metrics.MetricsValidationTest) ... ok
+     test_pass_requires_all_acceptance_checks
+     (metrics.test_validate_metrics.MetricsValidationTest) ... ok
+     test_summary_is_deterministic
+     (metrics.test_validate_metrics.MetricsValidationTest) ... ok
+     test_timestamp_order_is_enforced
+     (metrics.test_validate_metrics.MetricsValidationTest) ... ok
+     test_unavailable_timing_is_explicitly_allowed
+     (metrics.test_validate_metrics.MetricsValidationTest) ... ok
+     test_valid_row_passes (metrics.test_validate_metrics.MetricsValidationTest)
+     ... ok
+     test_worker_tokens_require_a_worker
+     (metrics.test_validate_metrics.MetricsValidationTest) ... ok
+     Ran 10 tests in 0.004s
+     OK
+     test_public_mode_requires_https_base_urls
+     (tests.unit.test_build_pypi_readme.ConfigTest) ... ok
+     PYPI-003: a silent revert to private mode must fail here, not ship. ... ok
+     test_shipped_config_loads (tests.unit.test_build_pypi_readme.ConfigTest) ...
+     ok
+     test_absolute_targets_are_preserved
+     (tests.unit.test_build_pypi_readme.PrivateRepositoryRenderTest) ... ok
+     test_html_image_with_relative_src_is_dropped
+     (tests.unit.test_build_pypi_readme.PrivateRepositoryRenderTest) ... ok
+     test_relative_image_is_dropped_rather_than_left_broken
+     (tests.unit.test_build_pypi_readme.PrivateRepositoryRenderTest) ... ok
+     test_relative_link_degrades_to_its_text
+     (tests.unit.test_build_pypi_readme.PrivateRepositoryRenderTest) ... ok
+     test_leading_dot_slash_is_not_doubled_into_the_url
+     (tests.unit.test_build_pypi_readme.PublicRepositoryRenderTest) ... ok
+     test_relative_image_becomes_an_absolute_raw_url
+     (tests.unit.test_build_pypi_readme.PublicRepositoryRenderTest) ... ok
+     test_relative_link_becomes_an_absolute_blob_url
+     (tests.unit.test_build_pypi_readme.PublicRepositoryRenderTest) ... ok
+     packaging/pypi-readme.md uses /assets/... so it resolves from ROOT. ... ok
+     test_absolute_and_anchor_targets_are_left_alone
+     (tests.unit.test_build_pypi_readme.RelativeTargetTest) ... ok
+     test_repository_relative_targets_are_detected
+     (tests.unit.test_build_pypi_readme.RelativeTargetTest) ... ok
+     test_hero_asset_exists_on_disk
+     (tests.unit.test_build_pypi_readme.RepositoryReadmeTest) ... ok
+     The one-line flip must produce a reachable raw URL, not a mangled one. ... ok
+     test_pypi_source_is_separate_from_the_repository_readme
+     (tests.unit.test_build_pypi_readme.RepositoryReadmeTest) ... ok
+     test_rendering_the_real_pypi_source_leaves_no_relative_target
+     (tests.unit.test_build_pypi_readme.RepositoryReadmeTest) ... ok
+     README.md serves local preview and GitHub, which resolve it. ... ok
+  ⎿  (timeout 10m)
+
+⏺ Bash(find . -name __pycache__ -type d -prune -exec rm -rf {} + ; git status
+  --short)
+  ⎿   M evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py
+      M evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py
+      M evals/workflow-simplification/stage1/t3-path-guard/path_guard.py
+     ??
+     evals/workflow-simplification/stage1/t1-ledger-summary/test_ledger_summary.py
+     ??
+     evals/workflow-simplification/stage1/t2-prerelease-order/test_semver_order.py
+     ?? evals/workflow-simplification/stage1/t3-path-guard/test_path_guard.py
+
+⏺ All three tasks are complete. Report below.
+
+  1. Outcome per task
+
+  T1 — ledger summary (implementation): complete. summarize implemented against all
+  8 rules. Single pass over data.split(b"\n"), per-line UTF-8 decode (so one
+  invalid-UTF-8 line doesn't poison the file), first-launch and first-finish
+  tracking, then the three lists derived from the recorded orders. Orphans are
+  resolved against launches anywhere in the file, not only earlier ones.
+
+  T2 — release-candidate ordering (debugging): fixed. Root cause: compare fell
+  through to return -1 if pre_a < pre_b else 1, comparing the prerelease identifier
+  tuples as text. So ("rc","10") < ("rc","2") because "10" < "2". Replaced with a
+  per-identifier comparison implementing SemVer §11: numeric identifiers compared
+  numerically, alphanumerics by ASCII order, numeric always lower than
+  alphanumeric, and the larger field set winning when all preceding fields are
+  equal. The same root cause had a second, unreported symptom: compare("1.0.0-1a",
+  "1.0.0-2") returned -1 although numeric 2 must rank below alphanumeric 1a. Both
+  now correct. Signatures and ValueError behavior kept.
+
+  T3 — path guard (contract-sensitive edit): complete. . and empty components are
+  now dropped and the normalized path returned. Every security invariant still
+  holds, and the invariant checks deliberately run on the components as supplied,
+  before normalization, so ledger/../workers.jsonl cannot be normalized into an
+  accepted path. Docstring's "Current strictness" section replaced with a
+  "Normalization" section documenting the new contract.
+
+  2. Files changed
+
+  ┌──────────────────────────────────────────┬──────────────────────────────────┐
+  │                   File                   │              Change              │
+  ├──────────────────────────────────────────┼──────────────────────────────────┤
+  │ t1-ledger-summary/ledger_summary.py      │ implemented summarize            │
+  ├──────────────────────────────────────────┼──────────────────────────────────┤
+  │ t1-ledger-summary/test_ledger_summary.py │ new, 13 cases                    │
+  ├──────────────────────────────────────────┼──────────────────────────────────┤
+  │ t2-prerelease-order/semver_order.py      │ prerelease comparison fix + two  │
+  │                                          │ regex tightenings                │
+  ├──────────────────────────────────────────┼──────────────────────────────────┤
+  │ t2-prerelease-order/test_semver_order.py │ new, 12 cases                    │
+  ├──────────────────────────────────────────┼──────────────────────────────────┤
+  │ t3-path-guard/path_guard.py              │ normalization + docstring        │
+  ├──────────────────────────────────────────┼──────────────────────────────────┤
+  │ t3-path-guard/test_path_guard.py         │ new, 12 cases                    │
+  └──────────────────────────────────────────┴──────────────────────────────────┘
+
+  3. Verification and evidence
+
+  === t1-ledger-summary ===  Ran 14 tests — OK
+  === t2-prerelease-order === Ran 15 tests — OK
+  === t3-path-guard ===      Ran 14 tests — OK
+  (each via python3 -m unittest discover -s
+  evals/workflow-simplification/stage1/<task> -p 'test_*.py' -v; counts include the
+  pre-existing test_visible.py cases, all still passing)
+
+  git status --short:
+   M evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py
+   M evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py
+   M evals/workflow-simplification/stage1/t3-path-guard/path_guard.py
+  ?? evals/workflow-simplification/stage1/t1-ledger-summary/test_ledger_summary.py
+  ?? evals/workflow-simplification/stage1/t2-prerelease-order/test_semver_order.py
+  ?? evals/workflow-simplification/stage1/t3-path-guard/test_path_guard.py
+  Scope-clean; nothing committed; __pycache__ directories removed.
+
+  Repo gate (make check, run because policy §5 says focused runs don't replace it):
+  2 failures, both pre-existing and environmental, neither related to these
+  changes. tests/contract/test_repository_paths.py inventories root files and
+  reports unclassified root files: .git — in a git worktree .git is a regular file,
+  not a directory, so ROOT.iterdir() picks it up. All other stages (metrics, unit,
+  the rest of contract) pass. I did not touch it: tests/contract/ is outside my
+  scope.
+
+  4. Risks, assumptions, ambiguities resolved
+
+  T1
+  - Blank-line detection order. Rule 1 (ignore whitespace-only) is applied after
+    UTF-8 decode, using str.strip(). This matters for rule 8: in a CRLF ledger the
+    blank lines arrive as a bare b"\r", which json.loads rejects — checking
+    emptiness first is what keeps it out of undecodable. A side effect is that a
+    line of only non-ASCII whitespace (e.g. U+00A0) is also ignored rather than
+    counted; I judged that the intent of "contains only whitespace". A line that
+    fails to decode can never be whitespace, so the ordering is safe.
+  - duplicate_finished for orphans. Rule 4 states no exception for orphans, so a
+    repeated finished for a never-launched id increments duplicate_finished while
+    orphans lists the id once. Test pins this.
+  - Trailing newline. split(b"\n") on data ending in \n yields a final empty
+    string, absorbed by rule 1 — so rule 8 needs no special case.
+
+  T2
+  - Two deliberate secondary fixes, both narrowing acceptance to what SemVer 2.0.0
+    actually permits. (a) $ → \Z: $ also matches before a trailing newline, so
+    parse("1.0.0\n") previously succeeded. (b) re.ASCII: Python's \d is
+    Unicode-aware, so "1.0.0-rc.1١" previously parsed, with an identifier that is
+    neither cleanly numeric nor alphanumeric. Both now raise ValueError, which
+    preserves the documented error type and behavior for invalid input rather than
+    changing it. I flag them because they are strictly outside the reported
+    symptom; if the benchmark intends the parser frozen, reverting is two one-line
+    edits plus two test entries.
+  - Independent of the fix: compare treats build metadata as equal precedence
+    ("1.0.0+a" vs "1.0.0+b" → 0), which is correct per SemVer and already the prior
+    behavior.
+
+  T3
+  - Trailing slash. ledger/workers.jsonl/ is now accepted and normalized to
+    ledger/workers.jsonl. TASK.md's rule ("empty and . components removed")
+    requires this, and the old code rejected it only under the non-security
+    strictness clause — but it does mean a value that looks like a directory
+    reference is accepted as a file path. Resolved in favor of the documented
+    normalization rule; flagged here as the one contract widening a reviewer might
+    read differently.
+  - .jsonl invariant is checked on the normalized final component, so
+    workers.jsonl/. passes and a.jsonl/b is rejected. Checking the supplied last
+    component instead would have inverted both.
+  - Values that normalize to nothing (".", "//", "./.") raise ValueError("empty
+    path") — the function must never return "".
+  - Invariant checks precede normalization by design, so .. and .brichan can't be
+    laundered by adjacent redundant separators;
+    test_parent_component_rejected_anywhere and the .brichan case both cover the
+    mixed forms.
+
+✻ Baked for 6m 30s · done 11:39 AM
+                                                                     86057 tokens
+───────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 8% │ brichan-wfs-s1-a │ ◑ medium 💭
+  current ●●●○○○○○○○  35% ⟳ 2:40pm
+  weekly  ●●●○○○○○○○  30% ⟳ sep 30, 5:00am
+  fable   ●○○○○○○○○○  18% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent
