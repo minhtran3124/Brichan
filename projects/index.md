@@ -40,6 +40,16 @@
 - Summary: Persist which agent (route, runtime, model, effort) did each task step, as the base for `brichan status` and a Herdr plugin monitor.
 - Memory: projects/brida-worker-ledger/
 
+## Brida Jev decision layer
+- Status: proposed
+- Summary: Evaluate TypeSafe's Jev decision model for worker tool-call gating, injection screening, and coordinator triage beside the frontier routes, starting with a shadow pilot.
+- Memory: projects/brida-jev-decision-layer/
+
+## Brida workflow simplification
+- Status: proposed
+- Summary: Risk-proportional lifecycle (lighter Level 0/1 ceremony, verification kept) and `claude-opus-5-5` evaluation, gated on a two-stage A/B.
+- Memory: projects/brida-workflow-simplification/
+
 ## Entry template
 
 ```text
