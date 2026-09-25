@@ -86,13 +86,24 @@ brichan init --project /absolute/path/to/repository
 brichan init --apply --project /absolute/path/to/repository
 ```
 
-Initialization is a dry run by default and performs zero writes. Once the
-project is initialized, check its health and launch the coordinator:
+Initialization is a dry run by default and performs zero writes. Applying it
+against a fresh repository looks like this:
+
+![brichan init --apply creating .brichan/, root agent pointers, and the exported Herdr skill, then brichan status reporting healthy](assets/brichan-init.png)
+
+Once the project is initialized, check its health and launch the coordinator:
 
 ```bash
 brichan doctor --project /absolute/path/to/repository
 brichan run --project /absolute/path/to/repository
 ```
+
+`brichan doctor` verifies the repository, managed policy, model routing, project
+memory, the skill export, and the required dependencies. The worker launcher
+resolves a named route from the same routing file; `--dry-run` prints the exact
+runtime command a worker would receive, with native delegation disabled:
+
+![brichan doctor reporting a healthy project, then a dry-run worker launch on the implement route resolving to a codex command](assets/brichan-doctor.png)
 
 From inside a healthy initialized repository, you can simply run:
 
@@ -167,6 +178,16 @@ You
 
 Herdr provides the visible worker control plane. Native runtime delegation
 remains disabled so worker ownership, evidence, and cleanup stay auditable.
+
+This is what a real run looks like. The coordinator session sits in the top-left
+pane; the `brichan-plan`, `brichan-implement`, and `brichan-review` workers it
+started through Herdr are the other three panes and appear in the Herdr agent
+list on the left. Each worker received a bounded task packet, and each pane
+shows that worker's own report: the planner's inventory of the installed state,
+the implementer's diff summary and passing test, and the independent reviewer's
+`PASS` verdict with file/line evidence.
+
+![Herdr workspace with the Brichan coordinator pane and three brichan-prefixed worker panes started through Herdr](assets/brichan-herdr-workers.png)
 
 ## Configuration and safety
 
