@@ -1,0 +1,34 @@
+       - path-check failed with the same unclassified root
+         files: .git message. It runs the same script as the
+         known contract failures and has the same
+         worktree-only cause.
+     - git status --short shows only  M
+       tests/unit/test_techstack_markdown.py. git diff --stat
+       shows 1 file changed, 1 insertion, 1 deletion.
+  4. Risks and unresolved issues:
+     - The old name is still in the repo: git grep still finds
+       it at
+       projects/brida-workflow-simplification/tasks.md:29.
+       That is backlog row S2-1, which describes this rename.
+       The file is tracked and outside my scope, so I left it
+       alone. The coordinator should update or close that row.
+       There are no remaining references in code or tests.
+     - make check does not pass cleanly in this worktree:
+       besides the two known .git contract failures, the
+       path-check step also fails, for the same .git reason.
+       Neither is related to the rename.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=55d9597d1f0effe20b1be0a23199711f993ea93b6e93
+  636ee5505c05b5395419
+
+✻ Cogitated for 4m 6s · done 12:02 PM
+                                                71610 tokens
+──────────────────────────────────────────────────────────────
+❯ update the tasks.md S2-1 row too
+──────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5.5 │ ✍️ 7% │ brichan-…
+  current ●●●●●●○○○○  69% ⟳ 2:40pm
+  weekly  ●●●○○○○○○○  35% ⟳ sep 30, 5:00am
+  fable   ●●○○○○○○○○  21% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

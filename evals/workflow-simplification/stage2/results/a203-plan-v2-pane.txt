@@ -1,0 +1,32 @@
+    6fe3977.
+  - Dossier validator (PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects): no diagnostic for any of
+    my five artifacts. Expected pending diagnostics remain, all owned by coordinator/reviewer artifacts: template-state
+    metadata in index.md, code-review.md, pr-desc.md (plus index cross-references and the missing receipt.md), and one new
+    expected diagnostic on plan-review.md — "review must reference the exact accepted plan version '2', found '1'" — which is
+    the inherent consequence of superseding the reviewed plan version and signals that a plan-review of version 2 is now due.
+
+  4. Risks, assumptions, and unresolved issues
+
+  - No path outside the declared Techstack scope paths was discovered; the added third test file is inside the scope path
+    tests/unit.
+  - The plan-review-v1 diagnostic above means the dossier cannot pass --require-complete until a reviewer session reviews plan
+    version 2 — a coordinator scheduling matter, not a plan defect.
+  - Assumption: the coordinator's ratified gate text (including the absolute 3.14 interpreter path) is authoritative for this
+    worktree; plan v2 adopts it verbatim.
+  - CHANGELOG.md remains out of scope per the review's residual-risk note; any entry is a coordinator decision at close.
+
+  5. Acknowledgement
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=bd6ff653b4385638f80a525c72362232bf073f6e5d9214dfa607ce8efb36f2fe
+
+✻ Crunched for 6m 45s · done 4:32 PM
+                                                                                                               143808 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Fable 5 │ ✍️ 14% │ brichan-wfs-203a │ ● high 💭
+  current ●●●●●○○○○○  53% ⟳ 7:40pm
+  weekly  ●●●●○○○○○○  46% ⟳ sep 30, 5:00am
+  fable   ●●○○○○○○○○  28% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

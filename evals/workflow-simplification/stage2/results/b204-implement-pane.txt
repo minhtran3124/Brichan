@@ -1,0 +1,33 @@
+     - PYTHONDONTWRITEBYTECODE=1 make -k check on the final text:
+       - Unit: 1026 tests, OK.
+       - Contract: 152 tests, only the two known test_repository_paths failures (unclassified root files: .git).
+       - path-check fails with the same .git message. It runs the same script as the failing contract test, so the cause is
+         the same, not a new failure.
+       - Everything else passes: techstack-eval (56 tests), metrics, receipts (46), dossiers (7), memory-check, readme-check,
+         phase5-preflight and package-check.
+     - Integration: the test target stops after the contract failure, so I ran make test-integration separately: 222 tests,
+       OK.
+     - Git: git status --short shows three modified files and one new test file. git diff --stat: SKILL.md +8/-3, commands.md
+       +55/-3, parity contract +10.
+  4. Risks and open issues.
+     - --project is optional in the installed finish command; without it, the command uses the Git root found from the current
+       directory. The doc shows the --project form and describes this fallback accurately.
+     - The drift test won't catch a doc that uses a shortened flag such as --proj, because argparse accepts unambiguous
+       prefixes.
+     - Existing installed projects only get the new text when they are re-initialized.
+     - The launch test only checks argument parsing, because starting a worker needs Herdr. The launch actually writing to the
+       ledger is already covered by tests/integration/test_worker_routing_cli.py.
+     - I reported the worktree-only .git failures and did not fix them.
+  5. Techstack verification acknowledgement: yes;
+     snapshot_sha256=0408327094e51e639cd9372d2006db4b2d87e918d108db14c2ae01ea04f8ccc5
+
+✻ Baked for 10m 55s · done 12:09 PM
+                                                                                                               140438 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5.5 │ ✍️ 13% │ brichan-wfs-204b │ ◑ medium 💭
+  current ●●●●●●●●○○  83% ⟳ 2:40pm
+  weekly  ●●●○○○○○○○  37% ⟳ sep 30, 5:00am
+  fable   ●●○○○○○○○○  23% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

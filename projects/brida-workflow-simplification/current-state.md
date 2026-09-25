@@ -1,13 +1,16 @@
 # Current state
 
-Last updated: 2026-09-25
+Last updated: 2026-09-25 (stage 2 closed 15:05Z)
 
 ## Summary
 
-Stage 1 is complete: `claude-opus-5-5` beat `claude-opus-5` on the blind
-review (45 vs 41, no functional defects vs one High) at equal hidden-test
-results and in less wall time. It has a catalog entry; routing is unchanged.
-Stage 2 tasks are selected and not yet started.
+Both stages are complete. Stage 1 preferred `claude-opus-5-5`. In stage 2
+(three tasks, all reviewers on Claude), the simplified lifecycle (arm B) met
+every protocol pass criterion: blind escape score 42 vs 42, one escaped
+Medium per arm, no High. It used 5 vs 24 worker sessions, 56 vs 348 minutes
+of active worker time, and 1,343 vs 12,699 artifact lines. No policy,
+routing, or packaged-resource change has been made; adoption (WFS-005) waits
+for the user's sign-off and an independent review.
 
 ## Completed recently
 
@@ -18,7 +21,9 @@ Stage 2 tasks are selected and not yet started.
 
 ## In progress
 
-None.
+None. Stage 2 evidence: `evals/workflow-simplification/stage2/results/`
+(`results.md`, per-worker pane captures, final patches, both arms' dossiers,
+blind escape review). All stage 2 worktrees and panes are removed or closed.
 
 ## Blockers
 
@@ -34,12 +39,17 @@ None.
 
 ## Next actions
 
-1. Stage 2: run the A/B on S2-1..S2-5 (`tasks.md`), with `claude-opus-5-5`
-   as the `implement` model in both arms (one-off override).
-2. Follow-up: `tests/contract/test_repository_paths.py` fails inside a git
-   worktree because `.git` is a file there (seen by a stage 1 worker).
-3. Codex has a pending update dialog (0.155.0 -> 0.157.0) that blocks worker
-   startup; the user decides whether to update.
+1. User decides on WFS-005: adopt the Level 0/1 simplification in policy
+   (`docs/policy/operating-principles.md`, the packaged copy,
+   `docs/workflows/task-dossier.md`, the `herdr-orchestration` skill), with the
+   one addition stage 2 suggests: a missing regression test for a behavior
+   change is a review defect, not a test gap. This is a durable-contract
+   change and needs an independent review (preferably Codex once updated).
+2. User decides whether to route `implement` to `claude-opus-5-5` in
+   `config/model-routing.json`.
+3. Follow-ups: `test_repository_paths` and `path-check` fail in any detached
+   worktree (`.git` is a file); Codex has a pending update (0.155.0 ->
+   0.157.0).
 
 ## Unverified assumptions
 

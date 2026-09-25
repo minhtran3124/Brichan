@@ -7,8 +7,8 @@
 | WFS-001 | Decision record and A/B protocol | Brichan | done 2026-09-25 |
 | WFS-002 | Stage 1 fixtures + Opus 5 vs 5.5 benchmark | Brichan (Herdr workers) | done 2026-09-25: `opus-5-5` preferred (review 45 vs 41, hidden 36/36 both); `evals/workflow-simplification/stage1/results/results.md` |
 | WFS-003 | Catalog entry for `claude-opus-5-5` | Brichan | done 2026-09-25 (routing unchanged) |
-| WFS-004 | Stage 2 lifecycle A/B on real tasks | Brichan (Herdr workers) | tasks selected (below); not started |
-| WFS-005 | Policy change, if the A/B passes | Brichan + independent review | blocked on WFS-002/004 and user sign-off |
+| WFS-004 | Stage 2 lifecycle A/B on real tasks | Brichan (Herdr workers) | done 2026-09-25: arm B met all pass criteria; `evals/workflow-simplification/stage2/results/results.md` |
+| WFS-005 | Policy change, if the A/B passes | Brichan + independent review | blocked on user sign-off |
 
 ## Workers
 
@@ -31,3 +31,23 @@ from recorded non-gating follow-ups. WLG-001-CR-L1 was dropped: already fixed
 | S2-3 | 1 | `diagnostic_detail` must not silently ignore `line`/`rule` for codes that do not take them | TECHSTACK-002 stage-2 `L4` | no |
 | S2-4 | 1 | Packaged `herdr-orchestration` skill: add `--task` and installed `finish --project` ledger guidance | WLG-001 residual | yes (`src/brichan/resources/`) |
 | S2-5 | 0 | Memory-policy note on the worker ledger | worker-ledger next actions | yes (`docs/policy/`) |
+
+## Stage 2 workers (dispatched 2026-09-25T04:58:49Z, base `6fe3977`)
+
+Stage 2 scope reduced by the user on 2026-09-25 to S2-1, S2-3, S2-4, all
+reviewers on Claude (Codex blocked by a pending update).
+
+| Agent | Pane | Model | Task | Worktree | Launch ID | Status |
+|---|---|---|---|---|---|---|
+| `brichan-wfs-a201-plan` | `w4J:p7` | claude `claude-fable-5` high (route plan) | WFS-A-201 plan | `../brichan-wfs-201a` | `4a0d8137-e98d-4c76-b34f-bb515a3a2443` | done; pane closed |
+| `brichan-wfs-b201` | `w4J:p8` | claude `claude-opus-5-5` medium | WFS-B-201 | `../brichan-wfs-201b` | `37e31916-1a97-4a19-a3f8-4a1f3d5a0ce0` | done; pane closed |
+| `brichan-wfs-a203-plan` | `w4J:p9` | claude `claude-fable-5` high (route plan) | WFS-A-203 plan | `../brichan-wfs-203a` | `835c6eea-58b4-4b4d-b9bb-715e847be131` | done; pane closed |
+| `brichan-wfs-b203` | `w4J:pA` | claude `claude-opus-5-5` medium | WFS-B-203 | `../brichan-wfs-203b` | `c474d994-3f8d-4a7d-b065-8843a2b70bfe` | done; pane closed |
+| `brichan-wfs-a204-plan` | `w4J:pB` | claude `claude-fable-5` high (route plan) | WFS-A-204 plan | `../brichan-wfs-204a` | `c096537e-e4d6-4cf8-b818-996832962684` | done; pane closed |
+| `brichan-wfs-b204` | `w4J:pC` | claude `claude-opus-5-5` medium | WFS-B-204 | `../brichan-wfs-204b` | `4e2e3d63-6251-4142-ba1e-1bc5472f2d66` | done; pane closed |
+| `brichan-wfs-b203-review` | `w4J:pD` | claude `claude-opus-5` high (route review, Codex blocked) | WFS-B-203 review | `../brichan-wfs-203b` | `0e5173bc-8d2e-4a4d-9ffe-15ed78189e42` | PASS; pane closed |
+| `brichan-wfs-b204-review` | `w4J:pE` | claude `claude-opus-5` high (route review, Codex blocked) | WFS-B-204 review | `../brichan-wfs-204b` | `46fdf628-1ab1-43fe-be8d-56d58e24d765` | PASS; pane closed |
+| `brichan-wfs-a{201,203,204}-pr` | `w4J:pF`,`pG`,`pH` | claude `claude-opus-5` high | WFS-A plan reviews v1 (09:03:55Z) | arm A worktrees | `278ced4e…`, `aa64cece…`, `e34aecf4…` | all CHANGES REQUIRED (201: 1H 1M 2L; 203: 1H 4M 3L; 204: 1M 2L); panes closed |
+| `brichan-wfs-a{201,203,204}-planrev` | `w4J:pJ`,`pK`,`pM` | claude `claude-fable-5` high | WFS-A plan revisions (09:26:00Z) | arm A worktrees | `4e5b37fb…`, `616edd89…`, `a86251cd…` | done; panes closed |
+
+Later arm A sessions (plan revisions v3/v4, plan reviews 2-4, implementers, code reviews) and the blind escape review (`brichan-wfs-escape`, `claude-fable-5` high) are recorded with launch IDs and finish attestations in `ledger/workers.jsonl`; every pane was closed after its evidence was saved to `evals/workflow-simplification/stage2/results/`.

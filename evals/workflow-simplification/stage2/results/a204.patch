@@ -1,0 +1,126 @@
+diff --git a/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md b/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md
+index 1d1d86a..ef8a351 100644
+--- a/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md
++++ b/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md
+@@ -22,6 +22,12 @@ Use `--dry-run` or `--json` to resolve a route without calling Herdr. Submit
+ prompts with `herdr pane run`. Close only a recorded Brichan-owned pane with
+ `herdr pane close <pane-id>`.
+ 
++Add `--task <TASK-ID>` to record the task this worker serves; the value is
++recorded verbatim and is never inferred when the flag is absent. An installed
++launch always appends to the target's fixed `.brichan/ledger/workers.jsonl`
++and rejects the flag `--ledger-file`, which exists in checkout mode only, as
++a usage error before any Herdr call.
++
+ Observe workers through the read-only helper:
+ 
+ ```text
+@@ -62,6 +68,49 @@ Safeguards that apply to every observation:
+ - Before declaring a worker stale, record three timestamped no-progress
+   observations, then allow one bounded replacement, then escalate.
+ 
++## Worker ledger
++
++A successful launch appends exactly one `launched` record and prints
++`ledger: launch_id=<uuid>` on stderr; stdout stays the verbatim
++`agent_started` envelope. A launch that rolls back appends nothing, and
++`--dry-run` and `--json` write nothing. A ledger failure after a confirmed
++start prints `warning: worker started but ledger write failed: <reason>` and
++changes nothing else: the exit code stays `0` and the worker stays up.
++
++Record the worker's end only from evidence, never from scheduling state:
++
++```text
++brichan-herdr-worker-ledger finish \
++  --worker <brichan-name> \
++  --launch-id <uuid> \
++  --evidence <repo-relative-path> [--evidence <citation> ...] \
++  [--task <TASK-ID>] [--pane <pane-id>] \
++  --project <absolute-target-project>
++```
++
++`--project` names the target project root; when it is omitted, the Git root
++is discovered upward from the working directory. The target must be an
++initialized Brichan project — one holding a regular `.brichan/manifest.json`
++— or the command refuses with `no ledger for this target` and exit `1`.
++`finish` does not verify managed-state health: checking that the target is
++healthy before attesting stays the coordinator's responsibility.
++
++A `finished` record is a coordinator attestation, not proof: the command
++cannot verify completion, so it refuses a `--launch-id` that matches no
++`launched` record, a worker name without the `brichan-` prefix, and an empty
++or whitespace-only evidence item, each with exit `1` and nothing written.
++Each launch takes at most one attestation, and a second `finish` for the same
++`--launch-id` is refused; when two `finish` runs overlap, consumers take the
++first `finished` record for that `launch_id` in file order as the winning
++one. Absence of a `finished` record means "unknown", never "still running"
++or "failed".
++
++| Exit | Meaning |
++|---:|---|
++| `0` | Attestation recorded |
++| `1` | Refused or failed (no ledger, unmatched or already-finished `launch_id`, write failure) |
++| `2` | Invalid invocation |
++
+ ## Recover a swallowed Enter
+ 
+ A multi-line or long task packet can arrive in an agent TUI as a single paste
+diff --git a/tests/contract/test_skill_parity_contract.py b/tests/contract/test_skill_parity_contract.py
+index 10d3c1e..ba6e292 100644
+--- a/tests/contract/test_skill_parity_contract.py
++++ b/tests/contract/test_skill_parity_contract.py
+@@ -63,6 +63,22 @@ PARITY_MARKERS = (
+     "at most three drifted observations",
+     "blocked and not-applicable stop with no artifact",
+     "an unmatched attempt can never enter a packet",
++    # Worker ledger (WFS-A-204): the launch task record, the fixed installed
++    # ledger, and the finish attestation with its refusals must reach an
++    # installed coordinator, not only a checkout one.
++    "`--task <TASK-ID>`",
++    "recorded verbatim and is never inferred",
++    ".brichan/ledger/workers.jsonl",
++    "ledger: launch_id=<uuid>",
++    "brichan-herdr-worker-ledger finish",
++    "--project <absolute-target-project>",
++    "attestation, not proof",
++    "matches no `launched` record",
++    "without the `brichan-` prefix",
++    "empty or whitespace-only evidence item",
++    "at most one attestation",
++    "Record the worker's end only from evidence, never from scheduling state",
++    '"unknown", never "still running" or "failed"',
+ )
+ 
+ #: The sixteen exact packet labels, in order. Both task-packet templates carry
+@@ -315,6 +331,31 @@ class SkillParityContractTest(unittest.TestCase):
+             self.assertIn("brichan-herdr-agent-observe preflight", text)
+             self.assertIn("brichan-herdr-agent-observe observe", text)
+ 
++    def test_the_packaged_tree_never_offers_the_checkout_ledger_flag_as_usable(
++        self,
++    ):
++        """Installed launches reject `--ledger-file`; the text must say so.
++
++        The flag may appear once, as the thing an installed launch rejects,
++        and the checkout ledger path must not reach installed coordinators.
++        The section must also stay below the shared observation safeguards so
++        it never nests them under the ledger heading.
++        """
++
++        self.assertIn("rejects the flag `--ledger-file`", self.packaged)
++        self.assertNotIn("projects/<slug>/ledger/workers.jsonl", self.packaged)
++        self.assertEqual(1, self.packaged.count("--ledger-file"))
++
++        text = (PACKAGED_SKILL / "references/commands.md").read_text(
++            encoding="utf-8"
++        )
++        self.assertIn("## Worker ledger", text)
++        safeguards = text.index("Safeguards that apply to every observation")
++        ledger = text.index("## Worker ledger")
++        recovery = text.index("## Recover a swallowed Enter")
++        self.assertLess(safeguards, ledger)
++        self.assertLess(ledger, recovery)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

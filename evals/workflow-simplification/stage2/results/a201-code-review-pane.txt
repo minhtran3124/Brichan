@@ -1,0 +1,33 @@
+  .git), as the packet states.
+
+  4. Uncertainties
+
+  - Effective effort is recorded as medium, the value config/model-routing.json configures for the review route; no
+    per-session effort was surfaced to this session. Route and model recorded are what actually ran.
+  - That config points the review route at runtime codex / gpt-5.6-sol, but this review ran on claude-opus-5 — same family as
+    the implementer's claude-opus-5-5 and not stronger. Independence from the plan and implementation sessions is established;
+    comparative strength is a coordinator call, recorded not resolved.
+  - One judgment call stated openly in the artifact rather than buried: the name says "category c characters" (a class) while
+    one representative (U+0085, Cc) is asserted. I judged that accurate — the class is the guard's own, and the comment names
+    the stand-in — but a stricter reading of criterion 1 could disagree, and the fixture-widening repair is blocked by
+    criterion 2.
+  - Coordinator actions this review cannot perform: make check exiting 0 on a normal checkout with the dossier closed is still
+    required before this is called done on main; and tasks.md:29 now names a symbol that no longer exists — permitted by
+    criterion 3, but it should be updated or closed when S2-1 closes, or it becomes the last thing in the repository asserting
+    a test name that was removed to stop exactly that kind of false statement.
+
+  5.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=3963f6b454b25c3b1e813e87a7e104f28b94a38618e70657a1662b96a5e091f4
+
+✻ Worked for 15m 10s · done 8:36 PM
+                                                                                                               148259 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Report back to the coordinator
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 14% │ brichan-wfs-201a │ ● high 💭
+  current ●●○○○○○○○○  20% ⟳ 12:40am
+  weekly  ●●●●●○○○○○  55% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  33% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent
