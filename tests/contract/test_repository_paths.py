@@ -1,10 +1,14 @@
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.check_repository_paths import markdown_sources
+from scripts.check_repository_paths import (
+    markdown_sources,
+    unclassified_root_files,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -56,12 +60,42 @@ class RepositoryPathContractTest(unittest.TestCase):
             if entry["kind"] == "file"
             and len(Path(entry["path"]).parts) == 1
         }
+        # A linked worktree's root `.git` is a file; it is git metadata.
         actual = {
             path.name
             for path in ROOT.iterdir()
-            if path.is_file() and path.name not in ignored
+            if path.is_file()
+            and path.name != ".git"
+            and path.name not in ignored
         }
         self.assertEqual(actual, inventoried)
+
+    def test_a_worktree_git_file_is_not_an_unclassified_root_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").write_text(
+                "gitdir: /elsewhere/.git/worktrees/x\n", encoding="utf-8"
+            )
+            (root / "AGENTS.md").write_text("", encoding="utf-8")
+            self.assertEqual(
+                [], unclassified_root_files(root, set(), {"AGENTS.md"})
+            )
+
+    def test_a_git_directory_is_not_an_unclassified_root_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            self.assertEqual([], unclassified_root_files(root, set(), set()))
+
+    def test_other_unclassified_root_files_are_still_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in (".git", ".git.bak", "stray.txt", ".env", "AGENTS.md"):
+                (root / name).write_text("", encoding="utf-8")
+            self.assertEqual(
+                [".git.bak", "stray.txt"],
+                unclassified_root_files(root, {".env"}, {"AGENTS.md"}),
+            )
 
     def test_the_techstack_surfaces_are_inventoried_with_real_targets(self):
         """Step 7 adds a policy, a source package, and two skill references.
