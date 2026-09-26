@@ -40,6 +40,27 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
   backup and reinitialization, **the installed ledger resets at every Brichan
   release** until ledger carry-over across reinitialization lands.
 
+### Changed
+
+- The checkout-mode task-dossier contract is level-keyed
+  (`docs/workflows/task-dossier.md` is the single normative statement). Level 0
+  and level 1 tasks carry `index`, `request`, a new implementer-owned worker
+  report `report.md` (its `Plan` section is written before implementing), and
+  `code-review`; level 2 keeps the complete eleven-artifact dossier and every
+  existing check. Code review is mandatory at levels 1 and 2; at level 0 it is
+  required exactly when the diff touches a contract path, a frozen list that
+  `scripts/check_contract_paths.py` checks against
+  `git diff --name-only --no-renames`. Existing dossiers need no migration: a
+  dossier that carries `plan.md` satisfies levels 0 and 1 without a report.
+  The validator, scaffold, generator, and summary all key on the level, and an
+  unresolvable level fails closed to the level 2 set and evidence floor. The
+  scaffold writes exactly the level's artifacts and a matching status table.
+  Installed-project mode and packaged resources are unchanged.
+- The reviewer prompt in `docs/policy/reviewer.md` now classifies a behavior
+  change without a committed regression test as a defect of at least medium
+  severity rather than a test gap, and reviewers of a dossier-tracked change
+  report a mis-declared task level as a finding.
+
 ## [0.13.0] - 2026-08-28
 
 ### Added

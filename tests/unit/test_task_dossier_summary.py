@@ -23,7 +23,11 @@ sys.path.insert(0, str(ROOT / "tests" / "unit"))
 
 from brichan.contracts.task_dossier import summary as summary_module
 from brichan.contracts.task_dossier import validation as validation_module
-from brichan.contracts.task_dossier.schema import ARTIFACTS
+from brichan.contracts.task_dossier.schema import (
+    ARTIFACTS,
+    LEVEL_REQUIRED_ARTIFACTS,
+    RECOGNIZED_ARTIFACTS,
+)
 from brichan.contracts.task_dossier.summary import (
     INDEPENDENCE_CAVEAT,
     main as summary_main,
@@ -32,7 +36,7 @@ from brichan.contracts.task_dossier.summary import (
     summarize_dossier,
 )
 
-from test_task_dossier_validator import build_dossier
+from test_task_dossier_validator import build_dossier, build_reduced_dossier
 
 SECTIONS = (
     "## Identity",
@@ -404,6 +408,80 @@ class ReadOnlyTest(SummaryBase):
             for path in sorted(self.projects.rglob("*"))
         }
         self.assertEqual(before, after)
+
+
+
+class ReducedDossierSummaryTest(SummaryBase):
+    """The roster follows the level; the validator stays the sole verdict.
+
+    Paths are resolved so the per-dossier diagnostics are comparable on
+    platforms whose temporary directory sits behind a symlink.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.projects = self.projects.resolve()
+
+    def test_a_reduced_dossier_reports_no_missing_rows_for_unrequired_names(self):
+        dossier = build_reduced_dossier(self.projects, "1")
+        report = summarize_dossier(dossier, self.projects)
+        self.assertEqual(
+            list(LEVEL_REQUIRED_ARTIFACTS["1"]),
+            [state.name for state in report.artifacts],
+        )
+        self.assertEqual((), report.unreadable)
+        self.assertEqual((), report.diagnostics)
+        code, stdout, _ = self.run_main()
+        self.assertEqual(0, code, stdout)
+        self.assertNotIn("artifact is missing", stdout)
+        self.assertNotIn("- design: applicability=", stdout)
+
+    def test_a_missing_worker_report_is_reported_and_the_verdict_is_the_validator(self):
+        dossier = build_reduced_dossier(self.projects, "1")
+        (dossier / "report.md").unlink()
+        report = summarize_dossier(dossier, self.projects)
+        self.assertIn(("report.md", "artifact is missing"), report.unreadable)
+        self.assertTrue(
+            any("report.md is missing" in item for item in report.diagnostics)
+        )
+        code, _, _ = self.run_main()
+        self.assertEqual(1, code)
+
+    def test_code_review_is_checked_against_the_report_author(self):
+        dossier = build_reduced_dossier(
+            self.projects,
+            "1",
+            overrides={"code-review": {"Reviewing session": "session-implementer"}},
+        )
+        report = summarize_dossier(dossier, self.projects)
+        arms = [arm for arm in report.independence if arm.against == "report"]
+        self.assertEqual(1, len(arms))
+        self.assertEqual("not-independent", arms[0].reviewing_session_arm)
+        self.assertEqual("independent", arms[0].authoring_session_arm)
+        _, stdout, _ = self.run_main()
+        self.assertIn(
+            "- code-review (against report author): reviewing session "
+            "arm=not-independent",
+            stdout,
+        )
+
+    def test_an_unresolvable_level_fails_closed_to_level_2(self):
+        dossier = build_reduced_dossier(
+            self.projects,
+            "1",
+            overrides={name: {"Task level": "two"} for name in RECOGNIZED_ARTIFACTS},
+        )
+        report = summarize_dossier(dossier, self.projects)
+        self.assertEqual(list(ARTIFACTS), [
+            state.name for state in report.artifacts if state.name != "report"
+        ])
+        missing = {name for name, reason in report.unreadable if reason == "artifact is missing"}
+        self.assertIn("design.md", missing)
+        passed = [state for state in report.artifacts if state.phase_state == "passed"]
+        self.assertTrue(passed)
+        for state in passed:
+            self.assertEqual(3, state.evidence_required, state.name)
+            self.assertFalse(state.meets_evidence_rule, state.name)
 
 
 if __name__ == "__main__":

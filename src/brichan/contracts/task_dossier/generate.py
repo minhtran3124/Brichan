@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Generate a complete task dossier from one structured record.
+"""Generate a task dossier from one structured record.
 
 Generation is dry-run by default and runs in four ordered phases:
 
-``A`` load, validate, and render all eleven artifacts in memory. Nothing
+``A`` load, validate, and render every artifact the record carries in memory,
+in lifecycle order (the level's required set plus any other recognized
+artifact the record chose to carry). Nothing
 touches the filesystem, so a refused record leaves the tree untouched.
 
 ``B`` walk the dossier chain from the projects root, opening every component
@@ -55,7 +57,6 @@ from .record import (
 )
 from .scaffold import ScaffoldAction, dossier_path
 from .schema import (
-    ARTIFACTS,
     ARTIFACT_EXTRA_SECTIONS,
     ARTIFACT_OWNERS,
     ARTIFACT_TITLES,
@@ -66,6 +67,7 @@ from .schema import (
     INDEX_STATUS_SECTION,
     METADATA_FIELDS,
     METADATA_SECTION,
+    RECOGNIZED_ARTIFACTS,
     TASK_LEVELS,
 )
 
@@ -148,12 +150,17 @@ def _index_identity_value(
     return record.index_identity[label]
 
 
+def record_artifacts(record: TaskRecord) -> tuple[str, ...]:
+    """Return the record's artifact names in lifecycle order."""
+    return tuple(name for name in RECOGNIZED_ARTIFACTS if name in record.artifacts)
+
+
 def _status_table(record: TaskRecord) -> list[str]:
     lines = [
         "| " + " | ".join(INDEX_STATUS_HEADER) + " |",
         "| " + " | ".join("---" for _ in INDEX_STATUS_HEADER) + " |",
     ]
-    for name in ARTIFACTS:
+    for name in record_artifacts(record):
         artifact = record.artifacts[name]
         cells = (
             _code(name),
@@ -173,8 +180,10 @@ def render_artifact(
     Rendering is deterministic: no timestamp, hostname, process ID, or absolute
     path reaches artifact content.
     """
-    if name not in ARTIFACTS:
+    if name not in RECOGNIZED_ARTIFACTS:
         raise GenerationError(f"unknown task-dossier artifact {name!r}")
+    if name not in record.artifacts:
+        raise GenerationError(f"the record carries no {name!r} artifact")
     artifact: ArtifactRecord = record.artifacts[name]
 
     lines: list[str] = [f"# {ARTIFACT_TITLES[name]}", "", f"## {METADATA_SECTION}", ""]
@@ -211,10 +220,10 @@ def render_artifact(
 def render_dossier(
     record: TaskRecord, *, projects_root_name: str = "projects"
 ) -> dict[str, str]:
-    """Render all eleven artifacts before anything is written."""
+    """Render every artifact the record carries before anything is written."""
     return {
         name: render_artifact(record, name, projects_root_name=projects_root_name)
-        for name in ARTIFACTS
+        for name in record_artifacts(record)
     }
 
 
@@ -542,7 +551,7 @@ def _generate(
     # Phase B.
     walked = _walk(projects_root, components, apply=apply, actions=actions)
     if walked is None:
-        for name in ARTIFACTS:
+        for name in bodies:
             actions.append(
                 ScaffoldAction(
                     dossier / f"{name}.md", "create", f"generated {name} artifact"
@@ -560,7 +569,7 @@ def _generate(
     dossier_fd, identities = walked
     try:
         if not apply:
-            for name in ARTIFACTS:
+            for name in bodies:
                 target = f"{name}.md"
                 try:
                     os.lstat(target, dir_fd=dossier_fd)
@@ -596,7 +605,7 @@ def _generate(
         # Phase D.
         published: list[str] = []
         failure: GenerationError | None = None
-        for name in ARTIFACTS:
+        for name in bodies:
             try:
                 action = _publish(dossier_fd, record.task_id, name, bodies[name])
             except GenerationError as error:
@@ -622,7 +631,7 @@ def _generate(
         ]
         if failure is not None or preserved:
             unpublished = [
-                f"{name}.md" for name in ARTIFACTS if name not in published
+                f"{name}.md" for name in bodies if name not in published
             ]
             detail = "; ".join(
                 part
@@ -656,8 +665,8 @@ def _generate(
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Generate the complete standard task dossier from one structured "
-            "record (dry run by default)."
+            "Generate a task dossier from one structured record (dry run by "
+            "default)."
         )
     )
     parser.add_argument("task_id", help="stable branch-independent task ID")

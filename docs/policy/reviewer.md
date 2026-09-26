@@ -26,6 +26,10 @@ Review for:
 
 Rules:
 - Do not assume the implementation is correct.
+- A behavior change without a committed regression test that would fail
+  if the behavior regressed is a defect of at least medium severity, not
+  a test gap. A scratch run, a transcript, or an evidence file is not a
+  substitute for a committed test.
 - Cite concrete file/line or artifact evidence for every finding.
 - Classify something as an implementation defect only when it violates the
   stated objective, acceptance criteria, or an established project invariant.
@@ -39,18 +43,27 @@ Return:
 1. Verdict: PASS or CHANGES REQUIRED.
 2. Findings ordered by severity: critical, high, medium, low.
 3. Evidence for each finding.
-4. Test gaps.
+4. Test gaps (a missing regression test for a changed behavior is a
+   defect under the rules above, not a test gap).
 5. Residual risks and required human decisions.
 ```
 
 ## Task dossier reviews
 
 When the change is tracked by a task dossier (`docs/workflows/task-dossier.md`),
-the reviewer writes `plan-review.md` and `code-review.md` and nothing else in the
-dossier. Reviewers do not back-write `requirements.md`, `design.md`, or
-`plan.md`. Each review names the exact reviewed plan ID and version, records the
-reviewing session identity, and returns a verdict of `PASS` or
-`CHANGES REQUIRED`.
+the reviewer writes the dossier's review artifacts (`plan-review.md`,
+`code-review.md`) and nothing else in the dossier. Reviewers do not back-write
+`requirements.md`, `design.md`, `plan.md`, or `report.md`. Each review names the
+exact reviewed plan ID and version when the dossier has a plan (and leaves them
+null when it has none), records the reviewing session identity, and returns a
+verdict of `PASS` or `CHANGES REQUIRED`. Which reviews a level requires, and
+when level 0 code review applies under the contract-path rule, are defined in
+the workflow document's level section.
+
+The reviewer of a dossier-tracked change checks the declared task level against
+the level-raising triggers in `docs/workflows/task-dossier.md` and the
+level-determination evidence the dossier index records, and reports a
+mis-declared level as a finding.
 
 Level 0 and level 1 may use the routine review route. Level 2 requires a
 documented stronger one-off override recorded in the dossier index.

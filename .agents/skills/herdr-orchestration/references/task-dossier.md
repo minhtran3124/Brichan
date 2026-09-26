@@ -17,8 +17,10 @@ change task identity.
 
 ## Before starting a tracked task
 
-1. Choose the task level: 0, 1, or 2. All levels produce the same eleven
-   standard artifacts.
+1. Choose the task level: 0, 1, or 2, and record in the index evidence the
+   trigger that fixed it or that none applies. The level selects the
+   lifecycle and the artifact set defined in the contract's level section; the
+   scaffold creates exactly that set.
 2. Dry-run the scaffold, then apply it:
 
    ```bash
@@ -49,10 +51,13 @@ change task identity.
 
 ## Review
 
-Plan review and code review come from independent sessions and name the exact
-reviewed plan ID and version. Neither the reviewing session nor the authoring
-session of a review may be the plan author's session. Reviewers write only the
-two review artifacts.
+Which reviews apply at each level, including the level 0 contract-path rule,
+is defined in the contract's level section. Reviews come from independent
+sessions and name the exact reviewed plan ID and version when the dossier has a
+plan, leaving them null when it has none. Neither the reviewing session nor the
+authoring session of a review may be the plan author's session, or, for code
+review, the worker report author's session. Reviewers write only the review
+artifacts.
 Level 2 requires a documented stronger one-off review override recorded in the
 index.
 
@@ -61,8 +66,9 @@ index.
 - `python3 scripts/validate_task_dossiers.py projects`
 - `python3 scripts/validate_task_dossiers.py projects --require-complete`
 
-`--require-complete` also requires an accepted plan, an applicable
-`plan-review.md`, and a `PASS` verdict on every applicable review.
+`--require-complete` also requires an accepted plan when `plan.md` is present,
+an applicable `plan-review.md` at level 2, and a `PASS` verdict on every
+applicable review.
 
 Closing a task never implies remote action. `pr-desc.md` declares
 `Remote action authorized: no` and carries no remote-mutation instructions.

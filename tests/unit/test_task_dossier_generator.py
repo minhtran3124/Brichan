@@ -45,7 +45,13 @@ from brichan.contracts.task_dossier.record import (
     load_record,
     load_record_text,
 )
-from brichan.contracts.task_dossier.schema import ARTIFACTS
+from brichan.contracts.task_dossier.generate import GenerationError
+from brichan.contracts.task_dossier.schema import (
+    ARTIFACTS,
+    LEVEL_REQUIRED_ARTIFACTS,
+    RECOGNIZED_ARTIFACTS,
+    REPORT_SECTIONS,
+)
 from brichan.contracts.task_dossier.validation import validate_dossier
 
 DESIGN = ROOT / "projects/brida-task-dossier-workflow/handoffs/TDW-009/design.md"
@@ -175,14 +181,17 @@ class RecordLoadingTest(unittest.TestCase):
         payload["artifacts"]["invented"] = payload["artifacts"]["index"]
         self.assert_refused("unknown key", payload)
 
+        # The worked record is level 0 and carries a plan, so its required set
+        # is index, request, and code-review; misspelling one is both unknown
+        # and missing.
         payload = copy.deepcopy(self.payload)
-        payload["artifacts"]["pr_desc"] = payload["artifacts"].pop("pr-desc")
+        payload["artifacts"]["code_review"] = payload["artifacts"].pop("code-review")
         joined = self.assert_refused("unknown key", payload)
-        self.assertIn("missing key", joined)
+        self.assertIn("missing key(s): ['code-review']", joined)
 
         payload = copy.deepcopy(self.payload)
-        del payload["artifacts"]["design"]
-        self.assert_refused("missing key", payload)
+        del payload["artifacts"]["request"]
+        self.assert_refused("missing key(s): ['request']", payload)
 
     def test_unknown_and_missing_artifact_keys_are_refused(self):
         payload = copy.deepcopy(self.payload)
@@ -415,6 +424,195 @@ class RecordLoadingTest(unittest.TestCase):
             {"title": "Evidence", "body": ["one"]}
         ]
         self.assert_refused("collides with the required section", payload)
+
+
+CONCISE_RECORDS = ROOT / "evals/task-dossier-pilots/concise/records"
+
+
+def reduced_record():
+    """A reduced level-1 record: the committed SYNTH-011 record without a plan.
+
+    It keeps index, request, and code-review, adds a worker report, and nulls
+    the plan identity the absent plan would have supplied.
+    """
+    payload = json.loads(
+        (CONCISE_RECORDS / "SYNTH-011.record.json").read_text(encoding="utf-8")
+    )
+    artifacts = payload["artifacts"]
+    report = copy.deepcopy(artifacts["plan"])
+    report["authoring_session"] = "synthetic-fixture-implementer-0002"
+    report["effective_route"] = "implement"
+    report["fields"] = {}
+    report["sections"] = [
+        {"title": title, "body": [f"- The worker report {title.lower()} entry."]}
+        for title in REPORT_SECTIONS
+    ]
+    review = artifacts["code-review"]
+    review["fields"] = {"Reviewed plan ID": None, "Reviewed plan version": None}
+    payload["artifacts"] = {
+        "index": artifacts["index"],
+        "request": artifacts["request"],
+        "report": report,
+        "code-review": review,
+    }
+    payload["index_identity"]["Accepted plan ID"] = None
+    payload["index_identity"]["Accepted plan version"] = None
+    return payload
+
+
+class ReducedRecordTest(unittest.TestCase):
+    """Levels 0 and 1: a record carries its level's set and no plan."""
+
+    def setUp(self):
+        self.payload = reduced_record()
+
+    def load(self, payload=None, **overrides):
+        arguments = {
+            "task_id": "SYNTH-011",
+            "level": "1",
+            "project": "synthetic-level1",
+        }
+        arguments.update(overrides)
+        return load_record_text(
+            json.dumps(self.payload if payload is None else payload), **arguments
+        )
+
+    def assert_refused(self, needle, payload=None, **overrides):
+        with self.assertRaises(RecordError) as caught:
+            self.load(payload, **overrides)
+        joined = " | ".join(caught.exception.diagnostics)
+        self.assertIn(needle, joined, joined)
+        return joined
+
+    def test_a_reduced_record_renders_publishes_and_validates(self):
+        record = self.load()
+        self.assertEqual(
+            list(LEVEL_REQUIRED_ARTIFACTS["1"]), list(record.artifacts)
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            projects = Path(directory) / "projects"
+            (projects / "synthetic-level1").mkdir(parents=True)
+            (projects / "synthetic-level1" / "current-state.md").write_text(
+                "# Current state\n", encoding="utf-8"
+            )
+            planned = plan_generation(record, projects)
+            self.assertEqual(
+                [f"{name}.md" for name in LEVEL_REQUIRED_ARTIFACTS["1"]],
+                [a.path.name for a in planned if a.action == "create"],
+            )
+            apply_generation(record, projects)
+            dossier = projects / "synthetic-level1" / "handoffs" / "SYNTH-011"
+            self.assertEqual(
+                sorted(f"{name}.md" for name in LEVEL_REQUIRED_ARTIFACTS["1"]),
+                sorted(path.name for path in dossier.iterdir()),
+            )
+            index = (dossier / "index.md").read_text(encoding="utf-8")
+            self.assertEqual(
+                list(LEVEL_REQUIRED_ARTIFACTS["1"]),
+                re.findall(r"^\| `([^`]+)` \|", index, re.MULTILINE),
+            )
+            (dossier / "receipt.md").write_text(
+                "# Handoff receipt\n", encoding="utf-8"
+            )
+            diagnostics = validate_dossier(dossier, projects, require_complete=True)
+            self.assertEqual(
+                [], diagnostics, " | ".join(item.format() for item in diagnostics)
+            )
+
+    def test_a_missing_required_key_or_an_unrecognized_key_is_refused(self):
+        payload = copy.deepcopy(self.payload)
+        del payload["artifacts"]["report"]
+        self.assert_refused("missing key(s): ['report']", payload)
+
+        payload = copy.deepcopy(self.payload)
+        payload["artifacts"]["notes"] = payload["artifacts"]["request"]
+        self.assert_refused("unknown key(s): ['notes']", payload)
+
+    def test_an_unresolvable_level_requires_the_largest_set(self):
+        joined = self.assert_refused("missing key(s)", level="two")
+        for name in ARTIFACTS:
+            if name in LEVEL_REQUIRED_ARTIFACTS["1"]:
+                continue
+            self.assertIn(repr(name), joined)
+
+    def test_review_targets_are_null_exactly_without_a_plan(self):
+        payload = copy.deepcopy(self.payload)
+        payload["artifacts"]["code-review"]["fields"]["Reviewed plan ID"] = "P-1"
+        self.assert_refused("the review target must be null", payload)
+
+        legacy = worked_record()
+        legacy["artifacts"]["code-review"]["fields"]["Reviewed plan ID"] = None
+        with self.assertRaises(RecordError) as caught:
+            load_record_text(
+                json.dumps(legacy),
+                task_id="SYNTH-010",
+                level="0",
+                project="synthetic-level0",
+            )
+        self.assertIn(
+            "Reviewed plan ID: must be exactly str",
+            " | ".join(caught.exception.diagnostics),
+        )
+
+    def test_the_report_supplies_its_sections_in_order(self):
+        payload = copy.deepcopy(self.payload)
+        sections = payload["artifacts"]["report"]["sections"]
+        payload["artifacts"]["report"]["sections"] = [
+            section for section in sections if section["title"] != "Verification"
+        ]
+        self.assert_refused("requires the section 'Verification'", payload)
+
+        payload = copy.deepcopy(self.payload)
+        payload["artifacts"]["report"]["sections"].reverse()
+        self.assert_refused("sections must appear in the order", payload)
+
+        payload = copy.deepcopy(self.payload)
+        payload["artifacts"]["report"]["sections"][0]["body"] = ["TBD"]
+        self.assert_refused("requires a concrete 'Plan' section", payload)
+
+    def test_code_review_must_be_independent_of_the_report_author(self):
+        for label in ("reviewing_session", "authoring_session"):
+            with self.subTest(label=label):
+                payload = copy.deepcopy(self.payload)
+                payload["artifacts"]["code-review"][label] = payload["artifacts"][
+                    "report"
+                ]["authoring_session"]
+                self.assert_refused("independent of the report author", payload)
+
+    def test_rendering_an_artifact_the_record_lacks_is_refused(self):
+        record = self.load()
+        with self.assertRaises(GenerationError):
+            render_artifact(record, "plan")
+        self.assertIn("plan", RECOGNIZED_ARTIFACTS)
+
+
+class RegistryPinTest(unittest.TestCase):
+    """Two spellings of one meaning stay pinned equal (PY-003)."""
+
+    def test_recognized_artifacts_are_the_frozen_eleven_plus_the_report(self):
+        self.assertEqual(
+            ARTIFACTS,
+            tuple(name for name in RECOGNIZED_ARTIFACTS if name != "report"),
+        )
+        self.assertEqual(
+            RECOGNIZED_ARTIFACTS.index("plan") + 1, RECOGNIZED_ARTIFACTS.index("report")
+        )
+
+    def test_the_fallback_level_is_the_largest_set_and_deepest_floor(self):
+        from brichan.contracts.task_dossier.schema import (
+            FALLBACK_TASK_LEVEL,
+            MINIMUM_EVIDENCE_ITEMS,
+            resolve_task_level,
+        )
+
+        self.assertEqual(
+            max(MINIMUM_EVIDENCE_ITEMS.values()),
+            MINIMUM_EVIDENCE_ITEMS[FALLBACK_TASK_LEVEL],
+        )
+        largest = max(len(names) for names in LEVEL_REQUIRED_ARTIFACTS.values())
+        self.assertEqual(largest, len(LEVEL_REQUIRED_ARTIFACTS[FALLBACK_TASK_LEVEL]))
+        for declared in ("two", "", "3", None):
+            self.assertEqual(FALLBACK_TASK_LEVEL, resolve_task_level(declared))
 
 
 class DesignExtractionTest(unittest.TestCase):

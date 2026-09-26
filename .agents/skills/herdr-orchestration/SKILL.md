@@ -47,7 +47,8 @@ Use a standalone receipt for a single-writer task. Store operational receipts
 at `projects/<slug>/handoffs/<task-id>/receipt.md` and add their paths to the
 project's `references.md`.
 
-A tracked task also owns a full task dossier in the same directory. Read
+A tracked task also owns a task dossier (the level's artifact set per
+`references/task-dossier.md`) in the same directory. Read
 `references/task-dossier.md` before creating or resuming one. The receipt stays
 canonical for delegated lifecycle evidence; the dossier index links to it.
 
@@ -148,7 +149,7 @@ for coordinator judgment or user escalation.
 - Read `references/handoff-receipt.md` for planner-to-implementer or reviewer
   handoffs, including techstack Snapshot pointer placement.
 - Read `references/task-dossier.md` when creating, resuming, or closing the
-  full task dossier of a tracked task.
+  task dossier of a tracked task.
 - Read `references/concurrent-writers.md` when coordinating a multi-writer
   task.
 - Read `references/worker-recovery.md` before declaring a worker stale,

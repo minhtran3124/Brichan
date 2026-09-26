@@ -11,6 +11,11 @@ sys.path.insert(0, str(ROOT / "src"))
 from brichan.contracts.task_dossier.schema import (
     ARTIFACTS,
     BODY_SECTIONS,
+    CONTRACT_PATH_FILES,
+    CONTRACT_PATH_PREFIXES,
+    LEVEL_REQUIRED_ARTIFACTS,
+    RECOGNIZED_ARTIFACTS,
+    REPORT_SECTIONS,
     INDEX_IDENTITY_FIELDS,
     METADATA_FIELDS,
     METADATA_SECTION,
@@ -28,10 +33,12 @@ CONTRACT = ROOT / "docs/workflows/task-dossier.md"
 class TaskDossierTemplateContractTest(unittest.TestCase):
     def test_every_standard_artifact_has_a_template(self):
         actual = sorted(path.name for path in TEMPLATES.glob("*.md"))
-        self.assertEqual(sorted(f"{name}.md" for name in ARTIFACTS), actual)
+        self.assertEqual(
+            sorted(f"{name}.md" for name in RECOGNIZED_ARTIFACTS), actual
+        )
 
     def test_templates_declare_the_full_evidence_contract(self):
-        for artifact in ARTIFACTS:
+        for artifact in RECOGNIZED_ARTIFACTS:
             with self.subTest(artifact=artifact):
                 text = (TEMPLATES / f"{artifact}.md").read_text(encoding="utf-8")
                 self.assertIn(f"## {METADATA_SECTION}", text)
@@ -80,6 +87,12 @@ class TaskDossierTemplateContractTest(unittest.TestCase):
         self.assertIn("- Remote action authorized: `no`", pr_desc)
         for forbidden in ("git push", "gh pr create", "gh pr merge"):
             self.assertNotIn(forbidden, pr_desc)
+
+        report = (TEMPLATES / "report.md").read_text(encoding="utf-8")
+        declared = re.findall(r"^## (.+)$", report, re.MULTILINE)
+        self.assertEqual(
+            [METADATA_SECTION, *REPORT_SECTIONS, *BODY_SECTIONS], declared
+        )
 
 
 class TaskDossierDocumentationContractTest(unittest.TestCase):
@@ -150,6 +163,60 @@ class TaskDossierDocumentationContractTest(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("references/task-dossier.md", skill)
+
+    def test_contract_level_table_equals_the_required_sets(self):
+        rows = re.findall(
+            r"^\|\s*(\d)\s*\|\s*\d+\s*\|[^\n]*\|([^|\n]*)\|\s*$",
+            self.contract,
+            re.MULTILINE,
+        )
+        documented = {
+            level: tuple(re.findall(r"`([^`]+)`", cell)) for level, cell in rows
+        }
+        self.assertEqual(LEVEL_REQUIRED_ARTIFACTS, documented)
+
+    def test_contract_path_list_equals_the_constants(self):
+        section = self.contract.split("## Contract paths", 1)[1].split("\n## ", 1)[0]
+        prefixes = re.search(r"^- Directory prefixes: (.+)$", section, re.MULTILINE)
+        files = re.search(r"^- Exact files: (.+)$", section, re.MULTILINE)
+        self.assertEqual(
+            CONTRACT_PATH_PREFIXES, tuple(re.findall(r"`([^`]+)`", prefixes.group(1)))
+        )
+        self.assertEqual(
+            CONTRACT_PATH_FILES, tuple(re.findall(r"`([^`]+)`", files.group(1)))
+        )
+        self.assertIn("scripts/check_contract_paths.py", section)
+
+    def test_level_lifecycles_are_stated_once_and_referenced_elsewhere(self):
+        self.assertEqual(1, self.contract.count("### Lifecycles by level"))
+        principles = (ROOT / "docs/policy/operating-principles.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("same standard\nartifact set", principles)
+        self.assertIn(
+            "which defines the lifecycle and artifact set\nfor each task level",
+            principles,
+        )
+        reference = (
+            ROOT / ".agents/skills/herdr-orchestration/references/task-dossier.md"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("same eleven", reference)
+
+    def test_reviewer_policy_states_the_regression_test_rule(self):
+        reviewer = " ".join(
+            (ROOT / "docs/policy/reviewer.md").read_text(encoding="utf-8").split()
+        )
+        prompt = reviewer.split("```text", 1)[1].split("```", 1)[0]
+        for needle in (
+            "A behavior change without a committed regression test that would "
+            "fail if the behavior regressed is a defect of at least medium "
+            "severity, not a test gap.",
+            "Test gaps (a missing regression test for a changed behavior is a "
+            "defect under the rules above, not a test gap).",
+        ):
+            with self.subTest(needle=needle):
+                self.assertIn(needle, prompt)
+        self.assertIn("reports a mis-declared level as a finding", reviewer)
 
     def test_makefile_wires_the_validator_into_check(self):
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
@@ -355,9 +422,9 @@ class TaskDossierRecordContractTest(unittest.TestCase):
 
         self.assertIs(validation.EXTRA_SECTION_FIELDS, ARTIFACT_EXTRA_SECTIONS)
         self.assertEqual(1, RECORD_SCHEMA_VERSION)
-        self.assertEqual(set(ARTIFACTS), set(ARTIFACT_TITLES))
-        self.assertEqual(set(ARTIFACTS), set(ARTIFACT_OWNERS))
-        for artifact in ARTIFACTS:
+        self.assertEqual(set(RECOGNIZED_ARTIFACTS), set(ARTIFACT_TITLES))
+        self.assertEqual(set(RECOGNIZED_ARTIFACTS), set(ARTIFACT_OWNERS))
+        for artifact in RECOGNIZED_ARTIFACTS:
             with self.subTest(artifact=artifact):
                 template = (TEMPLATES / f"{artifact}.md").read_text(encoding="utf-8")
                 self.assertTrue(
@@ -429,6 +496,33 @@ class ConciseEvaluationContractTest(unittest.TestCase):
                 self.assertTrue(
                     (CONCISE / "projects" / project / "current-state.md").is_file()
                 )
+
+    def test_the_committed_legacy_samples_validate_under_the_level_rules(self):
+        """Committed full eleven-artifact dossiers at levels 0 and 1 stay valid.
+
+        They carry plan.md and no worker report: the legacy shape every
+        dossier written before the report carries. The projects tree is
+        gitignored, so these committed samples own the regression guard.
+        """
+        from brichan.contracts.task_dossier.validation import validate_dossier
+
+        projects = CONCISE / "projects"
+        for project, task in (
+            ("synthetic-level0", "SYNTH-010"),
+            ("synthetic-level1", "SYNTH-011"),
+        ):
+            with self.subTest(task=task):
+                dossier = projects / project / "handoffs" / task
+                self.assertFalse((dossier / "report.md").exists())
+                for gate in (False, True):
+                    diagnostics = validate_dossier(
+                        dossier, projects, require_complete=gate
+                    )
+                    self.assertEqual(
+                        [],
+                        diagnostics,
+                        " | ".join(item.format() for item in diagnostics),
+                    )
 
     def test_the_recorded_pilot_results_are_not_modified(self):
         text = (ROOT / "evals/task-dossier-pilots/results.md").read_text(
