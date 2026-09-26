@@ -45,8 +45,11 @@ None.
    (L6 kept as design, L7 fixed in place); WFS-007 (level 0) routes the
    checkout `implement` worker to `claude-opus-5-5`. Both reviewed PASS and are
    on the same branch as WFS-005 (PR #37).
-4. Follow-ups: worktree-only `.git` failures in `test_repository_paths` and
-   `path-check`; Codex update pending (0.155.0 -> 0.157.1).
+4. Done 2026-09-26: WFS-008 fixed the worktree-only `.git` failures (branch
+   `fix/worktree-git-file`, stacked on PR #37). Codex update pending and
+   Codex usage-limited; reviews run on Claude meanwhile.
+6. Dogfood count toward the adoption check: WFS-006 (L1), WFS-007 (L0),
+   WFS-008 (L0) -- no escaped defect so far.
 5. Revisit installed-mode adoption after external dogfood.
 
 ## Unverified assumptions
