@@ -16,6 +16,9 @@ DEFAULT_MANIFEST = ROOT / "config/repository-paths.json"
 MARKDOWN_LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 EXTERNAL_SCHEMES = {"http", "https", "mailto"}
 SKIPPED_PARTS = {".git", "__pycache__"}
+# Git's own root entry: a directory in a main checkout, a regular file
+# pointing at the main repository in a linked worktree. Exact name only.
+GIT_METADATA = ".git"
 
 
 def _repo_path(value: str) -> Path:
@@ -35,6 +38,22 @@ def load_manifest(path: Path) -> dict:
     if not isinstance(manifest.get("references"), list):
         raise ValueError("references must be a list")
     return manifest
+
+
+def unclassified_root_files(
+    root: Path, ignored_root_files: set[str], known_paths: set[str]
+) -> list[str]:
+    inventoried_root_files = {
+        value for value in known_paths if len(Path(value).parts) == 1
+    }
+    actual_root_files = {
+        path.name
+        for path in root.iterdir()
+        if path.is_file()
+        and path.name != GIT_METADATA
+        and path.name not in ignored_root_files
+    }
+    return sorted(actual_root_files - inventoried_root_files)
 
 
 def validate_manifest(manifest: dict) -> list[str]:
@@ -69,16 +88,9 @@ def validate_manifest(manifest: dict) -> list[str]:
         elif kind not in {"file", "directory"}:
             errors.append(f"{label}: unsupported kind {kind}")
 
-    ignored_root_files = set(manifest.get("ignored_root_files", []))
-    inventoried_root_files = {
-        value for value in known_paths if len(Path(value).parts) == 1
-    }
-    actual_root_files = {
-        path.name
-        for path in ROOT.iterdir()
-        if path.is_file() and path.name not in ignored_root_files
-    }
-    unclassified = sorted(actual_root_files - inventoried_root_files)
+    unclassified = unclassified_root_files(
+        ROOT, set(manifest.get("ignored_root_files", [])), known_paths
+    )
     if unclassified:
         errors.append(
             "unclassified root files: " + ", ".join(unclassified)
