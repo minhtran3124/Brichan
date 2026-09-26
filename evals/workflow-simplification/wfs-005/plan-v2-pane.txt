@@ -1,0 +1,400 @@
+  Snapshot with the path included, or records a decision to drop the entry. Every other planned file is inside the declared
+  scope.
+
+  2. Files/artifacts changed
+
+  Exactly the five in-scope artifacts, all at version 1, plan ID WFS-005-PLAN-001, status draft, each recording route plan,
+  model claude-fable-5, effort high, session plan-session-17f97686:
+
+  - projects/brida-workflow-simplification/handoffs/WFS-005/requirements.md — R1–R12 plus acceptance criteria A1–A6.
+  - .../brief.md — background, what changes, where details live.
+  - .../options.md — five decision points; selected 1C (new report artifact), 2B (monotone recognition), 3C (doc-canonical
+    contract-path list mirrored as pinned code constants plus a stdin checker), 4B (rule inside the reviewer prompt), 5B
+    (code-review.md always present at L0/L1, not-required allowed only at L0).
+  - .../design.md — the four required decisions with evidence: canonical lifecycle text, the contract-path definition
+    (docs/policy/, docs/workflows/, .agents/, src/brichan/resources/, src/brichan/contracts/, config/, bin/, packaging/,
+    techstacks/ plus Makefile, pyproject.toml, AGENTS.md, CLAUDE.md, PRODUCT.md, src/brichan/lifecycle.py, matched against
+    git diff --name-only --no-renames), recognition changes for validator/scaffold/generator/summary, reviewer-rule wording,
+    the complete file list, an 18-item test list each tied to a plausible regression, and the compatibility argument.
+  - .../plan.md — nine implementation steps S1–S9 with tests landing per step, verification commands for 3.10 and 3.14,
+    expected in-flight reds, risks, and the escalation.
+
+  3. Verification and evidence
+
+  - Techstack verify returned status: "match" before any other work; all ten required rule files were read, plus the
+    canonical policy, workflow doc, skill references, all six contract-package modules in full, the parity/doc contract
+    tests, and the stage 2 evidence.
+  - Grounding checks: every Level 0/1 dossier in projects/ records both reviews required (so the new L1 rule breaks nothing);
+    the generator's frozen fixture is an eleven-artifact Level 1 record (forcing the monotone rule); no parity marker
+    overlaps the planned .agents/ edits.
+  - PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects: zero diagnostics owned by my five artifacts
+    (baseline 65 → 43). All 43 remaining are expected pending coordinator/reviewer items in WFS-005: template placeholders
+    in index.md, plan-review.md, code-review.md, pr-desc.md; the missing receipt.md link; index.md status-table mismatches
+    against my now-passed artifacts (index is the coordinator's projection to update); and the pre-existing
+    client-follow-up-questions.md evidence-depth shortfall (2 of 3 items, coordinator-owned).
+
+  4. Risks, assumptions, and unresolved issues
+
+  - Unresolved: the CHANGELOG.md scope escalation above; and the open plan-review question of whether runtime modules beyond
+    src/brichan/lifecycle.py and src/brichan/contracts/ belong on the contract-path list (ties were broken toward inclusion,
+    so the residual risk is an occasional unnecessary routine review, not a missed mandatory one).
+  - Assumptions: effective effort high recorded from the plan route's configured value; the plan-before-implementation
+    discipline in report.md is reviewer-enforced, not tool-verifiable.
+  - Risks: exact doc needles pinned by contract tests (named in design §6) and parity markers constrain the doc edits; the
+    evidence base remains directional (three tasks, one run per arm), mitigated by the protocol's standing rollback rule.
+
+  5. Acknowledgement
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=1a91abd418f62807e70bc820fa22ce0a8a764a01e5ef9844d6bdafe3a7d05518
+
+✻ Sautéed for 17m 35s · done 10:29 AM
+
+❯ Brichan coordinator decision on your escalation (WFS-005-PLAN): include CHANGELOG.md. The Snapshot has been re-resolved
+  for plan version 2 with CHANGELOG.md added to the scope paths. Mandatory planning reread:
+
+  Techstack task ID: WFS-005
+  Techstack plan ID: WFS-005-PLAN-001
+  Techstack plan version: 2
+  Techstack attempt ID: attempt-plan-2
+  Techstack as-of: 2026-09-26
+  Techstack scope paths JSON:
+  [".agents/skills/herdr-orchestration","CHANGELOG.md","docs/policy","docs/workflows","projects/brida-workflow-simplificatio
+  n/handoffs/WFS-005","scripts","src/brichan/contracts/task_dossier","tests/contract","tests/integration","tests/unit"]
+  Techstack context chains JSON: [["policy","policy-canonical"],["policy","policy-dossiers"],["policy","policy-packaged"],["
+  python","python-runtime"],["python","python-scripts"],["python","python-tests"]]
+  Techstack declared conflicts JSON: []
+  Techstack exception approvals JSON: []
+  Techstack Snapshot JSON artifact: projects/brida-workflow-simplification/handoffs/WFS-005/snapshots/attempt-plan-2-912216e
+  4b4070c6b23aa2a5a78cb73c38d15be3a73a93886d9056d2d716cbbfd.snapshot.json
+  Techstack Snapshot SHA-256: 912216e4b4070c6b23aa2a5a78cb73c38d15be3a73a93886d9056d2d716cbbfd
+  Techstack selected files JSON: ["techstacks/README.md","techstacks/general.md","techstacks/policy/README.md","techstacks/p
+  olicy/canonical.md","techstacks/policy/packaged-resources.md","techstacks/policy/task-dossiers.md","techstacks/python/READ
+  ME.md","techstacks/python/runtime.md","techstacks/python/scripts.md","techstacks/python/tests.md"]
+  Techstack acknowledged Context IDs JSON: ["general","policy","policy-canonical","policy-dossiers","policy-packaged","pytho
+  n","python-runtime","python-scripts","python-tests","root"]
+  Techstack required selected rule reads JSON: ["techstacks/README.md","techstacks/general.md","techstacks/policy/README.md"
+  ,"techstacks/policy/canonical.md","techstacks/policy/packaged-resources.md","techstacks/policy/task-dossiers.md","techstac
+  ks/python/README.md","techstacks/python/runtime.md","techstacks/python/scripts.md","techstacks/python/tests.md"]
+  Techstack verify command: brichan techstacks verify --project-root ../brida
+  --snapshot-json projects/brida-workflow-simplification/handoffs/WFS-005/snapshots/attempt-plan-2-912216e4b4070c6b23aa2a5a7
+  8cb73c38d15be3a73a93886d9056d2d716cbbfd.snapshot.json --as-of 2026-09-26
+  Techstack verification requirement: run-before-work
+
+  Required: run the verify command above and require "match"; reread every selected rule file listed above; then produce
+  plan version 2 (preserve version 1 under versions/v1/ as the dossier contract requires). It must acknowledge every final
+  selected Context ID and file and the latest digest, and record CHANGELOG.md in scope. Change nothing else unless the new
+  scope requires it. Also note: the client-follow-up-questions evidence-depth shortfall was coordinator-owned and is now
+  fixed. Re-run the dossier validator and give the same final response format, including the new acknowledgement line.
+
+⏺ I'll run the new verification first, reread the rule files, check the versions-directory convention, then produce plan v2.
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 bin/brichan techstacks verify --project-root
+  ../brida --snapshot-json projects/brida-workflow-simplification/handoffs/WFS-
+  005/snapshots/attempt-plan-2-912216e4b4070c6b23aa2a5a78cb73c38d15be3a73a93886d9056d2d716cbbfd.snapshot.json --as-of
+  2026-09-26 | python3 -c "import json,sys; d=json.load(sys.stdin); print('status:', d['status']); print('observed:',
+  d['observed_snapshot_sha256']); print('differences:', d['differences']); s=d['observed_resolution']['snapshot'];
+  print('scope_paths:', s['scope_paths']); print('plan_version:', s['plan_version'], 'attempt:', s['attempt_id']);
+  print('selected:', [f['path'] for f in s['selected_files']]); print('contexts:', sorted({f['context_id'] for f in
+  s['selected_files']}))")
+  ⎿  status: match
+     observed: 912216e4b4070c6b23aa2a5a78cb73c38d15be3a73a93886d9056d2d716cbbfd
+     differences: []
+     scope_paths: ['.agents/skills/herdr-orchestration', 'CHANGELOG.md', 'docs/policy', 'docs/workflows',
+     'projects/brida-workflow-simplification/handoffs/WFS-005', 'scripts', 'src/brichan/contracts/task_dossier',
+     'tests/contract', 'tests/integration', 'tests/unit']
+     plan_version: 2 attempt: attempt-plan-2
+     selected: ['techstacks/README.md', 'techstacks/general.md', 'techstacks/policy/README.md',
+     'techstacks/policy/canonical.md', 'techstacks/policy/packaged-resources.md', 'techstacks/policy/task-dossiers.md',
+     'techstacks/python/README.md', 'techstacks/python/runtime.md', 'techstacks/python/scripts.md',
+     'techstacks/python/tests.md']
+     contexts: ['general', 'policy', 'policy-canonical', 'policy-dossiers', 'policy-packaged', 'python', 'python-runtime',
+     'python-scripts', 'python-tests', 'root']
+
+⏺ Bash(ls -d projects/*/handoffs/*/versions 2>/dev/null && ls projects/*/handoffs/*/versions/* 2>/dev/null | head -20)
+  ⎿  projects/brida-installable-tool/handoffs/HERDR-091/versions
+     projects/brida-installable-tool/handoffs/INIT-002/versions
+     projects/brida-installable-tool/handoffs/TECHSTACK-001/versions
+     projects/brida-installable-tool/handoffs/TECHSTACK-002/versions
+     projects/brida-task-dossier-workflow/handoffs/TDW-009/versions
+     projects/brida-worker-ledger/handoffs/WLG-001/versions
+     projects/brida-installable-tool/handoffs/HERDR-091/versions/v1:
+     code-review.md
+     plan-review.md
+     plan.md
+
+     projects/brida-installable-tool/handoffs/HERDR-091/versions/v2:
+     plan.md
+
+     projects/brida-installable-tool/handoffs/INIT-002/versions/v1:
+     code-review.md
+     design.md
+     plan-review.md
+     plan.md
+
+     projects/brida-installable-tool/handoffs/TECHSTACK-001/versions/v1:
+     brief.md
+     code-review.md
+     design.md
+     options.md
+     plan-review.md
+
+⏺ Verification returned match with the new digest, and the convention is versions/v1/plan.md. Now the mandated reread of all
+  ten rule files.
+
+⏺ Read(../brida/techstacks/README.md)
+  ⎿  Read 16 lines
+
+⏺ Read(../brida/techstacks/general.md)
+  ⎿  Read 38 lines
+
+⏺ Read(../brida/techstacks/policy/README.md)
+  ⎿  Read 16 lines
+
+⏺ Read(../brida/techstacks/policy/canonical.md)
+  ⎿  Read 36 lines
+
+⏺ Read(../brida/techstacks/policy/packaged-resources.md)
+  ⎿  Read 36 lines
+
+⏺ Read(../brida/techstacks/policy/task-dossiers.md)
+  ⎿  Read 37 lines
+
+⏺ Read(../brida/techstacks/python/README.md)
+  ⎿  Read 16 lines
+
+⏺ Read(../brida/techstacks/python/runtime.md)
+  ⎿  Read 38 lines
+
+⏺ Read(../brida/techstacks/python/scripts.md)
+  ⎿  Read 37 lines
+
+⏺ Read(../brida/techstacks/python/tests.md)
+  ⎿  Read 38 lines
+
+⏺ All ten rule files reread — unchanged from the first read. Now archiving plan v1 byte-frozen, then writing version 2.
+
+⏺ Bash(cd ../brida/projects/brida-workflow-simplification/handoffs/WFS-005 &&
+  mkdir -p versions/v1 && cp -p plan.md versions/v1/plan.md && shasum -a 256 plan.md versions/v1/plan.md)
+  ⎿  0224a4696d8ec76102f58450f1ae2c97c39e14af42860b8865607d0c48260fed  plan.md
+     0224a4696d8ec76102f58450f1ae2c97c39e14af42860b8865607d0c48260fed  versions/v1/plan.md
+
+⏺ Write(../brida/projects/brida-workflow-simplification/handoffs/WFS-005/plan.m
+       d)
+
+       7  - Task ID: `WFS-005`
+       8  - Task level: `2`
+       9  - Artifact: `plan`
+      10 -- Artifact version: `1`
+      11 -- Origin: `wfs-005-plan-worker:2026-09-26:v1`
+      10 +- Artifact version: `2`
+      11 +- Origin: `wfs-005-plan-worker:2026-09-26:v2`
+      12  - Owner: `planner`
+      13  - Phase state: `passed`
+      14  - Applicability: `required`
+     ...
+      26  - Plan ID: `WFS-005-PLAN-001`
+      27  - Plan status: `draft`
+      28
+      29 -## Escalation: one path outside the Techstack scope
+      29 +## Version history
+      30
+      31 -`CHANGELOG.md` must gain an Unreleased entry (design section 6; the file's
+      32 -own header requires notable changes to be documented), but it is not inside
+      33 -any of the ten declared Techstack scope paths of Snapshot attempt
+      34 -`attempt-plan-1`. Per the techstacks policy, a newly discovered path blocks
+      35 -plan acceptance until the coordinator re-resolves the Snapshot with the path
+      36 -included (or records a decision to drop the entry) and requires a reread of
+      37 -the newly selected pointers. Every other file this plan touches is inside the
+      38 -declared scope paths. This must be resolved before this plan is accepted.
+      31 +- Version 1 raised one escalation (`CHANGELOG.md` outside the Techstack
+      32 +  scope) and is archived byte-frozen at `versions/v1/plan.md` per the
+      33 +  dossier contract; it is review evidence and is never edited.
+      34 +- Version 2 (this document) incorporates the coordinator's resolution:
+      35 +  `CHANGELOG.md` is now inside the re-resolved Snapshot scope
+      36 +  (attempt `attempt-plan-2`, plan version 2). The step sequence,
+      37 +  verification, and risks are otherwise unchanged from version 1.
+      38
+      39 +## Techstack scope acknowledgement (attempt-plan-2)
+      40 +
+      41 +- Snapshot pointer: `projects/brida-workflow-simplification/handoffs/WFS-005/snapshots/attempt-plan-2-912216
+         +e4b4070c6b23aa2a5a78cb73c38d15be3a73a93886d9056d2d716cbbfd.snapshot.json`
+      42 +- Snapshot SHA-256: `912216e4b4070c6b23aa2a5a78cb73c38d15be3a73a93886d9056d2d716cbbfd`,
+      43 +  verified `match` on 2026-09-26 before this version was written.
+      44 +- Final scope paths (all files this plan touches are inside them):
+      45 +  `.agents/skills/herdr-orchestration`, `CHANGELOG.md`, `docs/policy`,
+      46 +  `docs/workflows`, `projects/brida-workflow-simplification/handoffs/WFS-005`,
+      47 +  `scripts`, `src/brichan/contracts/task_dossier`, `tests/contract`,
+      48 +  `tests/integration`, `tests/unit`.
+      49 +- Acknowledged Context IDs: `root`, `general`, `policy`, `policy-canonical`,
+      50 +  `policy-dossiers`, `policy-packaged`, `python`, `python-runtime`,
+      51 +  `python-scripts`, `python-tests`.
+      52 +- Selected rule files, each reread in full after the re-resolution:
+      53 +  `techstacks/README.md`, `techstacks/general.md`,
+      54 +  `techstacks/policy/README.md`, `techstacks/policy/canonical.md`,
+      55 +  `techstacks/policy/packaged-resources.md`,
+      56 +  `techstacks/policy/task-dossiers.md`, `techstacks/python/README.md`,
+      57 +  `techstacks/python/runtime.md`, `techstacks/python/scripts.md`,
+      58 +  `techstacks/python/tests.md`.
+      59 +- Declared conflicts: none. Exception approvals: none.
+      60 +
+      61  ## Step sequence
+      62
+      63  Each step lands its tests with its change (GENERAL-004, TEST-003: every
+     ...
+      100    Update `tests/contract/test_task_dossier_contract.py` needles and add the
+      101    document-side pins and the reviewer-rule needle. Lands tests 17-18 (doc
+      102    side).
+       82 -- S8 — Records. Add the `CHANGELOG.md` Unreleased entry — only after the
+       83 -  escalation above is resolved by the coordinator.
+      103 +- S8 — Records. Add the `CHANGELOG.md` Unreleased entry (Changed): the
+      104 +  level-keyed dossier contract and the reviewer rule. In scope as of
+      105 +  Snapshot attempt `attempt-plan-2`; the version 1 escalation is resolved.
+      106  - S9 — End-to-end and full verification (below), then the worker report,
+      107    diff, and evidence for the completion gate.
+      108
+     ...
+      151
+      152  ## Claim or decision
+      153
+      132 -Implementation proceeds in nine steps, tests landing with each change,
+      133 -gated by `make check` on Python 3.10 and 3.14, with one recorded escalation
+      134 -(`CHANGELOG.md` outside the Snapshot scope) that blocks plan acceptance
+      135 -until the coordinator re-resolves it.
+      154 +Implementation proceeds in nine steps, tests landing with each change, gated
+      155 +by `make check` on Python 3.10 and 3.14. The version 1 escalation is
+      156 +resolved: `CHANGELOG.md` is inside the re-resolved attempt-plan-2 Snapshot
+      157 +scope, so no path this plan touches is outside the declared scope and
+      158 +nothing blocks acceptance of this plan version on scope grounds.
+      159
+      160  ## Evidence
+      161
+      162 +- The attempt-plan-2 verify command returned `match` with digest
+      163 +  `912216e4b4070c6b23aa2a5a78cb73c38d15be3a73a93886d9056d2d716cbbfd` on
+      164 +  2026-09-26, and its resolved scope paths include `CHANGELOG.md`; all ten
+      165 +  selected rule files were reread after the re-resolution as required.
+      166 +- `versions/v1/plan.md` holds the byte-frozen version 1 (identical SHA-256
+      167 +  to the pre-archive `plan.md` v1, verified at archive time), preserving the
+      168 +  escalation record per the dossier contract.
+      169  - `design.md` v1 sections 4, 6, and 7 enumerate every touched function,
+      170    file, and test this plan sequences; the design was grounded in a full read
+      171    of the six contract-package modules on 2026-09-26.
+      142 -- The Snapshot's declared scope paths (ten entries) were checked against the
+      143 -  design's file list; `CHANGELOG.md` is the only file outside them, which
+      144 -  the escalation section records.
+      172  - `Makefile` targets `check`, `dossiers`, and the test tiers were read to
+      173    confirm the verification commands and the SCRIPT-003 eval note.
+      147 -- Techstack Snapshot pointer: `projects/brida-workflow-simplification/handoffs/WFS-005/snapshots/attempt-pl
+          -an-1-1a91abd418f62807e70bc820fa22ce0a8a764a01e5ef9844d6bdafe3a7d05518.snapshot.json`, sha256 `1a91abd418f62
+          -807e70bc820fa22ce0a8a764a01e5ef9844d6bdafe3a7d05518`, verified `match` on 2026-09-26.
+      174
+      175  ## Uncertainty
+      176
+      151 -- The `CHANGELOG.md` scope escalation is unresolved and blocks acceptance of
+      152 -  this plan version; resolution is the coordinator's (re-resolve the
+      153 -  Snapshot or drop the entry with a recorded decision).
+      177  - The contract-path list membership question recorded in `design.md`'s
+      155 -  Uncertainty section is open for plan review; it does not block the step
+      156 -  sequence, which treats the list as one literal to fill.
+      178 +  Uncertainty section remains open for plan review; it does not block the
+      179 +  step sequence, which treats the list as one literal to fill. The version 1
+      180 +  scope escalation is resolved and no scope uncertainty remains.
+
+⏺ Bash(cd ../brida && PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | sed 's|.*/projects/|projects/|' | grep -E
+  "plan\.md|requirements\.md|brief\.md|options\.md|design\.md|client-follow-up" ; echo "---"; PYTHONDONTWRITEBYTECODE=1
+  python3 scripts/validate_task_dossiers.py projects 2>&1 | tail -1; echo "---"; PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | sed 's|.*/projects/brida-workflow-simplification/handoffs/WFS-005/||' |
+  cut -d: -f1 | sort | uniq -c)
+  ⎿  projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.requirements.Applicability: index says
+     '<required or not-required>' but requirements.md says 'required'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.requirements.Phase state: index says
+     '<phase state>' but requirements.md says 'passed'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.brief.Applicability: index says
+     '<required or not-required>' but brief.md says 'required'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.brief.Phase state: index says '<phase
+     state>' but brief.md says 'passed'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.options.Applicability: index says
+     '<required or not-required>' but options.md says 'required'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.options.Phase state: index says
+     '<phase state>' but options.md says 'passed'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.design.Applicability: index says
+     '<required or not-required>' but design.md says 'required'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.design.Phase state: index says '<phase
+     state>' but design.md says 'passed'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact
+     status.client-follow-up-questions.Applicability: index says '<required or not-required>' but
+     client-follow-up-questions.md says 'required'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.client-follow-up-questions.Phase
+     state: index says '<phase state>' but client-follow-up-questions.md says 'passed'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.plan.Applicability: index says
+     '<required or not-required>' but plan.md says 'required'
+     projects/brida-workflow-simplification/handoffs/WFS-005/index.md: Artifact status.plan.Phase state: index says '<phase
+     state>' but plan.md says 'passed'
+     ---
+     Invalid task dossiers: 42 issue(s) across 17 dossier(s).
+     ---
+        5 code-review.md
+       27 index.md
+        1 Invalid task dossiers
+        5 plan-review.md
+        5 pr-desc.md
+
+⏺ 1. Outcome
+
+  Plan version 2 is produced and the version 1 escalation is closed. The attempt-plan-2 Snapshot verified match, all ten
+  selected rule files were reread after the re-resolution, plan v1 was archived byte-frozen, and plan.md v2 now records
+  CHANGELOG.md inside the final scope, acknowledges every final Context ID, selected file, and the latest digest, and
+  unblocks step S8. Nothing else changed — the step sequence, verification, and risks are identical to version 1, and the
+  other four planner artifacts remain at version 1 as authored.
+
+  2. Files/artifacts changed
+
+  - projects/brida-workflow-simplification/handoffs/WFS-005/versions/v1/plan.md — new: byte-frozen archive of plan v1
+    (SHA-256 0224a469…260fed, verified identical to the pre-archive file; matches the versions/v1/ convention used by
+    HERDR-091, INIT-002, TECHSTACK-001).
+  - projects/brida-workflow-simplification/handoffs/WFS-005/plan.md — rewritten as artifact version 2, plan ID
+    WFS-005-PLAN-001, plan status draft. Additions: a version-history section, a Techstack scope acknowledgement section
+    (attempt attempt-plan-2, the ten final scope paths including CHANGELOG.md, the ten acknowledged Context IDs, the ten
+    reread rule files, no conflicts, no exception approvals), S8 marked in-scope, and the escalation removed from
+    Uncertainty.
+
+  3. Verification and evidence
+
+  - brichan techstacks verify against the attempt-plan-2 snapshot returned status: "match", observed digest
+    912216e4b4070c6b23aa2a5a78cb73c38d15be3a73a93886d9056d2d716cbbfd, zero differences, and a resolved scope that includes
+    CHANGELOG.md — run before any other work in this turn.
+  - All ten required rule files reread in full after the re-resolution; contents unchanged from the plan-v1 read, so no
+    design or plan revision beyond scope was needed.
+  - Archive integrity: shasum -a 256 shows plan.md (v1, pre-rewrite) and versions/v1/plan.md byte-identical.
+  - PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects: zero diagnostics owned by my five
+    artifacts, including the new plan v2. Total is now 42 (was 43): the coordinator's client-follow-up-questions.md
+    evidence-depth fix is confirmed cleared. All 42 remaining are the expected pending items — index.md 27 (template
+    placeholders, the missing receipt.md link, and status-table rows not yet updated to my passed artifacts), plan-review.md
+    5, code-review.md 5, pr-desc.md 5, all template placeholders owned by the coordinator or reviewer.
+
+  4. Risks, assumptions, and unresolved issues
+
+  - Unresolved (for plan review, unchanged): whether runtime modules beyond src/brichan/lifecycle.py and
+    src/brichan/contracts/ belong on the contract-path list; recorded in design.md's Uncertainty.
+  - Assumption: the design and the other three planner artifacts did not need a v2 — the new scope adds a path the design's
+    file list already named, changes no decision, and the instruction was to change nothing else unless the scope required
+    it; plan.md v2 alone carries the final scope and latest digest, which is what acceptance gates on.
+  - Risk (unchanged): the pinned doc needles, parity markers, legacy-dossier compatibility, and the in-flight WFS-005
+    expected-red list, all mitigated per the plan's risk section.
+
+  5. Acknowledgement
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=912216e4b4070c6b23aa2a5a78cb73c38d15be3a73a93886d9056d2d716cbbfd
+
+✻ Cooked for 2m 20s · done 10:32 AM
+                                                                                                              257865 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Fable 5 │ ✍️ 25% │ brida (feat/lifecycle-simplification*) │ ● high 💭
+  current ●●●○○○○○○○  33% ⟳ 12:10pm
+  weekly  ●●●●●●○○○○  63% ⟳ sep 30, 5:00am
+  fable   ●●●●○○○○○○  40% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

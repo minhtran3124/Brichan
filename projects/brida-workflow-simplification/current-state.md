@@ -1,16 +1,17 @@
 # Current state
 
-Last updated: 2026-09-25 (stage 2 closed 15:05Z)
+Last updated: 2026-09-26
 
 ## Summary
 
-Both stages are complete. Stage 1 preferred `claude-opus-5-5`. In stage 2
-(three tasks, all reviewers on Claude), the simplified lifecycle (arm B) met
-every protocol pass criterion: blind escape score 42 vs 42, one escaped
-Medium per arm, no High. It used 5 vs 24 worker sessions, 56 vs 348 minutes
-of active worker time, and 1,343 vs 12,699 artifact lines. No policy,
-routing, or packaged-resource change has been made; adoption (WFS-005) waits
-for the user's sign-off and an independent review.
+WFS-005 is implemented and independently reviewed on branch
+`feat/lifecycle-simplification`, stacked on PR #36. In checkout mode, Level 0
+and Level 1 tasks now run the lighter lifecycle with a reduced artifact set
+(`report.md` carries the plan), and Level 0 is reviewed only on a contract
+path (`scripts/check_contract_paths.py`). The reviewer policy now treats a
+behavior change without a committed regression test as a defect. Level 2 and
+installed mode are unchanged. Code review v2 is PASS, with nine non-blocking
+Lows recorded in `handoffs/WFS-005/code-review.md` (local).
 
 ## Completed recently
 
@@ -39,17 +40,14 @@ None.
 
 ## Next actions
 
-1. User decides on WFS-005: adopt the Level 0/1 simplification in policy
-   (`docs/policy/operating-principles.md`, the packaged copy,
-   `docs/workflows/task-dossier.md`, the `herdr-orchestration` skill), with the
-   one addition stage 2 suggests: a missing regression test for a behavior
-   change is a review defect, not a test gap. This is a durable-contract
-   change and needs an independent review (preferably Codex once updated).
-2. User decides whether to route `implement` to `claude-opus-5-5` in
-   `config/model-routing.json`.
-3. Follow-ups: `test_repository_paths` and `path-check` fail in any detached
-   worktree (`.git` is a file); Codex has a pending update (0.155.0 ->
-   0.157.0).
+1. User merges PR #36, then the WFS-005 PR.
+2. Optional follow-up: close the nine non-blocking code-review Lows (test
+   gaps L1-L4, the L5 empty-input contract-path rule, L6 legacy-rule
+   restriction, L9 fail-open `.get` default).
+3. User decides whether to route `implement` to `claude-opus-5-5`.
+4. Follow-ups: worktree-only `.git` failures in `test_repository_paths` and
+   `path-check`; Codex update pending (0.155.0 -> 0.157.1).
+5. Revisit installed-mode adoption after external dogfood.
 
 ## Unverified assumptions
 

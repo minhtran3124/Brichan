@@ -1,0 +1,400 @@
+     test_root_entries_alone_still_render_as_a_tree (tests.unit.test_cli_render.RootEntryRenderTest) ... ok
+     test_verified_and_healthy_preflight_exits_0 (tests.unit.test_herdr_monitor.ExitTableTest) ... ok
+     test_an_unknown_package_attribute_is_still_an_attribute_error (tests.unit.test_module_boundaries.ModuleBoundaryTest) ...
+     ok
+     test_importing_every_source_module_never_loads_the_evals_package (tests.unit.test_module_boundaries.ModuleBoundaryTest)
+     Import the whole package, not one entrypoint, then look for it. ... ok
+     test_no_source_file_names_the_evals_package (tests.unit.test_module_boundaries.ModuleBoundaryTest)
+     test_the_eval_package_imports_the_production_resolver (tests.unit.test_module_boundaries.ModuleBoundaryTest)
+     test_the_package_dir_lists_the_defaults_and_every_public_name (tests.unit.test_module_boundaries.ModuleBoundaryTest)
+     test_the_package_import_does_not_load_the_techstacks_cli_module (tests.unit.test_module_boundaries.ModuleBoundaryTest)
+     Design sections 2 and 16 put two CLI-owned names on the package. ... ok
+     test_apply_creates_missing_agent_entries_pointing_at_state (tests.unit.test_project_lifecycle.AgentEntryFilesTest) ...
+     ok
+     test_dry_run_lists_missing_agent_entries_without_writing (tests.unit.test_project_lifecycle.AgentEntryFilesTest) ... ok
+     test_healthy_project_gains_missing_agent_entries_on_reinit (tests.unit.test_project_lifecycle.AgentEntryFilesTest) ...
+     ok
+     Section 16: it counts against the 64 row entries of its own side. ... ok
+     test_sixty_five_exported_row_entries_stop_the_comparison (tests.unit.test_project_lifecycle.AgentSkillExportReportTest)
+     ... ok
+     test_sixty_five_managed_row_entries_stop_the_comparison (tests.unit.test_project_lifecycle.AgentSkillExportReportTest)
+     ... ok
+     test_sixty_four_entries_per_side_still_compare (tests.unit.test_project_lifecycle.AgentSkillExportReportTest) ... ok
+     test_sixty_four_exported_row_entries_are_the_last_that_compare
+     (tests.unit.test_project_lifecycle.AgentSkillExportReportTest) ... ok
+     test_sixty_four_managed_row_entries_are_the_last_that_compare
+     (tests.unit.test_project_lifecycle.AgentSkillExportReportTest) ... ok
+     A level of 70 files records 65 entries, not 70. ... ok
+     test_isolated_options_exclude_the_working_and_package_directories
+     (tests.unit.test_techstack_filesystem.ShadowPackageTest) ... ok
+     test_a_readme_never_emits_a_rule_section (tests.unit.test_techstack_markdown.MapGrammarTest) ... ok
+     test_a_bare_directory_and_a_package_local_map_do_n
+
+     ... [10302 characters truncated] ...
+
+     .test_techstack_filesystem.ShadowPackageTest.test_isolated_options_exclude_the_working_and_package_directories) ... ok
+     test_a_readme_never_emits_a_rule_section
+     (tests.unit.test_techstack_markdown.MapGrammarTest.test_a_readme_never_emits_a_rule_section) ... ok
+     test_a_bare_directory_and_a_package_local_map_do_not_opt_in
+     (tests.unit.test_techstack_resolver.RootPrecedenceTest.test_a_bare_directory_and_a_package_local_map_do_not_opt_in) ...
+     ok
+     test_the_public_package_import_loads_no_cli_or_project_module
+     (tests.unit.test_techstack_verification.ApiBoundaryTest.test_the_public_package_import_loads_no_cli_or_project_module)
+     ... ok
+     Ran 1062 tests in 44.840s
+     OK
+     A packaged policy must not send an installed coordinator to ... ok
+     test_the_packaged_policy_ships_beside_the_other_managed_policies (tests.contract.test_dogfood_policy_contract.ShippedTec
+     hstackPolicyTest.test_the_packaged_policy_ships_beside_the_other_managed_policies) ... ok
+     test_every_managed_resource_is_readable_through_the_package (tests.contract.test_packaging_metadata.PackagingMetadataTes
+     t.test_every_managed_resource_is_readable_through_the_package)
+     test_generated_description_is_in_sync_with_the_readme
+     (tests.contract.test_packaging_metadata.PackagingMetadataTest.test_generated_description_is_in_sync_with_the_readme)
+     test_import_package_remains_brichan
+     (tests.contract.test_packaging_metadata.PackagingMetadataTest.test_import_package_remains_brichan) ... ok
+     test_packaged_description_is_the_generated_one
+     (tests.contract.test_packaging_metadata.PackagingMetadataTest.test_packaged_description_is_the_generated_one) ... ok
+     `["**/*"]` already packages every dogfood resource. ... ok
+     test_sdist_is_named_brichan_and_contains_the_brichan_package
+     (tests.contract.test_packaging_metadata.SdistBuildTest.test_sdist_is_named_brichan_and_contains_the_brichan_package) ...
+     ok
+     test_the_techstack_eval_package_is_inventoried_with_real_targets (tests.contract.test_repository_paths.RepositoryPathCon
+     tractTest.test_the_techstack_eval_package_is_inventoried_with_real_targets)
+     Step 7 adds a policy, a source package, and two skill references. ... ok
+     test_the_packaged_skill_states_every_safeguard
+     (tests.contract.test_skill_parity_contract.SkillParityContractTest.test_the_packaged_skill_states_every_safeguard) ...
+     ok
+     test_every_packaged_skill_path_exists_in_the_checkout_export (tests.contract.test_techstack_policy_contract.PackagedSkil
+     lExportRelationTest.test_every_packaged_skill_path_exists_in_the_checkout_export) ... ok
+     test_the_checkout_and_packaged_references_are_classified (tests.contract.test_techstack_policy_contract.TechstackPathInv
+     entoryTest.test_the_checkout_and_packaged_references_are_classified) ... ok
+     test_the_new_source_package_is_classified
+     (tests.contract.test_techstack_policy_contract.TechstackPathInventoryTest.test_the_new_source_package_is_classified) ...
+     ok
+     test_every_immutable_path_names_a_readable_packaged_resource (tests.contract.test_techstack_policy_contract.TechstackRes
+     ourceInventoryTest.test_every_immutable_path_names_a_readable_packaged_resource) ... ok
+     test_the_packaged_handoff_receipt_reference_is_immutable (tests.contract.test_techstack_policy_contract.TechstackResourc
+     eInventoryTest.test_the_packaged_handoff_receipt_reference_is_immutable) ... ok
+     test_the_packaged_policy_is_immutable_managed_state (tests.contract.test_techstack_policy_contract.TechstackResourceInve
+     ntoryTest.test_the_packaged_policy_is_immutable_managed_state) ... ok
+     Ran 153 tests in 1.127s
+     OK
+     The packaged doctor compares the two real trees it installed. ... ok
+     test_build_output_is_accepted_by_the_strict_loader_and_preflight (tests.integration.test_task_dossier_workflow.CaptureMa
+     pIntegrationTest.test_build_output_is_accepted_by_the_strict_loader_and_preflight) ... ok
+     test_excluded_entries_never_become_rows
+     (tests.integration.test_task_dossier_workflow.CaptureMapIntegrationTest.test_excluded_entries_never_become_rows) ... ok
+     test_outside_allowlist_changes_fail_preflight_and_delta (tests.integration.test_task_dossier_workflow.CaptureMapIntegrat
+     ionTest.test_outside_allowlist_changes_fail_preflight_and_delta) ... ok
+     test_the_0_9_1_control_plane_preflights_cleanly
+     (tests.integration.test_worker_monitor_cli.WorkerMonitorCliTest.test_the_0_9_1_control_plane_preflights_cleanly)
+     test_verified_and_healthy_preflight_exits_0
+     (tests.integration.test_worker_monitor_cli.WorkerMonitorCliTest.test_verified_and_healthy_preflight_exits_0) ... ok
+     FAIL: test_repository_checkout_validates_clean (tests.integration.test_task_dossier_workflow.TaskDossierWorkflowIntegrat
+     ionTest.test_repository_checkout_validates_clean)
+     Invalid task dossiers: 36 issue(s) across 17 dossier(s).
+     Ran 227 tests in 88.280s
+     FAILED (failures=1)
+     make: *** [test] Error 2
+     Ran 56 tests in 3.361s
+     OK
+     Invalid task dossiers: 36 issue(s) across 17 dossier(s).
+     make: *** [dossiers] Error 1
+     repository paths valid: 113 entries, 75 references
+     README_PYPI.md is in sync with packaging/pypi-readme.md
+     -- dossier diag count:
+     72
+     -- non-WFS-005 dossier diags:
+     0
+
+⏺ The grep was too loose. Here is a tighter summary of both logs.
+
+⏺ Bash(cd <scratch>
+  /scratchpad && for f in check310.log check314.log; do echo "######## $f"; grep -E "^Ran [0-9]+
+  tests|^OK$|^FAILED|^(FAIL|ERROR): |^make: \*\*\*|valid|in sync|Invalid task" $f | grep -v " \.\.\. ok" | sed 's/
+  (tests\..*//'; echo "-- dossier diag lines total / outside WFS-005:"; grep -cE "projects/.*/handoffs/" $f; grep -E
+  "projects/.*/handoffs/" $f | grep -vc "handoffs/WFS-005/"; done)
+  ⎿  Error: Exit code 1
+     ######## check310.log
+     PYTHONDONTWRITEBYTECODE=1 python3 -m unittest metrics/test_validate_metrics.py -v
+     Ran 10 tests in 0.004s
+     OK
+     test_a_root_containing_a_pipe_is_out_of_contract
+     test_both_techstack_forms_pass_the_whole_validator_run
+     test_the_pipe_boundary_is_the_parser_and_not_the_quoting
+     test_the_frozen_live_0_9_1_payload_validates_unchanged
+     test_a_symlinked_ancestor_above_the_receipt_is_diagnosed
+     test_full_legacy_dossier_stays_valid_at_every_level
+     test_the_clean_authority_case_is_unchanged
+     Ran 1062 tests in 44.223s
+     OK
+     test_the_committed_legacy_samples_validate_under_the_level_rules
+     Ran 153 tests in 1.209s
+     OK
+     test_repository_checkout_validates_clean
+     FAIL: test_repository_checkout_validates_clean
+       File "../brida/tests/integration/test_task_dossier_workflow.py", line
+     370, in test_repository_checkout_validates_clean
+     Invalid task dossiers: 36 issue(s) across 17 dossier(s).
+     Ran 227 tests in 87.319s
+     FAILED (failures=1)
+     make: *** [test] Error 2
+     Ran 56 tests in 3.364s
+     OK
+     python3 metrics/validate_metrics.py metrics/runs.jsonl
+     valid: 28 row(s)
+     python3 metrics/validate_metrics.py metrics/runs.jsonl --summary
+     python3 scripts/validate_handoff_receipts.py projects
+     python3 scripts/validate_task_dossiers.py projects
+     Invalid task dossiers: 36 issue(s) across 17 dossier(s).
+     make: *** [dossiers] Error 1
+     repository paths valid: 113 entries, 75 references
+     README_PYPI.md is in sync with packaging/pypi-readme.md
+     PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -c "import brichan; from brichan.contracts.receipts import validation;
+     from brichan.orchestration import worker_launch"
+     -- dossier diag lines total / outside WFS-005:
+     72
+     0
+     ######## check314.log
+     PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3.14 -m unittest metrics/test_validate_metrics.py -v
+     Ran 10 tests in 0.003s
+     OK
+     ../brida/tests/unit/test_handoff_receipt_validator.py:733: SyntaxWarning:
+     "\|" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\|"? A raw string is also
+     an option.
+     test_a_root_containing_a_pipe_is_out_of_contract
+     test_both_techstack_forms_pass_the_whole_validator_run
+     test_the_pipe_boundary_is_the_parser_and_not_the_quoting
+     test_the_frozen_live_0_9_1_payload_validates_unchanged
+     test_a_symlinked_ancestor_above_the_receipt_is_diagnosed
+     test_full_legacy_dossier_stays_valid_at_every_level
+     test_the_clean_authority_case_is_unchanged
+     Ran 1062 tests in 44.840s
+     OK
+     test_the_committed_legacy_samples_validate_under_the_level_rules
+     Ran 153 tests in 1.127s
+     OK
+     test_repository_checkout_validates_clean
+     FAIL: test_repository_checkout_validates_clean
+       File "../brida/tests/integration/test_task_dossier_workflow.py", line
+     370, in test_repository_checkout_validates_clean
+     Invalid task dossiers: 36 issue(s) across 17 dossier(s).
+     Ran 227 tests in 88.280s
+     FAILED (failures=1)
+     make: *** [test] Error 2
+     Ran 56 tests in 3.361s
+     OK
+     /opt/homebrew/bin/python3.14 metrics/validate_metrics.py metrics/runs.jsonl
+     valid: 28 row(s)
+     /opt/homebrew/bin/python3.14 metrics/validate_metrics.py metrics/runs.jsonl --summary
+     /opt/homebrew/bin/python3.14 scripts/validate_handoff_receipts.py projects
+     /opt/homebrew/bin/python3.14 scripts/validate_task_dossiers.py projects
+     Invalid task dossiers: 36 issue(s) across 17 dossier(s).
+     make: *** [dossiers] Error 1
+     repository paths valid: 113 entries, 75 references
+     README_PYPI.md is in sync with packaging/pypi-readme.md
+     PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /opt/homebrew/bin/python3.14 -c "import brichan; from
+     brichan.contracts.receipts import validation; from brichan.orchestration import worker_launch"
+     -- dossier diag lines total / outside WFS-005:
+     72
+     0
+
+⏺ Both interpreters agree: unit tests pass (1061 plus the new one), contract 153 and techstack-eval 56 pass, and integration
+  only fails on the sanctioned test, with the two expected make errors (test and dossiers) all tracing to WFS-005. Moving on
+  to write the implementation note.
+
+⏺ Bash(F=projects/brida-workflow-simplification/handoffs/WFS-005/implementation.md; wc -l $F; grep -n "^## \|^### " $F; tail
+  -25 $F; grep -c "Users/" $F)
+  ⎿       273 projects/brida-workflow-simplification/handoffs/WFS-005/implementation.md
+     9:## Outcome
+     18:## Techstack verification
+     33:## Changed files
+     104:## Plan steps
+     120:## Coordinator conditions
+     139:## Design test map
+     174:## Verification
+     218:## Deviations and interpretations
+     252:## Risks and open items
+        mandatory at levels 1 and 2" rule, because the design's record change list
+        does not include it. The validator (the sole authority) enforces it.
+
+     ## Risks and open items
+
+     1. Pre-existing gate red (coordinator action needed before landing): the
+        untracked pane captures `evals/workflow-simplification/wfs-005/plan-review-v1-pane.txt`
+        and `plan-review-v2-pane.txt` contain home paths and fail
+        `test_durable_artifacts_do_not_embed_home_paths`. `evals/` is out of this
+        task's scope, so they were not edited.
+     2. Pre-existing quirk, not fixed (out of plan): `summarize_dossier` passes
+        the caller's unresolved dossier path to `validate_dossier`. On macOS, a
+        temporary directory reached through the `/var` symlink therefore gets a
+        spurious "outside supplied projects root" diagnostic. The CLI path is
+        unaffected. The new tests pass resolved paths.
+     3. Level self-declaration stays a documented, reviewer-checked exposure
+        (M2 of the version 2 review); no mechanical check exists.
+     4. Plan-before-implementation order inside `report.md` and the Level 0
+        contract-path review decision are trust boundaries. The workflow document
+        states them explicitly; no tool can verify them.
+     5. The contract-path membership (the `src/brichan/` and `scripts/` prefixes)
+        remains a reversible user judgment, per the plan's Uncertainty.
+     6. `make dossiers` and `test_repository_checkout_validates_clean` stay red
+        until the coordinator and reviewer complete WFS-005's own `index.md`,
+        `code-review.md`, `pr-desc.md`, and `receipt.md`.
+     0
+
+⏺ Bash(cat <scratch>
+  a/scratchpad/mut/orig.sha | cut -c1-64; shasum -a 256 src/brichan/contracts/task_dossier/validation.py | cut -c1-64)
+  ⎿  8a5a4059863ffae79efc826f79615f9027e3d17ad5b0f7781557ad6c340a67d0
+     8a5a4059863ffae79efc826f79615f9027e3d17ad5b0f7781557ad6c340a67d0
+
+⏺ Bash(cat >> projects/brida-workflow-simplification/handoffs/WFS-005/implementation.md <<'EOF'
+
+  ## Fix 1 (code-review M1)
+
+  Task `WFS-005-FIX-1`, attempt `attempt-implement-2`. Scope: close code-review
+  finding M1 only. No production file changed.
+
+  Techstack verify returned `"status": "match"` for snapshot
+  `cace4c328331a3ccfadbcca80bf871ec7c7cbc536173c99b61b602c3d3dc8f43` before any
+  other work, and all ten selected rule files were read.
+
+  ### Test added
+
+  `tests/unit/test_task_dossier_validator.py`,
+  `ReducedDossierValidatorTest.test_an_unreadable_plan_does_not_excuse_the_report`,
+  beside `test_a_symlinked_plan_does_not_excuse_the_report`. It builds a valid
+  full dossier, asserts it is valid, overwrites `plan.md` with non-UTF-8 bytes,
+  and asserts that the diagnostics include both `required task-dossier artifact
+  report.md is missing` and `plan.md: file: cannot read artifact`. The second
+  assertion proves that the unreadable arm is what the test exercises, not the
+  symlink arm.
+
+  ### Mutation proof
+
+  Run on a copy of `src` and `tests` in a scratch directory outside the
+  repository, against `tests.unit.test_task_dossier_validator` (83 tests):
+
+  - Baseline, unmutated: 83 OK.
+  - Filter removed (the review's mutant: the `if not any(...)` block replaced
+    with an unconditional `present.add(name)`): 1 failure,
+    `test_an_unreadable_plan_does_not_excuse_the_report`. Before this fix, the
+    review reported that this mutant survived.
+  - Filter inverted (`if not any(` to `if any(`): 15 failures, including the new
+    test and `test_a_symlinked_plan_does_not_excuse_the_report`.
+  - The repository's `src/brichan/contracts/task_dossier/validation.py` was never
+    edited. Its SHA-256 is
+    `8a5a4059863ffae79efc826f79615f9027e3d17ad5b0f7781557ad6c340a67d0` both
+    before and after the mutation runs (`shasum -a 256 -c` OK).
+
+  ### Verification
+
+  - Focused: the six dossier suites (validator, generator, summary, contract
+    paths, dossier contract, dossier workflow integration) ran 285 tests on
+    Python 3.10.11 and on 3.14.6. On each, the only failure is
+    `test_repository_checkout_validates_clean`.
+  - `PYTHONDONTWRITEBYTECODE=1 make -k check` and
+    `make -k check PYTHON=/opt/homebrew/bin/python3.14` both ran with `codex`
+    off `PATH` to match CI, and both gave identical results: metrics 10 OK,
+    unit 1062 OK (1061 plus the new test), contract 153 OK, integration 227 with
+    only `test_repository_checkout_validates_clean` failing, techstack-eval
+    56 OK, receipts, memory-check, path-check (113 entries), readme-check,
+    preflight, and package-check passing. The only two make errors are `test`
+    (that one integration test) and `dossiers`, which reports 36 issues. All 36
+    name WFS-005's own pending coordinator artifacts, and none falls on any
+    other dossier.
+  EOF
+  git status --short; git diff --stat -- tests/)
+  ⎿   M .agents/skills/herdr-orchestration/SKILL.md
+      M .agents/skills/herdr-orchestration/references/task-dossier.md
+      M .codex/config.toml
+      M CHANGELOG.md
+      M docs/policy/operating-principles.md
+      M docs/policy/reviewer.md
+      M docs/workflows/task-dossier.md
+      M projects/brida-workflow-simplification/decisions.md
+      M projects/brida-workflow-simplification/tasks.md
+      M src/brichan/contracts/task_dossier/generate.py
+      M src/brichan/contracts/task_dossier/record.py
+      M src/brichan/contracts/task_dossier/scaffold.py
+      M src/brichan/contracts/task_dossier/schema.py
+      M src/brichan/contracts/task_dossier/summary.py
+      M src/brichan/contracts/task_dossier/validation.py
+      M tests/contract/test_task_dossier_contract.py
+      M tests/integration/test_task_dossier_workflow.py
+      M tests/unit/test_task_dossier_generator.py
+      M tests/unit/test_task_dossier_summary.py
+      M tests/unit/test_task_dossier_validator.py
+     ?? .brichan.bak-2026-08-26/
+     ?? .brichan.bak-2026-08-28/
+     ?? .brichan.bak-2026-09-18/
+     ?? .brichan/
+     ?? docs/workflows/task-dossier/templates/report.md
+     ?? evals/workflow-simplification/wfs-005/
+     ?? scripts/check_contract_paths.py
+     ?? src/brichan/contracts/task_dossier/contract_paths.py
+     ?? tests/unit/test_contract_paths.py
+      tests/contract/test_task_dossier_contract.py    | 104 ++++++-
+      tests/integration/test_task_dossier_workflow.py | 186 +++++++++++-
+      tests/unit/test_task_dossier_generator.py       | 208 +++++++++++++-
+      tests/unit/test_task_dossier_summary.py         |  82 +++++-
+      tests/unit/test_task_dossier_validator.py       | 367 ++++++++++++++++++++----
+      5 files changed, 873 insertions(+), 74 deletions(-)
+
+⏺ Bash(grep -c "Users/\|home/" projects/brida-workflow-simplification/handoffs/WFS-005/implementation.md; git check-ignore -v
+  projects/brida-workflow-simplification/handoffs/WFS-005/implementation.md)
+  ⎿  0
+     .gitignore:67:/projects/*/handoffs/*/      projects/brida-workflow-simplification/handoffs/WFS-005/implementation.md
+
+⏺ 1. Outcome. M1 is closed. I added one committed unit test that fails when the unreadable-artifact filter is removed or
+     inverted. No production code changed, because the filter behaves correctly, so nothing needed escalating.
+  2. Files changed.
+     - tests/unit/test_task_dossier_validator.py: new test_an_unreadable_plan_does_not_excuse_the_report, placed next to the
+       existing symlink test. It builds a valid dossier, overwrites plan.md with non-UTF-8 bytes, and checks for two
+       diagnostics: report.md is missing and plan.md: file: cannot read artifact. The second check proves the test goes
+       through the unreadable path rather than the symlink path.
+     - projects/brida-workflow-simplification/handoffs/WFS-005/implementation.md: added a ## Fix 1 (code-review M1) section
+       with the test, the mutation proof and the verification results.
+  3. Verification and evidence.
+     - Techstack verify: returned match before any other work; I read all ten selected rule files.
+     - Mutation proof: run on a scratch copy of src and tests, against the validator suite of 83 tests.
+
+  | Run                                            | Result                                                   |
+  |------------------------------------------------|----------------------------------------------------------|
+  | Baseline, no mutation                          | 83 OK                                                    |
+  | Filter removed (the review's surviving mutant) | 1 failure, the new test                                  |
+  | Filter inverted (if not any( → if any()        | 15 failures, including the new test and the symlink test |
+       The repository's validation.py was never edited. Its SHA-256 is 8a5a4059…a67d0 before and after, and shasum -c reports
+       OK.
+     - Focused tests: the six dossier suites ran 285 tests on Python 3.10.11 and 3.14.6. The only failure on each is
+       test_repository_checkout_validates_clean.
+     - PYTHONDONTWRITEBYTECODE=1 make -k check: run on 3.10 and 3.14 (PYTHON=/opt/homebrew/bin/python3.14), with codex
+       removed from PATH to match CI. Both give the same result:
+       - Passing: metrics 10, unit 1062 (1061 plus the new test), contract 153, techstack-eval 56, and the receipts, memory,
+         path (113 entries), readme, preflight and package checks.
+       - Failing: exactly two make targets. test fails only on test_repository_checkout_validates_clean, and dossiers reports
+         36 issues. All 36 are in WFS-005's own pending index.md, code-review.md, pr-desc.md and receipt.md, and none are in
+         any other dossier.
+     - git status --short: lists the same paths as at the start of the session. implementation.md is gitignored
+       (/projects/*/handoffs/*/), so it doesn't appear.
+  4. Risks.
+     - Two older statements in implementation.md still disagree with the review, and I left them alone because only M1 was in
+       scope:
+       - L7: the "No survivor remained" line in that file is wrong.
+       - Risks item 1 describes a home-path failure that no longer happens.
+
+       DOSSIER-004 requires fixing these in place, so the coordinator should correct them or send them to a follow-up task.
+     - Python 3.14 prints an existing SyntaxWarning from tests/unit/test_handoff_receipt_validator.py:733, a file I didn't
+       touch. It doesn't fail anything.
+  5. Techstack verification acknowledgement: yes;
+     snapshot_sha256=cace4c328331a3ccfadbcca80bf871ec7c7cbc536173c99b61b602c3d3dc8f43
+
+✻ Worked for 6m 48s · done 12:07 PM
+                                                                                                              108064 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ fix L7 and the stale risk item in place
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5.5 │ ✍️ 10% │ brida (feat/lifecycle-simplification*) │ ◑ medium 💭
+  current ●●●●●●○○○○  60% ⟳ 12:10pm
+  weekly  ●●●●●●○○○○  67% ⟳ sep 30, 5:00am
+  fable   ●●●●○○○○○○  42% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

@@ -8,7 +8,7 @@
 | WFS-002 | Stage 1 fixtures + Opus 5 vs 5.5 benchmark | Brichan (Herdr workers) | done 2026-09-25: `opus-5-5` preferred (review 45 vs 41, hidden 36/36 both); `evals/workflow-simplification/stage1/results/results.md` |
 | WFS-003 | Catalog entry for `claude-opus-5-5` | Brichan | done 2026-09-25 (routing unchanged) |
 | WFS-004 | Stage 2 lifecycle A/B on real tasks | Brichan (Herdr workers) | done 2026-09-25: arm B met all pass criteria; `evals/workflow-simplification/stage2/results/results.md` |
-| WFS-005 | Policy change, if the A/B passes | Brichan + independent review | blocked on user sign-off |
+| WFS-005 | Policy change, if the A/B passes | Brichan + independent review | done 2026-09-26: checkout-only, code review v2 PASS; branch `feat/lifecycle-simplification` |
 
 ## Workers
 
@@ -51,3 +51,16 @@ reviewers on Claude (Codex blocked by a pending update).
 | `brichan-wfs-a{201,203,204}-planrev` | `w4J:pJ`,`pK`,`pM` | claude `claude-fable-5` high | WFS-A plan revisions (09:26:00Z) | arm A worktrees | `4e5b37fb…`, `616edd89…`, `a86251cd…` | done; panes closed |
 
 Later arm A sessions (plan revisions v3/v4, plan reviews 2-4, implementers, code reviews) and the blind escape review (`brichan-wfs-escape`, `claude-fable-5` high) are recorded with launch IDs and finish attestations in `ledger/workers.jsonl`; every pane was closed after its evidence was saved to `evals/workflow-simplification/stage2/results/`.
+
+## WFS-005 workers (Level 2, branch `feat/lifecycle-simplification`)
+
+| Agent | Pane | Model | Task | Launch ID | Status |
+|---|---|---|---|---|---|
+| `brichan-wfs005-plan` | `w4J:p15` | claude `claude-fable-5` high (route plan) | WFS-005 plan v1, v2 (Snapshot reread) | `0ee67e67-eda3-44ba-a27d-98936b333b66` | done; pane closed |
+| `brichan-wfs005-pr` | `w4J:p16` | claude `claude-opus-5` high | plan review v1 | `35f4e718-6648-497d-bcea-8903226d4922` | CHANGES REQUIRED; pane closed |
+| `brichan-wfs005-plan3` | `w4J:p17` | claude `claude-fable-5` high | plan v3 | `8d0b46d4-2a82-420e-84dd-fa0f45dcdbda` | done; pane closed |
+| `brichan-wfs005-pr2` | `w4J:p18` | claude `claude-opus-5` high | plan review v2 | `13473fe2-ef27-40ca-8fd3-bf1abe8bdb22` | PASS; pane closed |
+| `brichan-wfs005-impl` | `w4J:p19` | claude `claude-opus-5-5` medium | implementation | `54da7a4c-2eb7-45a2-8787-17f5381b5b2d` | done; pane closed |
+| `brichan-wfs005-cr` | `w4J:p1A` | claude `claude-opus-5` high | code review v1 | `10a0b370-f8f1-49e7-ab13-4e69df4ef247` | CHANGES REQUIRED (M1); pane closed |
+| `brichan-wfs005-fix1` | `w4J:p1B` | claude `claude-opus-5-5` medium | Fix 1 (M1 test) | `98972747-a0b9-4c99-a1f6-75f95b6bcb89` | done; pane closed |
+| `brichan-wfs005-cr2` | `w4J:p1C` | claude `claude-opus-5` high | code review v2 | `e60f482b-7a99-4552-bc7f-11d2aa13c486` | PASS; pane closed |
