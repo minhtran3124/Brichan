@@ -40,11 +40,11 @@ None.
 
 ## Next actions
 
-1. User merges PR #36, then the WFS-005 PR.
-2. Optional follow-up: close the nine non-blocking code-review Lows (test
-   gaps L1-L4, the L5 empty-input contract-path rule, L6 legacy-rule
-   restriction, L9 fail-open `.get` default).
-3. User decides whether to route `implement` to `claude-opus-5-5`.
+1. User merges PR #36, then PR #37 (WFS-005, WFS-006, WFS-007).
+2. Done 2026-09-26: WFS-006 (level 1) closed WFS-005 Lows L1-L5, L8, L9
+   (L6 kept as design, L7 fixed in place); WFS-007 (level 0) routes the
+   checkout `implement` worker to `claude-opus-5-5`. Both reviewed PASS and are
+   on the same branch as WFS-005 (PR #37).
 4. Follow-ups: worktree-only `.git` failures in `test_repository_paths` and
    `path-check`; Codex update pending (0.155.0 -> 0.157.1).
 5. Revisit installed-mode adoption after external dogfood.

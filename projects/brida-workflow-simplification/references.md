@@ -9,3 +9,4 @@
 | Opus 5.5 probe | `claude -p --model claude-opus-5-5` | 2026-09-25 | Returned `OK`; Claude CLI 2.1.282, claude.ai auth |
 | Verifier research | `internal-docs/research/2026-09-25-llm-as-a-verifier.md` (local, gitignored) | 2026-09-25 | Source of the per-criterion review idea (phase 0) |
 | WFS-005 receipt | `projects/brida-workflow-simplification/handoffs/WFS-005/receipt.md` (local, gitignored dossier) | 2026-09-26 | Level 2 lifecycle evidence; pane captures in `evals/workflow-simplification/wfs-005/` |
+| WFS-006 and WFS-007 receipts | `projects/brida-workflow-simplification/handoffs/WFS-006/receipt.md`, `.../WFS-007/receipt.md` (local, gitignored dossiers) | 2026-09-26 | First level 1 and level 0 tasks under the new lifecycle |

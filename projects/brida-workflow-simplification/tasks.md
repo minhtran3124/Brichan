@@ -8,7 +8,9 @@
 | WFS-002 | Stage 1 fixtures + Opus 5 vs 5.5 benchmark | Brichan (Herdr workers) | done 2026-09-25: `opus-5-5` preferred (review 45 vs 41, hidden 36/36 both); `evals/workflow-simplification/stage1/results/results.md` |
 | WFS-003 | Catalog entry for `claude-opus-5-5` | Brichan | done 2026-09-25 (routing unchanged) |
 | WFS-004 | Stage 2 lifecycle A/B on real tasks | Brichan (Herdr workers) | done 2026-09-25: arm B met all pass criteria; `evals/workflow-simplification/stage2/results/results.md` |
-| WFS-005 | Policy change, if the A/B passes | Brichan + independent review | done 2026-09-26: checkout-only, code review v2 PASS; branch `feat/lifecycle-simplification` |
+| WFS-005 | Policy change, if the A/B passes | Brichan + independent review | done 2026-09-26: checkout-only, code review v2 PASS; PR #37 |
+| WFS-006 | Close WFS-005 code-review Lows (level 1) | `brichan-wfs006-impl` (`w4J:p1D`, launch `590f4a46…`), reviewer `brichan-wfs006-cr` (`w4J:p1E`, launch `43a6d5ef…`) | done 2026-09-26: review PASS (4 Low); panes closed |
+| WFS-007 | Route checkout `implement` to `claude-opus-5-5` (level 0, contract path) | coordinator; reviewer `brichan-wfs007-cr` (`w4J:p1F`, launch `72117df1…`) | done 2026-09-26: review PASS (2 Low); pane closed |
 
 ## Workers
 
