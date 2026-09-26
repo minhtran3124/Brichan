@@ -1,0 +1,400 @@
+  python3 - "$f" "$old" "$new" <<'EOF'
+  import sys; from pathlib import Path
+  p=Path(sys.argv[1]); s=p.read_text(); a,b=sys.argv[2],sys.argv[3]
+  assert s.count(a)==1, "mutation target not unique"; p.write_text(s.replace(a,b))
+  EOF
+  echo "== $id"; python3 -m unittest $mod 2>&1 | grep -E '^(FAIL|ERROR):|^Ran|^OK|^FAILED'; cp "$SP/$id.bak" "$f"; local
+  after=$(shasum -a 256 "$f"|cut -d' ' -f1); echo "   $([ "$before" = "$after" ] && echo RESTORED $after || echo MISMATCH)";
+  }
+  V=src/brichan/contracts/task_dossier
+  mutate L5-revert $V/contract_paths.py '    if not names:
+          print(' '    if False:
+          print(' tests.unit.test_contract_paths
+  mutate L8-revert-unplanned $V/validation.py '    if "plan" in present:
+          return' '    if "plan" in artifacts:
+          return' tests.unit.test_task_dossier_validator
+  mutate L8-revert-linkage $V/validation.py '    if "plan" not in present:
+          return
+      for name in REVIEW_ARTIFACTS:' '    for name in REVIEW_ARTIFACTS:' tests.unit.test_task_dossier_validator
+  mutate L9-revert $V/validation.py 'MINIMUM_EVIDENCE_ITEMS[resolve_task_level(level)]' 'MINIMUM_EVIDENCE_ITEMS.get(level,
+  1)' tests.unit.test_task_dossier_validator
+  grep -rnE '\.get\(\s*level|\.get\([^)]*level[^)]*,' $V/validation.py $V/generate.py $V/summary.py $V/record.py
+  $V/scaffold.py $V/schema.py || echo "no .get(level, default) lookups remain")
+  ⎿  == L5-revert
+     FAIL: test_empty_or_blank_input_is_refused_not_answered_no (tests.unit.test_contract_paths.ContractPathCommandTest)
+     (text='')
+     FAIL: test_empty_or_blank_input_is_refused_not_answered_no (tests.unit.test_contract_paths.ContractPathCommandTest)
+     (text='\n')
+     FAIL: test_empty_or_blank_input_is_refused_not_answered_no (tests.unit.test_contract_paths.ContractPathCommandTest)
+     (text='  \n\t\r\n')
+     FAIL: test_the_wrapper_refuses_empty_input (tests.unit.test_contract_paths.ContractPathCommandTest)
+     Ran 9 tests in 0.096s
+     FAILED (failures=4)
+        RESTORED e830347f7fbc3e67066f65357f06ae83bf22bccef14c983924a6deb5eb5ccc0b
+     == L8-revert-unplanned
+     FAIL: test_an_unreadable_plan_is_absent_for_every_review_target_rule
+     (tests.unit.test_task_dossier_validator.ReducedDossierValidatorTest)
+     Ran 86 tests in 0.449s
+     FAILED (failures=1)
+        RESTORED ef851365af79ae181aff39550dcff2e0801eb3806939985de2a43c4d6779e678
+     == L8-revert-linkage
+     FAIL: test_an_unreadable_plan_is_absent_for_every_review_target_rule
+     (tests.unit.test_task_dossier_validator.ReducedDossierValidatorTest)
+     Ran 86 tests in 0.444s
+     FAILED (failures=1)
+        RESTORED ef851365af79ae181aff39550dcff2e0801eb3806939985de2a43c4d6779e678
+     == L9-revert
+     FAIL: test_an_unknown_level_gets_the_deepest_evidence_floor
+     (tests.unit.test_task_dossier_validator.ReducedDossierValidatorTest)
+     Ran 86 tests in 0.443s
+     FAILED (failures=1)
+        RESTORED ef851365af79ae181aff39550dcff2e0801eb3806939985de2a43c4d6779e678
+     no .get(level, default) lookups remain
+
+⏺ Every fix is pinned. Now checking that existing dossiers validate the same under HEAD code and the changed code.
+
+⏺ Bash(export PYTHONDONTWRITEBYTECODE=1; SP=<scratch>
+  d6e5f7-4c1e-4784-8df1-faf81aaa14d0/scratchpad; rm -rf $SP/head && mkdir -p $SP/head && git archive HEAD src scripts | tar
+  -x -C $SP/head
+  python3 $SP/head/scripts/validate_task_dossiers.py projects > $SP/head.out 2>&1; echo "head exit=$?"
+  python3 scripts/validate_task_dossiers.py projects > $SP/now.out 2>&1; echo "now exit=$?"
+  diff $SP/head.out $SP/now.out && echo IDENTICAL; wc -l < $SP/now.out; grep -v 'WFS-006/' $SP/now.out | head)
+  ⎿  head exit=1
+     now exit=1
+     IDENTICAL
+     21
+     Invalid task dossiers: 20 issue(s) across 18 dossier(s).
+
+⏺ Bash(SP=<scratch>
+  /scratchpad; grep -o 'WFS-006/[a-z-]*\.md' $SP/now.out | sort | uniq -c)
+  ⎿     5 WFS-006/code-review.md
+       15 WFS-006/index.md
+        1 WFS-006/receipt.md
+
+⏺ Now make check on 3.10 and 3.14.
+
+⏺ Bash(SP=<scratch>
+  /scratchpad; PYTHONDONTWRITEBYTECODE=1 make check > $SP/check310.log 2>&1; echo "3.10 exit=$?"; PYTHONDONTWRITEBYTECODE=1
+  make check PYTHON=/opt/homebrew/bin/python3.14 > $SP/check314.log 2>&1; echo "3.14 exit=$?"; for f in check310 check314; do
+  echo "== $f"; grep -nE '^(FAIL|ERROR):|^make: \*\*\*|^Ran |^FAILED|^OK|Invalid task dossiers' $SP/$f.log | head -20; done)
+  ⎿  3.10 exit=2
+     3.14 exit=2
+     == check310
+     14:Ran 10 tests in 0.003s
+     16:OK
+     1229:Ran 1069 tests in 44.768s
+     1231:OK
+     1421:Ran 153 tests in 1.440s
+     1423:OK
+     1699:FAIL: test_repository_checkout_validates_clean
+     (tests.integration.test_task_dossier_workflow.TaskDossierWorkflowIntegrationTest)
+     1724:Invalid task dossiers: 20 issue(s) across 18 dossier(s).
+     1728:Ran 228 tests in 87.937s
+     1730:FAILED (failures=1)
+     1732:make: *** [test] Error 2
+     == check314
+     14:Ran 10 tests in 0.004s
+     16:OK
+     1231:Ran 1069 tests in 45.773s
+     1233:OK
+     1423:Ran 153 tests in 1.464s
+     1425:OK
+     1701:FAIL: test_repository_checkout_validates_clean (tests.integration.test_task_dossier_workflow.TaskDossierWorkflowInt
+     egrationTest.test_repository_checkout_validates_clean)
+     1727:Invalid task dossiers: 20 issue(s) across 18 dossier(s).
+     1731:Ran 228 tests in 87.631s
+     1733:FAILED (failures=1)
+     1735:make: *** [test] Error 2
+  ⎿  (timeout 10m)
+
+⏺ Both runs stop at the one expected failure (WFS-006 pending artifacts). Since make halts there, I'll run the remaining
+  check targets individually so nothing behind it goes unchecked.
+
+⏺ Bash(grep -nE '^check:' -A3 Makefile; SP=<scratch>
+  6e5f7-4c1e-4784-8df1-faf81aaa14d0/scratchpad; sed -n 1699,1724p $SP/check310.log | grep -o 'WFS-00[0-9]/[a-z-]*\.md' | sort
+  | uniq -c)
+  ⎿  75:check: test techstack-eval metrics receipts dossiers memory-check path-check readme-check phase5-preflight
+     package-check
+     76-        sh -n bin/brichan
+        5 WFS-006/code-review.md
+       15 WFS-006/index.md
+        1 WFS-006/receipt.md
+
+⏺ Bash(export PYTHONDONTWRITEBYTECODE=1; for P in python3 /opt/homebrew/bin/python3.14; do echo "#### PYTHON=$P"; for t in
+  techstack-eval metrics receipts dossiers memory-check path-check readme-check phase5-preflight package-check; do make -s $t
+  PYTHON=$P >/dev/null 2>&1; echo "$t exit=$?"; done; sh -n bin/brichan; echo "sh -n exit=$?"; done)
+  ⎿  #### PYTHON=python3
+     techstack-eval exit=0
+     metrics exit=0
+     receipts exit=0
+     dossiers exit=2
+     memory-check exit=0
+     path-check exit=0
+     readme-check exit=0
+     phase5-preflight exit=0
+     package-check exit=0
+     sh -n exit=0
+     #### PYTHON=/opt/homebrew/bin/python3.14
+     techstack-eval exit=0
+     metrics exit=0
+     receipts exit=0
+     dossiers exit=2
+     memory-check exit=0
+     path-check exit=0
+     readme-check exit=0
+     phase5-preflight exit=0
+     package-check exit=0
+     sh -n exit=0
+  ⎿  (timeout 10m)
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 make -s dossiers 2>&1 | grep -o 'WFS-00[0-9]/[a-z-]*\.md\|Invalid.*' | sort | uniq -c; grep
+  -nE '^techstack-eval:' -A2 Makefile)
+  ⎿     1 Invalid task dossiers: 20 issue(s) across 18 dossier(s).
+        5 WFS-006/code-review.md
+       15 WFS-006/index.md
+        1 WFS-006/receipt.md
+     39:techstack-eval:
+     40-        PYTHONDONTWRITEBYTECODE=1 python3 -m unittest evals.techstack_context_v1.test_cases -v
+     41-
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3.14 -m unittest evals.techstack_context_v1.test_cases 2>&1 | tail
+  -2; git status --short)
+  ⎿  OK
+      M .codex/config.toml
+      M docs/workflows/task-dossier.md
+      M src/brichan/contracts/task_dossier/contract_paths.py
+      M src/brichan/contracts/task_dossier/validation.py
+      M tests/contract/test_task_dossier_contract.py
+      M tests/integration/test_task_dossier_workflow.py
+      M tests/unit/test_contract_paths.py
+      M tests/unit/test_task_dossier_generator.py
+      M tests/unit/test_task_dossier_summary.py
+      M tests/unit/test_task_dossier_validator.py
+     ?? .brichan.bak-2026-08-26/
+     ?? .brichan.bak-2026-08-28/
+     ?? .brichan.bak-2026-09-18/
+     ?? .brichan/
+
+⏺ All checks pass except the expected WFS-006 failure. I'll re-run verify to see if editing the doc changed the techstack
+  snapshot's recorded hash for task-dossier.md.
+
+⏺ Bash(bin/brichan techstacks verify --project-root "$PWD" --snapshot-json projects/brida-workflow-simplification/handoffs/WF
+  S-006/snapshots/attempt-implement-1-c87ca1f7d8072beb2d777c86109baa0de7fd705f4cce68911b116045947f2265.snapshot.json --as-of
+  2026-09-26 | python3 -c "import
+  json,sys;d=json.load(sys.stdin);print(d['status']);print(json.dumps(d['differences'],indent=1)[:1500])"; git diff --stat;
+  shasum -a 256 docs/workflows/task-dossier.md)
+  ⎿  drift
+     [
+      {
+       "actual": "21695",
+       "code": "VALUE_MISMATCH",
+       "expected": "21438",
+       "field": "/selected_files/@sha256=d00f824fa330552a165a6e5320cf67408b0b50ca74879f8bbd9dd29f750a6754/evidence/@sha256=dc
+     778c1477e97927a68c07b24b69ef890f4906ea89f701af6ab220e26e37b3d0/bytes"
+      },
+      {
+       "actual": "\"e1fae424d7ca10ebcaa7d6b75dddf2c72b62b9c48d437f126325f2bc6c66b5b3\"",
+       "code": "VALUE_MISMATCH",
+       "expected": "\"42faa2fd6edb1842a97e8528af99334378ed3be00a6f1f7ae49dca6fec95a8bd\"",
+       "field": "/selected_files/@sha256=d00f824fa330552a165a6e5320cf67408b0b50ca74879f8bbd9dd29f750a6754/evidence/@sha256=dc
+     778c1477e97927a68c07b24b69ef890f4906ea89f701af6ab220e26e37b3d0/sha256"
+      },
+      {
+       "actual": "80401",
+       "code": "VALUE_MISMATCH",
+       "expected": "80144",
+       "field": "/totals/evidence_bytes"
+      }
+     ]
+      .codex/config.toml                                 |  4 +++
+      docs/workflows/task-dossier.md                     | 11 ++++---
+      .../contracts/task_dossier/contract_paths.py       | 13 ++++++--
+      src/brichan/contracts/task_dossier/validation.py   | 21 +++++++++---
+      tests/contract/test_task_dossier_contract.py       |  3 ++
+      tests/integration/test_task_dossier_workflow.py    | 19 +++++++++++
+      tests/unit/test_contract_paths.py                  | 22 +++++++++++++
+      tests/unit/test_task_dossier_generator.py          | 10 ++++++
+      tests/unit/test_task_dossier_summary.py            | 15 +++++++++
+      tests/unit/test_task_dossier_validator.py          | 38 ++++++++++++++++++++++
+      10 files changed, 145 insertions(+), 11 deletions(-)
+     e1fae424d7ca10ebcaa7d6b75dddf2c72b62b9c48d437f126325f2bc6c66b5b3  docs/workflows/task-dossier.md
+
+
+
+
+⏺ Bash(python3 - <<'EOF'
+  from pathlib import Path
+  p = Path("projects/brida-workflow-simplification/handoffs/WFS-006/report.md")
+  s = p.read_text()
+  s = s.replace("- Phase state: `active`", "- Phase state: `passed`")
+  tail_old = s[s.index("## Changes"):]
+  tail_new = """## Changes
+
+  - `src/brichan/contracts/task_dossier/validation.py`: L9, the evidence floor is
+  `MINIMUM_EVIDENCE_ITEMS[resolve_task_level(level)]`, so an unknown level gets the level 2 floor instead of the `.get`
+  default of 1. L8, `_validate_unplanned_review_targets` and the review-target loop of `_validate_plan_linkage` now take the
+  `present` set that `required_artifacts` uses, so an unreadable `plan.md` is absent for every review-target rule. Before, an
+  unreadable plan required null targets under one rule and targets equal to its empty plan ID under the other.
+  - `src/brichan/contracts/task_dossier/contract_paths.py`: L5, input with no non-blank line exits 2 with `contract-path: no
+  path names on input; refusing to decide` on stderr and nothing on stdout. The module docstring states the new exit-2 case.
+  - `docs/workflows/task-dossier.md`, Contract paths section only: the pipeline now starts with `set -o pipefail`, and the
+  exit-code paragraph states that empty or whitespace-only input is refused.
+  - `tests/unit/test_task_dossier_validator.py`: L1 `test_a_symlinked_required_artifact_is_not_also_reported_missing`, L8
+  `test_an_unreadable_plan_is_absent_for_every_review_target_rule`, L9
+  `test_an_unknown_level_gets_the_deepest_evidence_floor`.
+  - `tests/integration/test_task_dossier_workflow.py`: L2 `test_scaffold_refuses_an_index_template_with_split_status_rows`,
+  run through `apply_scaffold` with a wrapped `template_text`; `plan_scaffold` only reads templates and never reaches the
+  guard.
+  - `tests/unit/test_task_dossier_generator.py`: L3 `test_artifacts_render_in_lifecycle_order_whatever_the_record_order`,
+  plus the `dataclasses` import.
+  - `tests/unit/test_task_dossier_summary.py`: L4 `test_unreadable_rows_are_listed_in_lifecycle_order`.
+  - `tests/unit/test_contract_paths.py`: L5 `test_empty_or_blank_input_is_refused_not_answered_no` and
+  `test_the_wrapper_refuses_empty_input`.
+  - `tests/contract/test_task_dossier_contract.py`: `test_contract_path_list_equals_the_constants` also pins the `set -o
+  pipefail` first line of the pipeline and the empty-input sentence.
+  - `scripts/check_contract_paths.py` is unchanged; the wrapper already delegates to `main`.
+
+  ## Verification
+
+  - Techstack verify, run before any work: `match`, snapshot
+  `c87ca1f7d8072beb2d777c86109baa0de7fd705f4cce68911b116045947f2265`.
+  - L1 mutation, drop `or path.is_symlink()` in `_validate_presence`: `tests.unit.test_task_dossier_validator` 86 run, 1
+  failure, the new L1 test. `validation.py` restored, SHA-256
+  `ef851365af79ae181aff39550dcff2e0801eb3806939985de2a43c4d6779e678` before and after.
+  - L2 mutation, replace the contiguity `raise` with `pass`: `tests.integration.test_task_dossier_workflow` 50 run, 2
+  failures, the new L2 test and the pre-existing WFS-006 `test_repository_checkout_validates_clean`. `scaffold.py` restored,
+  `c8c460080705d9abb764651f22d4755d1a2762b1eac41de75ce6ab7e2f5c8447` before and after.
+  - L3 mutation, `return tuple(record.artifacts)`: `tests.unit.test_task_dossier_generator` 86 run, 1 failure, the new L3
+  test. `generate.py` restored, `c9d25da69baa8cf9c457c2db96b8ecf4db2424d8e6d9d577827dba6c202a6116` before and after.
+  - L4 mutation, delete the `unreadable.sort(...)` line: `tests.unit.test_task_dossier_summary` 31 run, 1 failure, the new L4
+  test. `summary.py` restored, `861ed479ee10c48bad960bfebee382e640c71760b75c4204998dfaabe3b83546` before and after.
+  - Reverting each new fix fails its test: L5 (`if not names` to `if False`) fails 3 subtests and the wrapper test; each L8
+  arm (`present` back to `artifacts`, and dropping the linkage guard) fails the L8 test; L9 (back to `.get(level, 1)`) fails
+  the L9 test. Every file was restored byte-for-byte.
+  - Before its fix, each L8 and L9 test failed on the unmodified production code.
+  - Sweep: `grep -nE '\\.get\\(\\s*level|\\.get\\([^)]*level[^)]*,'` over `validation.py`, `generate.py`, `summary.py`,
+  `record.py`, `scaffold.py` and `schema.py` finds nothing.
+  - Focused suites (`test_contract_paths`, `test_task_dossier_validator`, `test_task_dossier_summary`,
+  `test_task_dossier_generator`, `test_task_dossier_workflow`, `test_task_dossier_contract`): 293 run, 1 failure,
+  `test_repository_checkout_validates_clean`, whose diagnostics are all on WFS-006 `index.md` (15), `code-review.md` (5) and
+  `receipt.md` (1).
+  - `python3 scripts/validate_task_dossiers.py projects`: output byte-identical to the same command run with HEAD's `src` and
+  `scripts` taken from `git archive HEAD`. 20 issues, all on WFS-006 `index.md`, `code-review.md` and `receipt.md`, none on
+  `report.md`, so every other dossier validates as before.
+  - `PYTHONDONTWRITEBYTECODE=1 make check` on Python 3.10 and with `PYTHON=/opt/homebrew/bin/python3.14`: both exit 2, only
+  at `make test`. Unit 1069 OK, contract 153 OK, integration 228 with the one WFS-006 failure above. Because `make` stops
+  there, the remaining `check` prerequisites were run one by one under both interpreters: `techstack-eval`, `metrics`,
+  `receipts`, `memory-check`, `path-check`, `readme-check`, `phase5-preflight`, `package-check` and `sh -n bin/brichan` exit
+  0. `dossiers` exits 2 on the same 20 WFS-006 issues. The techstack eval also passes run directly under 3.14.
+  - `git status --short`: the nine in-scope files above, plus the pre-existing `.codex/config.toml` change and untracked
+  `.brichan*/` directories, none of which I touched. `projects/` is not tracked.
+
+  ## Risks
+
+  - Techstack snapshot drift: the required L5 edit to `docs/workflows/task-dossier.md` changes an evidence file of
+  `techstacks/policy/task-dossiers.md`. Re-running verify now returns `drift` on that file's hash (`42faa2fd…` to
+  `e1fae424…`) and on the evidence byte totals. The pre-work verify returned `match`. The reviewer attempt needs a fresh
+  snapshot.
+  - L5 changes a documented exit contract: empty input moves from exit 0 to exit 2. Any caller that relied on an empty diff
+  meaning "no" will now get a refusal. That is the change the finding asks for, and the workflow document states it.
+  - L8 also stops `_validate_plan_linkage` from demanding that review targets equal an unreadable plan's empty ID. It still
+  diagnoses the plan's own fields. The only state affected is already invalid because of the unreadable file.
+  - The L9 test calls the private `_validate_state` directly, because the production path resolves the level first and cannot
+  reach the lookup with an unknown level. The test is coupled to that function's signature.
+
+  ## Claim or decision
+
+  WFS-006 closes WFS-005 code-review Lows L1, L2, L3, L4, L5, L8 and L9. Each has a committed test that fails when its guard
+  is removed or its fix is reverted, and every other dossier validates exactly as before. L6 and L7 are unchanged.
+
+  ## Evidence
+
+  - Mutation and revert runs for L1 to L5, L8 and L9, with SHA-256 before and after each, in `Verification` above.
+  - Validator output for `projects` is byte-identical under HEAD code and the changed code. Its 20 issues are all on
+  WFS-006's pending coordinator and reviewer artifacts.
+  - `make check` on Python 3.10 and 3.14 is red only through `test_repository_checkout_validates_clean` and `make dossiers`,
+  both on WFS-006 `index.md`, `code-review.md` and `receipt.md`. All other check targets exit 0.
+
+  ## Uncertainty
+
+  - `Effective effort` is recorded as `medium` from the `implement` route in `config/model-routing.json`; the session did not
+  report its own effort setting. The route names `claude-opus-5`, and the session ran `claude-opus-5-5`.
+  - `make check` cannot exit 0 until the coordinator completes WFS-006 `index.md` and `receipt.md` and the reviewer writes
+  `code-review.md`.
+  """
+  s = s.replace(tail_old, tail_new)
+  p.write_text(s)
+  EOF
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | grep -o 'WFS-006/[a-z-]*\.md' | sort |
+  uniq -c)
+  ⎿     5 WFS-006/code-review.md
+       15 WFS-006/index.md
+        1 WFS-006/receipt.md
+
+⏺ 1. Outcome. WFS-006 is done and left uncommitted. Each of L1, L2, L3, L4, L5, L8 and L9 now has a committed test that fails
+     if its guard is removed or its fix is reverted. L6 and L7 are untouched. report.md validates cleanly. One thing to act
+     on: my required edit to the workflow doc moved the techstack snapshot from match to drift, so the review attempt needs a
+     fresh snapshot (see Risks).
+  2. Files changed
+     - src/brichan/contracts/task_dossier/validation.py:
+       - L9: the evidence-floor lookup is now strict. An unknown level gets the level 2 floor of 3 instead of the old default
+         of 1.
+       - L8: both review-target rules now use the same set of present artifacts as the required-artifact rule. An unreadable
+         plan.md counts as absent everywhere.
+     - src/brichan/contracts/task_dossier/contract_paths.py (L5): empty or whitespace-only input now exits 2 with
+       contract-path: no path names on input; refusing to decide on stderr and prints nothing on stdout.
+     - docs/workflows/task-dossier.md, Contract paths section only: the pipeline now starts with set -o pipefail, and the
+       section says empty input is refused.
+     - Tests:
+       - test_task_dossier_validator.py: one test each for L1, L8 and L9.
+       - test_task_dossier_workflow.py: L2.
+       - test_task_dossier_generator.py: L3.
+       - test_task_dossier_summary.py: L4.
+       - test_contract_paths.py: L5, twice (direct call and the wrapper script).
+       - test_task_dossier_contract.py: pins the pipefail line and the empty-input sentence in the doc.
+     - Report: projects/.../WFS-006/report.md. I wrote the Plan section before changing any code, then completed the rest.
+     - scripts/check_contract_paths.py did not need a change; it already calls main.
+  3. Verification and evidence
+     - Techstack verify returned match before any work.
+     - L1–L4 mutations: each mutant fails its new test, and each file's SHA-256 is identical before and after restore:
+       - L1: validation.py ef8513…
+       - L2: scaffold.py c8c460…
+       - L3: generate.py c9d25d…
+       - L4: summary.py 861ed4…
+     - L5, L8, L9 reverts: undoing each fix fails its test, and every file was restored byte-for-byte. The L8 and L9 tests
+       also failed on the original code before I made the fixes.
+     - No fail-open level lookups remain: a grep for .get(level, <default>) across the six dossier modules finds nothing.
+     - Existing dossiers: validate_task_dossiers.py projects gives byte-identical output with HEAD's code and with the
+       changed code. All 20 issues are on WFS-006's index.md, code-review.md and receipt.md; none are on report.md.
+     - make check exits 2 on both 3.10 and 3.14. The only failures are test_repository_checkout_validates_clean and make
+       dossiers, both caused solely by those pending WFS-006 files. Because make stops at the first failure, I ran the
+       remaining check targets one by one on both interpreters. techstack-eval, metrics, receipts, memory-check, path-check,
+       readme-check, phase5-preflight, package-check and sh -n bin/brichan all exit 0.
+     - git status --short: the ten in-scope files above, plus the .codex/config.toml change and .brichan*/ directories that
+       were already there. I didn't touch those.
+  4. Risks
+     - Snapshot drift: docs/workflows/task-dossier.md is an evidence file in the techstack snapshot. After the L5 edit,
+       verify returns drift (its hash went from 42faa2fd… to e1fae424…). The code-review attempt needs a newly generated
+       snapshot.
+     - L5 changes a documented exit code: empty input used to exit 0 and now exits 2. This is what the finding asked for, and
+       the workflow doc now says so.
+     - L8 goes slightly beyond the narrowest reading: besides the null-target rule, I also gated the review-target loop in
+       _validate_plan_linkage. Otherwise an unreadable plan would still hit two rules that contradict each other. The only
+       affected state is a dossier that is already invalid because of the unreadable file.
+     - L9's test is tied to a private function: it calls _validate_state directly, because the normal validation path
+       resolves the level first and can never reach that lookup with an unknown level.
+     - Recorded effort is inferred: Effective effort: medium comes from the implement route config (which names
+       claude-opus-5); this session ran claude-opus-5-5.
+  5. Techstack verification acknowledgement: yes;
+     snapshot_sha256=c87ca1f7d8072beb2d777c86109baa0de7fd705f4cce68911b116045947f2265
+
+✻ Crunched for 10m 26s · done 1:23 PM
+                                                                                                              155274 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ regenerate the techstack snapshot for the review attempt
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5.5 │ ✍️ 15% │ brida (feat/lifecycle-simplification*) ⑃ #37 │ ◑ medium 💭
+  current ●●○○○○○○○○  24% ⟳ 5:10pm
+  weekly  ●●●●●●●○○○  70% ⟳ sep 30, 5:00am
+  fable   ●●●●○○○○○○  42% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

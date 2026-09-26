@@ -1,0 +1,400 @@
+  Version 1's L7 is closed: the coordinator corrected the claim in place at
+  `implementation.md:173`, per DOSSIER-004, and named this review as the source.
+
+  The residual is editorial. The corrected paragraph still reads "... and the
+  summary report arm). Each removal failed its named test. Corrected in place by
+  the coordinator on 2026-09-26, per code review L7: that claim was too strong."
+  The false sentence is retained verbatim immediately before its own retraction,
+  so a reader quoting the paragraph's fourth sentence alone would quote the wrong
+  record. The correction is in place and unambiguous in context, which is what
+  DOSSIER-004 requires, so this is a wording preference, not a contract breach.
+  Does not block: strike or rewrite the sentence at the next edit of that file, if
+  the file is edited again at all.
+
+  ### L8 — Low, not blocking. Presence and review-target rules key on different sets
+
+  Carried forward from version 1. `_validate_unplanned_review_targets` keys on
+  `"plan" in artifacts` (`src/brichan/contracts/task_dossier/validation.py:556`)
+  while `required_artifacts` keys on the stricter `present` set. An unreadable —
+  not symlinked — `plan.md` therefore both requires `report.md` and forbids null
+  review targets at once. Only reachable in a dossier that is already invalid for
+  the unreadable file, so no valid state is affected. Does not block. Fix 1's new
+  test exercises exactly this state and its diagnostics show both rules firing,
+  which is the intended fail-closed direction.
+
+  ### L9 — Low, not blocking, new in this version. One fail-open `.get` default survives in `validation.py`, and
+  `implementation.md` claims none does
+
+  Found while re-confirming coordinator condition M1. Version 1 did not report it.
+
+  `src/brichan/contracts/task_dossier/validation.py:365` reads:
+
+  ```python
+      minimum = MINIMUM_EVIDENCE_ITEMS.get(level, 1)
+  ```
+
+  `implementation.md:128-129` states of the four tools that "None of them keeps a
+  `.get(level, 1)`-style fail-open lookup." That sentence is literally false: this
+  is one, spelled exactly that way, and its default `1` is the *shallowest*
+  evidence floor, the opposite of failing closed.
+
+  Condition M1 is nevertheless met, and I do not reopen it, because the default is
+  unreachable. `_validate_state` is called only at `validation.py:1235`, with the
+  `level` returned by `_resolve_level` (`validation.py:1155-1181`), which returns
+  either a member of `TASK_LEVELS` or `resolve_task_level(level)`; both are always
+  valid keys, so the `.get` can never take its default. I proved that on the
+  production path rather than by reading it — a reduced level 0 dossier whose
+  `index.md` declares `Task level: bogus` is validated against the level 2 floor:
+
+  ```
+  index.md:   Evidence: level 2 requires at least 3 concrete evidence item(s), found 1
+  request.md: Evidence: level 2 requires at least 3 concrete evidence item(s), found 1
+  report.md:  Evidence: level 2 requires at least 3 concrete evidence item(s), found 1
+  ```
+
+  The floor is 3, not the `.get` default's 1. I also swept for siblings: this is
+  the only remaining defaulted lookup of a level in the four tools.
+  `record.py:817` and `summary.py:162,240` go through `resolve_task_level`,
+  `schema.py:322` resolves before indexing, `scaffold.level_artifacts` raises
+  `ValueError` on an unknown level (`scaffold.py:71-75`), and the generator CLI
+  refuses through argparse `choices` (`generate.py:673`).
+
+  Does not block: no behavior is wrong, no acceptance criterion or condition is
+  violated, and no test is owed for an unreachable branch. Two cheap follow-ups,
+  neither required: index directly (`MINIMUM_EVIDENCE_ITEMS[level]`) so the
+  invariant is enforced rather than papered over, and correct the sentence at
+  `implementation.md:128-129`, which is the kind of blanket claim that L7 was
+  already about.
+
+  ## Test gaps
+
+  Per the rule this change adds (`docs/policy/reviewer.md:29-32`), a behavior
+  change without a committed regression test that would fail on regression is a
+  defect, not a test gap, so such items are filed as findings above. Restated as a
+  checklist:
+
+  - The version 1 blocking gap is closed. The unreadable-plan arm of the
+    fail-closed presence rule now has a committed test that kills the mutant, and
+    I reproduced both the kill and the baseline.
+  - L1-L4, not blocking: four new lines whose removal the suite cannot detect. L1
+    and L2 defend states that are already caught or already pinned, L3 is
+    redundant with the record loader, and L4 is presentational. A test for each is
+    optional, not owed.
+  - L9, not blocking: `validation.py:365`'s default is unreachable, so no test is
+    owed for it. Indexing instead of defaulting would remove the question.
+  - No new gap was introduced by Fix 1. It added a test and changed nothing else.
+
+  What is not a gap, carried forward from version 1 and unchanged: the tests this
+  change lands are substantive. Version 1 confirmed by mutation that the
+  fail-closed level fallback, the `report.md` back-write guard, report-author
+  independence in both the validator and the record loader, the level 1/2 review
+  mandate, report concreteness, the status-table absent-row rule, the legacy
+  `plan` rule, the symlink arm, null review targets, level-keyed scaffolding,
+  generated status rows, completion narrowing, partial adoption of `report`, and
+  the contract-path list each have at least one test that fails when the guard is
+  removed. I re-verified the two that Fix 1 touches the neighborhood of (the
+  unreadable arm and the symlink arm) and did not re-run the other twelve, since
+  no production line changed.
+
+  ## Residual risks
+
+  1. Level self-declaration stays a documented, reviewer-checked exposure. A task
+     that declares the wrong level at creation time gets that level's reduced set,
+     and no mechanical check contradicts it. This is the version 2 plan review's
+     M2 residual and the workflow document states it. Everything downstream of the
+     declaration is enforced: I re-confirmed that declaring level 2 while carrying
+     only the reduced four yields 16 diagnostics, eight missing-file and eight
+     status-table, and that downgrading a valid level 2 dossier by editing only
+     `index.md` yields 14 diagnostics from four independent rules at once.
+  2. The contract-path checker's silence on empty input (L5). A broken pipe in the
+     documented level 0 workflow reads as "no contract path". The decision is the
+     coordinator's and is recorded with the checker's output, so the risk is
+     procedural, not mechanical.
+  3. The legacy `plan`-satisfies rule applies to new tasks too (L6), so the
+     `Plan`, `Changes`, `Verification`, `Risks` report structure is an obligation
+     the reviewer enforces, not one the validator does.
+  4. Plan-before-implementation order inside `report.md`, and the Level 0
+     contract-path review decision, are trust boundaries no tool can verify. The
+     workflow document states both.
+  5. The contract-path membership (the `src/brichan` and `scripts` prefixes)
+     remains a reversible user judgment, per the plan's Uncertainty. It stays a
+     one-line, one-tuple-entry, one-test change.
+  6. `make dossiers` and `test_repository_checkout_validates_clean` stay red until
+     the coordinator completes WFS-005's own `index.md`, `pr-desc.md`, and
+     `receipt.md`. With this artifact written, 36 diagnostics remain and every one
+     of them is on those three files.
+  7. Pre-existing and out of plan: `summarize_dossier` passes the caller's
+     unresolved dossier path to `validate_dossier`, so on macOS a temporary
+     directory reached through a symlinked parent gets a spurious "outside
+     supplied projects root" diagnostic. The CLI path is unaffected and the new
+     tests pass resolved paths.
+  8. The stage 2 evidence base behind the simplification itself (three tasks, one
+     run per arm) was settled by the recorded decision and the plan review, not by
+     this review. The protocol's stop-and-rollback rule stays in force and is
+     restated in the workflow document.
+
+  ## Claim or decision
+
+  The implementation of `WFS-005-PLAN-001` version 3 passes independent code
+  review at artifact version 2. Version 1's single blocking finding, M1, is closed
+  by execution: Fix 1's new test
+  `test_an_unreadable_plan_does_not_excuse_the_report` fails when the presence
+  filter is removed and passes with it, kills exactly that one test and no other,
+  and Fix 1 changed nothing else — +11 insertions, 0 deletions, one test file, with
+  `validation.py` byte-identical to the hash the implementer froze. Every earlier
+  `PASS` judgment re-confirmed: a reduced dossier cannot escape level 2, every
+  other dossier under `projects` validates untouched, partial adoption holds,
+  packaged resources and installed mode are byte-unchanged, the lifecycle is
+  stated canonically once and referenced elsewhere, the reviewer rule is in
+  `docs/policy/reviewer.md`, and both coordinator conditions hold. The gate is
+  green on Python 3.10.11 and 3.14.6 with only the two sanctioned reds, both of
+  which name WFS-005's own pending coordinator artifacts. Nine Low findings are
+  recorded, one of them new, and none blocks.
+
+  ## Evidence
+
+  - Techstack verify returned `"status": "match"` with observed snapshot SHA-256
+    `e43d6e098bc6c8b6d2b2ed466f9c38ef164ef23d32f42eac6b7d855134487df4`, run before
+    any other work in this session, and all ten required selected rule files were
+    read in full: `techstacks/README.md`, `techstacks/general.md`,
+    `techstacks/policy/README.md`, `techstacks/policy/canonical.md`,
+    `techstacks/policy/packaged-resources.md`,
+    `techstacks/policy/task-dossiers.md`, `techstacks/python/README.md`,
+    `techstacks/python/runtime.md`, `techstacks/python/scripts.md`,
+    `techstacks/python/tests.md`.
+  - M1 mutation evidence, on a copy of `src` and `tests` in a scratch directory
+    outside the repository: baseline
+    `tests.unit.test_task_dossier_validator` 83 OK; the version 1 mutant (filter
+    replaced with an unconditional `present.add(name)`) 83 run, 1 failure, that
+    failure being `test_an_unreadable_plan_does_not_excuse_the_report`; the
+    inverted mutant (`if not any(` to `if any(`) 15 failures. The other four
+    dossier suites give the identical 153 run / 6 failures / 119 errors mutated
+    and unmutated, so the mutant kills nothing but the new test. L1's mutant
+    (`or path.is_symlink()` removed from `_validate_presence`) leaves 83 OK,
+    confirming that survivor.
+  - Scope evidence for Fix 1: `git diff --stat` reports 20 modified tracked files,
+    1591 insertions, 208 deletions against `implementation.md:213`'s recorded
+    1580/208, so +11 insertions and 0 deletions; the new test is 11 lines;
+    `shasum -a 256 src/brichan/contracts/task_dossier/validation.py` is
+    `8a5a4059863ffae79efc826f79615f9027e3d17ad5b0f7781557ad6c340a67d0` both
+    before and after every mutation run; `git diff --stat -- src/brichan/resources`
+    is empty; the unit tier went 1061 to 1062.
+  - Full gate, both interpreters, with `codex` off `PATH` so the doctor check
+    matches CI. `PYTHONDONTWRITEBYTECODE=1 make -k check` on 3.10.11 and
+    `make -k check PYTHON=/opt/homebrew/bin/python3.14` on 3.14.6 gave identical
+    results: metrics 10 OK, unit 1062 OK, contract 153 OK, integration 227 run
+    with the single sanctioned failure `test_repository_checkout_validates_clean`,
+    techstack-eval 56 OK, 55 canonical receipts validated, project memory
+    consistent (10 indexed projects, 8 active documents), repository paths valid
+    (113 entries, 75 references), `README_PYPI.md` in sync, compatibility
+    retirement eligible and retired, and the package-check imports clean. The only
+    two `make` errors are `test` (that one integration test) and `dossiers`. The
+    frozen eval was also run directly under 3.14.6
+    (`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /opt/homebrew/bin/python3.14 -m
+    unittest evals.techstack_context_v1.test_cases`, 56 OK), because
+    `Makefile:39-40` freezes a literal `python3` and does not follow `PYTHON=`,
+    per SCRIPT-003.
+  - Focused runs: the six dossier suites (validator, generator, summary, contract
+    paths, dossier contract, dossier workflow integration) ran 285 tests on 3.10.11
+    and on 3.14.6, with only `test_repository_checkout_validates_clean` failing on
+    each.
+  - Existing dossiers validate unchanged.
+    `PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects`
+    reports 36 diagnostics across 17 dossiers: 30 on WFS-005's templated
+    `index.md`, 5 on its templated `pr-desc.md`, 1 on its absent `receipt.md`.
+    Zero fall on the other 16 dossiers, and zero now fall on `code-review.md`. The
+    sanctioned integration failure names `handoffs/WFS-005` and no other dossier.
+  - Design-protection probes, re-run in this session through the validator's own
+    helpers, on scratch dossiers outside the repository: declaring level 2 while
+    carrying only the reduced level 0 four yields 16 diagnostics (eight
+    missing-file, eight status-table); a conforming reduced level 0 and a
+    conforming reduced level 1 each yield 0 under `--require-complete`; deleting
+    `report.md` from a reduced level 1 dossier yields exactly the
+    `report.md is missing` diagnostic; downgrading a valid level 2 dossier by
+    editing only `index.md` yields 14 diagnostics from four independent rules.
+    `required_artifacts` returns the reduced four at levels 0 and 1 and all eleven
+    at level 2, and `resolve_task_level("bogus")` returns `"2"`.
+  - Condition evidence. M1 (fail-closed level resolution in all four tools):
+    `resolve_task_level` at `schema.py:306-311` is the single rule;
+    `validation.py:1170`, `record.py:817`, `summary.py:162,240` and
+    `schema.py:322` all route through it, `scaffold.level_artifacts` raises on an
+    unknown level (`scaffold.py:71-75`), and the generator CLI refuses via
+    argparse `choices` (`generate.py:673`); a bogus declared level is validated
+    against the level 2 floor of 3 evidence items. M2 (back-write guard over
+    `report.md`): `report` is in the guarded tuple at `validation.py:479`, with
+    the comment recording why, and
+    `tests.unit.test_task_dossier_validator.ReducedDossierValidatorTest` runs
+    16 tests, OK.
+  - Byte-unchanged and canonical-statement evidence:
+    `git diff --stat -- src/brichan/resources` is empty; `### Lifecycles by level`
+    appears exactly once across `docs`, `.agents`, `AGENTS.md`, `PRODUCT.md`,
+    `CLAUDE.md` and `src`, at `docs/workflows/task-dossier.md:186`, with
+    `docs/policy/operating-principles.md:33`, `docs/policy/reviewer.md:53,64` and
+    `.agents/skills/herdr-orchestration/references/task-dossier.md:4` referencing
+    the workflow document rather than restating it; the reviewer rule is at
+    `docs/policy/reviewer.md:29-32` with the matching return item at line 46.
+  - The coordinator's corrections were checked against the files, not accepted:
+    `implementation.md:173` (TEST-003 claim), `implementation.md:255` (risk item 1)
+    and `implementation.md:14-17` (Outcome), and the underlying red is gone —
+    `tests.contract.test_repository_contract` runs 18 tests, OK, so the home-path
+    scan passes.
+  - Every mutation check ran on a copy outside the repository. No tracked file was
+    modified by this review, and the only file written is this artifact.
+  - Spec basis: `plan.md` v3 (accepted, plan ID `WFS-005-PLAN-001`), `design.md`,
+    `requirements.md` (R1-R13, A1-A6), `plan-review.md` v2 (`PASS`, findings M1
+    and M2 as the coordinator conditions), `client-follow-up-questions.md` v1, the
+    implementer's `implementation.md` including its Fix 1 section, and the archived
+    `versions/v3/code-review.md` (artifact version 1).
+
+  ## Uncertainty
+
+  - The escape probe's diagnostic count differs from version 1's: I reproduce 16
+    diagnostics for a level 2 declaration over the reduced four, where version 1
+    recorded 18. This is a probe-construction difference, not a behavior change —
+    no production line differs between the two reviews, as the diff arithmetic and
+    the `validation.py` hash establish. My 16 are the eight absent artifacts
+    diagnosed twice each, once missing-file and once status-table, which is the
+    protection the criterion asks about. I did not reconstruct version 1's exact
+    fixture to account for the other two.
+  - I did not re-run the twelve mutation checks version 1 performed on guards that
+    Fix 1 did not touch, since no production line changed and re-running them
+    would only re-derive a settled result. If the coordinator wants the full sweep
+    repeated against the post-fix tree, that is a cheap request and I did not make
+    it a condition.
+  - L9's `.get(level, 1)` is unreachable today, and I proved that for the current
+    single call site. It is unreachable by call-site discipline rather than by
+    construction, so a future caller passing an unresolved level would silently
+    get the shallowest floor. I record it as a Low rather than a Medium because no
+    present behavior is wrong and no criterion is violated; a reviewer who weighs
+    latent fail-open defaults more heavily could reasonably call it a Medium
+    hardening request, and the fix is one character class — index instead of
+    `.get`.
+  - Whether the contract-path membership should include the `src/brichan` and
+    `scripts` prefixes remains the user-reversible judgment the plan recorded. I
+    take no position; the implementation matches the accepted list exactly.
+  - I did not re-derive the stage 2 evidence base that justifies the
+    simplification itself. That was settled by the recorded decision and the plan
+    review; this review covers the implementation of the accepted plan only.
+  - No other uncertainty remains.
+  ARTIFACT_EOF
+  echo "written"; wc -l projects/brida-workflow-simplification/handoffs/WFS-005/code-review.md)
+  ⎿  written
+          535 projects/brida-workflow-simplification/handoffs/WFS-005/code-review.md
+
+⏺ Bash(echo "=== dossier validation ===" && PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1
+  | tail -2 && echo "--- diagnostics on code-review.md ---" && PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | grep -c "WFS-005/code-review.md" ; echo "=== home-path + repo contract
+  ===" && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.contract.test_repository_contract 2>&1 | tail -3
+  && echo "=== git status (only this artifact, which is gitignored) ===" && git status --short | grep -v "^ M \|^??" ; git
+  status --short src tests scripts docs)
+  ⎿  === dossier validation ===
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Task identity.Accepted plan version: expected '3' from plan.md, found '<positive integer or null>'
+     Invalid task dossiers: 36 issue(s) across 17 dossier(s).
+     --- diagnostics on code-review.md ---
+     0
+     === home-path + repo contract ===
+     Ran 18 tests in 0.418s
+
+     OK
+     === git status (only this artifact, which is gitignored) ===
+      M docs/policy/operating-principles.md
+      M docs/policy/reviewer.md
+      M docs/workflows/task-dossier.md
+      M src/brichan/contracts/task_dossier/generate.py
+      M src/brichan/contracts/task_dossier/record.py
+      M src/brichan/contracts/task_dossier/scaffold.py
+      M src/brichan/contracts/task_dossier/schema.py
+      M src/brichan/contracts/task_dossier/summary.py
+      M src/brichan/contracts/task_dossier/validation.py
+      M tests/contract/test_task_dossier_contract.py
+      M tests/integration/test_task_dossier_workflow.py
+      M tests/unit/test_task_dossier_generator.py
+      M tests/unit/test_task_dossier_summary.py
+      M tests/unit/test_task_dossier_validator.py
+     ?? docs/workflows/task-dossier/templates/report.md
+     ?? scripts/check_contract_paths.py
+     ?? src/brichan/contracts/task_dossier/contract_paths.py
+     ?? tests/unit/test_contract_paths.py
+
+⏺ Bash(rm -rf <scratch>
+  e98d/scratchpad/mut && echo "scratch mutation copy removed")
+  ⎿  scratch mutation copy removed
+
+⏺ 1. Verdict and scores
+
+  PASS — artifact version 2.
+
+  ┌────────────────────────┬───────┬─────────────────────────────┐
+  │       Criterion        │ Score │       Change from v1        │
+  ├────────────────────────┼───────┼─────────────────────────────┤
+  │ Spec fidelity          │ 5/5   │ unchanged                   │
+  ├────────────────────────┼───────┼─────────────────────────────┤
+  │ Code review            │ 5/5   │ raised from 4/5 (M1 closed) │
+  ├────────────────────────┼───────┼─────────────────────────────┤
+  │ Empirical verification │ 5/5   │ unchanged                   │
+  └────────────────────────┴───────┴─────────────────────────────┘
+
+  Nine Low findings, none blocking: L1–L8 carried forward from version 1, plus one new (L9).
+
+  M1 is closed by execution. On a scratch copy outside the repository: baseline tests.unit.test_task_dossier_validator 83 OK;
+  the version 1 mutant (presence filter replaced with an unconditional present.add(name)) → 1 failure, exactly
+  test_an_unreadable_plan_does_not_excuse_the_report; inverted mutant → 15 failures. The other four dossier suites give
+  identical results mutated and unmutated, so the mutant kills nothing but the new test.
+
+  Fix 1 changed nothing else, verified three ways: insertions went 1580 → 1591 with deletions fixed at 208 (+11, and the new
+  test is 11 lines); validation.py still hashes to 8a5a4059…67d0, the value the implementer froze; unit tier 1061 → 1062.
+
+  New finding L9 (Low, not blocking): validation.py:365 keeps MINIMUM_EVIDENCE_ITEMS.get(level, 1) — literally the
+  .get(level, 1) fail-open shape that implementation.md:128-129 claims none of the four tools keeps. Condition M1 still holds
+  and I did not reopen it: the default is unreachable, which I proved on the production path (a bogus declared level is
+  validated against the level 2 floor of 3 evidence items, not the default's 1).
+
+  2. File written
+
+  projects/brida-workflow-simplification/handoffs/WFS-005/code-review.md — artifact version 2, 535 lines. It validates with 0
+  diagnostics. No other file was modified; all mutation work ran on a scratch copy outside the repository.
+
+  3. Verification
+
+  - Techstack verify returned "status": "match" before any other work; all ten required rule files read in full.
+  - Focused: six dossier suites, 285 tests on 3.10.11 and 3.14.6, only test_repository_checkout_validates_clean failing on
+    each.
+  - Full gate on both interpreters with codex off PATH, identical results: metrics 10 OK, unit 1062 OK, contract 153 OK,
+    integration 227 with the one sanctioned failure, techstack-eval 56 OK, 55 receipts, memory/path/readme/preflight/package
+    all pass. The only two make errors are test and dossiers. Eval run directly under 3.14.6: 56 OK (Makefile:39-40 freezes
+    literal python3).
+  - make dossiers: 36 diagnostics, all on WFS-005's index.md (30), pr-desc.md (5), receipt.md (1). Zero on the other 16
+    dossiers, zero on code-review.md. The sanctioned integration failure names handoffs/WFS-005 only.
+  - Packet checks re-run, not carried: level-2 escape (16 diagnostics), index-only downgrade (14), conforming reduced level
+    0/1 (0 each), partial adoption, git diff --stat -- src/brichan/resources empty, ### Lifecycles by level exactly once at
+    docs/workflows/task-dossier.md:186, reviewer rule at docs/policy/reviewer.md:29-32.
+  - Coordinator corrections checked against the files: implementation.md:173, :255, :14-17. The underlying red is gone —
+    tests.contract.test_repository_contract 18 OK.
+
+  4. Uncertainties
+
+  - My escape probe yields 16 diagnostics where version 1 recorded 18. This is a probe-construction difference, not a
+    behavior change — no production line differs between the reviews. My first attempt at this probe was itself miswired
+    (build_reduced_dossier(level="2") builds all eleven artifacts); the 16 come from the corrected probe. I did not
+    reconstruct v1's exact fixture to account for the other two.
+  - I did not re-run the twelve mutation checks v1 performed on guards Fix 1 did not touch. Cheap to repeat if you want the
+    full sweep against the post-fix tree.
+  - L9 is unreachable by call-site discipline, not by construction. A reviewer weighting latent fail-open defaults more
+    heavily could call it a Medium hardening request; the fix is one character class.
+
+  5.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=e43d6e098bc6c8b6d2b2ed466f9c38ef164ef23d32f42eac6b7d855134487df4
+
+✻ Churned for 17m 8s · done 12:26 PM
+                                                                                                              144561 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ fix L9 and the implementation.md claim at 128-129
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 14% │ brida (feat/lifecycle-simplification*) │ ● high 💭
+  current ○○○○○○○○○○   3% ⟳ 5:10pm
+  weekly  ●●●●●●○○○○  67% ⟳ sep 30, 5:00am
+  fable   ●●●●○○○○○○  42% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

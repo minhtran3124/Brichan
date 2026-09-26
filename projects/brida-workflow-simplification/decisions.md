@@ -80,3 +80,21 @@
 - Owner: Brichan
 - Evidence: `evals/workflow-simplification/stage2/results/results.md`
 - Supersedes: none
+
+### 2026-09-26 — Adopt the simplification in checkout mode only (WFS-005)
+
+- Status: accepted
+- Context: The user asked to adopt the proposed Level 0/1 simplification.
+  The stage 2 evidence was collected in checkout mode; installed mode's
+  unconditional plan -> implement -> review mandate is a product contract
+  (PRODUCT.md section 6.2) with no installed-mode evidence yet.
+- Decision: The user chose checkout mode only, run now with Claude reviewers
+  (stronger one-off override, since Codex is not updated). WFS-005 is itself
+  a Level 2 task and runs the unchanged full lifecycle.
+- Rationale: Change only what the evidence covers; keep installed mode stable
+  until external dogfood.
+- Trade-offs: Checkout and installed mode diverge in lifecycle weight for
+  Level 0/1 tasks.
+- Owner: Brichan (user decision)
+- Evidence: `projects/brida-workflow-simplification/handoffs/WFS-005/client-follow-up-questions.md`
+- Supersedes: none

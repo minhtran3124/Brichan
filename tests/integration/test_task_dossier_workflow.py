@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -10,12 +11,19 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from brichan.contracts.task_dossier import scaffold as scaffold_module
-from brichan.contracts.task_dossier.schema import ARTIFACTS
+from brichan.contracts.task_dossier.schema import (
+    ARTIFACTS,
+    LEVEL_REQUIRED_ARTIFACTS,
+    MINIMUM_EVIDENCE_ITEMS,
+)
 from brichan.contracts.task_dossier.scaffold import (
     apply_scaffold,
     dossier_path,
     plan_scaffold,
+    template_text,
 )
+from brichan.contracts.task_dossier.summary import summarize_dossier
+from brichan.contracts.task_dossier.validation import validate_dossier
 
 
 class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
@@ -41,7 +49,7 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
 
     def test_scaffold_dry_run_writes_nothing(self):
         actions = plan_scaffold(
-            self.dossier, "TASK-001", "1", "example", repository_root=ROOT
+            self.dossier, "TASK-001", "2", "example", repository_root=ROOT
         )
         self.assertEqual(
             len(ARTIFACTS),
@@ -49,13 +57,13 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
         )
         self.assertEqual([], sorted(self.dossier.iterdir()))
 
-    def test_scaffold_apply_creates_the_complete_dossier(self):
-        apply_scaffold(self.dossier, "TASK-001", "1", "example", repository_root=ROOT)
+    def test_scaffold_apply_creates_the_complete_level_2_dossier(self):
+        apply_scaffold(self.dossier, "TASK-001", "2", "example", repository_root=ROOT)
         written = sorted(path.name for path in self.dossier.glob("*.md"))
         self.assertEqual(sorted(f"{name}.md" for name in ARTIFACTS), written)
         index = (self.dossier / "index.md").read_text(encoding="utf-8")
         self.assertIn("- Task ID: `TASK-001`", index)
-        self.assertIn("- Task level: `1`", index)
+        self.assertIn("- Task level: `2`", index)
         self.assertIn("- Project: `example`", index)
         self.assertFalse((self.dossier / "receipt.md").exists())
 
@@ -63,7 +71,7 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
         existing = self.dossier / "design.md"
         existing.write_text("# my design\n", encoding="utf-8")
         actions = apply_scaffold(
-            self.dossier, "TASK-001", "1", "example", repository_root=ROOT
+            self.dossier, "TASK-001", "2", "example", repository_root=ROOT
         )
         self.assertEqual("# my design\n", existing.read_text(encoding="utf-8"))
         preserved = [
@@ -93,7 +101,9 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
             "example",
         )
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn("planned 11 task-dossier artifact(s)", result.stdout)
+        # Level 0 plans exactly its four artifacts: index, request, report, and
+        # code-review.
+        self.assertIn("planned 4 task-dossier artifact(s)", result.stdout)
         self.assertFalse(
             (self.projects / "example" / "handoffs" / "TASK-002").exists()
         )
@@ -146,13 +156,13 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
 
         with self.assertRaises(ValueError) as error:
             plan_scaffold(
-                self.dossier, "TASK-001", "1", "example", repository_root=ROOT
+                self.dossier, "TASK-001", "2", "example", repository_root=ROOT
             )
         self.assertIn("symlinked artifact", str(error.exception))
 
         with self.assertRaises(ValueError):
             apply_scaffold(
-                self.dossier, "TASK-001", "1", "example", repository_root=ROOT
+                self.dossier, "TASK-001", "2", "example", repository_root=ROOT
             )
         self.assertFalse(escape_target.exists())
         # The rejection happens before any write, so no other artifact appears.
@@ -165,7 +175,7 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             apply_scaffold(
-                self.dossier, "TASK-001", "1", "example", repository_root=ROOT
+                self.dossier, "TASK-001", "2", "example", repository_root=ROOT
             )
         self.assertEqual("original\n", escape_target.read_text(encoding="utf-8"))
         self.assertEqual(["brief.md"], sorted(p.name for p in self.dossier.iterdir()))
@@ -176,6 +186,25 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
         with self.assertRaises(ValueError) as error:
             plan_scaffold(linked, "TASK-004", "0", "example", repository_root=ROOT)
         self.assertIn("must not be a symlink", str(error.exception))
+
+    def test_scaffold_refuses_an_index_template_with_split_status_rows(self):
+        original = scaffold_module.template_text
+
+        def split_rows(artifact, repository_root=None):
+            text = original(artifact, repository_root)
+            if artifact == "index":
+                text = text.replace(
+                    "| `request` |", "\n| `request` |", 1
+                )
+            return text
+
+        with mock.patch.object(scaffold_module, "template_text", split_rows):
+            with self.assertRaises(ValueError) as error:
+                apply_scaffold(
+                    self.dossier, "TASK-001", "1", "example", repository_root=ROOT
+                )
+        self.assertIn("no contiguous artifact status rows", str(error.exception))
+        self.assertFalse((self.dossier / "index.md").exists())
 
     def test_scaffolded_index_links_the_canonical_authorities(self):
         apply_scaffold(self.dossier, "TASK-001", "1", "example", repository_root=ROOT)
@@ -218,7 +247,7 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
 
         with self._race(concurrent_writer):
             actions = apply_scaffold(
-                self.dossier, "TASK-001", "1", "example", repository_root=ROOT
+                self.dossier, "TASK-001", "2", "example", repository_root=ROOT
             )
 
         self.assertEqual(
@@ -244,7 +273,7 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
         with self._race(concurrent_symlink):
             with self.assertRaises(ValueError) as error:
                 apply_scaffold(
-                    self.dossier, "TASK-001", "1", "example", repository_root=ROOT
+                    self.dossier, "TASK-001", "2", "example", repository_root=ROOT
                 )
 
         self.assertIn("symlinked artifact", str(error.exception))
@@ -268,6 +297,87 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
                 text, (self.dossier / name).read_text(encoding="utf-8"), name
             )
 
+    # --- level-keyed scaffolding ---
+
+    def test_scaffold_creates_exactly_the_level_artifact_set(self):
+        for level in ("0", "1"):
+            with self.subTest(level=level):
+                dossier = self.projects / "example" / "handoffs" / f"TASK-10{level}"
+                expected = LEVEL_REQUIRED_ARTIFACTS[level]
+                planned = plan_scaffold(
+                    dossier, f"TASK-10{level}", level, "example", repository_root=ROOT
+                )
+                self.assertEqual(
+                    [dossier / f"{name}.md" for name in expected],
+                    [action.path for action in planned if action.action == "create"],
+                )
+                apply_scaffold(
+                    dossier, f"TASK-10{level}", level, "example", repository_root=ROOT
+                )
+                self.assertEqual(
+                    sorted(f"{name}.md" for name in expected),
+                    sorted(path.name for path in dossier.glob("*.md")),
+                )
+                index = (dossier / "index.md").read_text(encoding="utf-8")
+                rows = re.findall(r"^\| `([^`]+)` \|", index, re.MULTILINE)
+                self.assertEqual(list(expected), rows)
+
+    def test_level_2_scaffold_output_is_byte_identical_to_the_templates(self):
+        apply_scaffold(self.dossier, "TASK-001", "2", "example", repository_root=ROOT)
+        for name in ARTIFACTS:
+            with self.subTest(artifact=name):
+                expected = (
+                    template_text(name, ROOT)
+                    .replace("<TASK-000>", "TASK-001")
+                    .replace("<0, 1, or 2>", "2")
+                    .replace("<project-slug>", "example")
+                )
+                self.assertEqual(
+                    expected,
+                    (self.dossier / f"{name}.md").read_text(encoding="utf-8"),
+                )
+
+    def test_scaffold_refuses_an_unresolvable_level(self):
+        for level in ("two", "", "3"):
+            with self.subTest(level=level):
+                with self.assertRaises(ValueError):
+                    plan_scaffold(
+                        self.dossier, "TASK-001", level, "example", repository_root=ROOT
+                    )
+        self.assertEqual([], sorted(self.dossier.iterdir()))
+
+    def test_scaffolded_and_filled_dossiers_validate_at_every_level(self):
+        for level in ("0", "1", "2"):
+            with self.subTest(level=level):
+                task = f"TASK-20{level}"
+                dossier = self.projects / "example" / "handoffs" / task
+                apply_scaffold(dossier, task, level, "example", repository_root=ROOT)
+                fill_scaffold(dossier, level)
+                diagnostics = validate_dossier(
+                    dossier, self.projects, require_complete=True
+                )
+                self.assertEqual(
+                    [], diagnostics, " | ".join(d.format() for d in diagnostics)
+                )
+
+    def test_reduced_level_1_flow_scaffolds_fills_validates_and_summarizes(self):
+        apply_scaffold(self.dossier, "TASK-001", "1", "example", repository_root=ROOT)
+        fill_scaffold(self.dossier, "1")
+        result = self.run_script("validate_task_dossiers.py", "projects")
+        self.assertEqual(0, result.returncode, result.stderr)
+        summary = summarize_dossier(self.dossier.resolve(), self.projects.resolve())
+        self.assertEqual((), summary.diagnostics)
+        self.assertEqual((), summary.unreadable)
+        self.assertEqual(
+            list(LEVEL_REQUIRED_ARTIFACTS["1"]),
+            [state.name for state in summary.artifacts],
+        )
+        result = self.run_script(
+            "summarize_task_dossier.py", "projects", "--task", "TASK-001"
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertNotIn("artifact is missing", result.stdout)
+
     def test_repository_checkout_validates_clean(self):
         result = subprocess.run(
             [sys.executable, str(ROOT / "scripts/validate_task_dossiers.py"), "projects"],
@@ -277,6 +387,77 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
             text=True,
         )
         self.assertEqual(0, result.returncode, result.stderr)
+
+
+def fill_scaffold(dossier, level):
+    """Fill a scaffolded dossier the way a recorded session would.
+
+    Every template placeholder is replaced with a concrete value that the
+    level's rules accept, so the round trip exercises the scaffold's own
+    output, including its generated status table, against the validator.
+    """
+    planned = "plan" in {path.stem for path in dossier.glob("*.md")}
+    sessions = {
+        "plan": "session-planner",
+        "report": "session-implementer",
+        "plan-review": "session-plan-reviewer",
+        "code-review": "session-code-reviewer",
+    }
+    evidence = MINIMUM_EVIDENCE_ITEMS[level]
+    for path in sorted(dossier.glob("*.md")):
+        name = path.stem
+        session = sessions.get(name, "session-coordinator")
+        review = name in ("plan-review", "code-review")
+        values = {
+            "Artifact version": "1",
+            "Origin": "user-request" if name == "request" else f"{name}@1",
+            "Phase state": "passed",
+            "Applicability": "required",
+            "Authorship": "model",
+            "Authoring session": session,
+            "Effective route": "implement",
+            "Effective model": "test-model",
+            "Effective effort": "medium",
+            "Reviewing session": session if review else "null",
+            "Review verdict": "PASS" if review else "null",
+            "Accepted plan ID": "PLAN-1" if planned else "null",
+            "Accepted plan version": "1" if planned else "null",
+            "Review route strength": "stronger" if level == "2" else "routine",
+            "Review route override": (
+                "one-off stronger review route" if level == "2" else "null"
+            ),
+            "Ship authorization": "not-requested",
+            "Ship authorization evidence": "null",
+            "Plan ID": "PLAN-1",
+            "Plan status": "accepted",
+            "Reviewed plan ID": "PLAN-1" if planned else "null",
+            "Reviewed plan version": "1" if planned else "null",
+        }
+        lines = []
+        section = ""
+        for line in path.read_text(encoding="utf-8").split("\n"):
+            if line.startswith("## "):
+                section = line[3:]
+            field = re.match(r"^- ([^:]+): `<[^`]*>`$", line)
+            if field:
+                line = f"- {field.group(1)}: `{values[field.group(1)]}`"
+            elif line.startswith("| `"):
+                line = line.replace("`<required or not-required>`", "`required`")
+                line = line.replace("`<phase state>`", "`passed`")
+            elif line.startswith("`<"):
+                line = f"The {name} artifact records its concrete decision."
+            elif line.startswith("- `<") and section == "Evidence":
+                line = "\n".join(
+                    f"- `{name}.md` concrete evidence item {item}"
+                    for item in range(1, evidence + 1)
+                )
+            elif line.startswith("- `<"):
+                line = f"- The {name} {section.lower()} entry is concrete."
+            lines.append(line)
+        path.write_text("\n".join(lines), encoding="utf-8")
+    (dossier / "receipt.md").write_text("# Handoff receipt\n", encoding="utf-8")
+    memory = dossier.parents[1] / "current-state.md"
+    memory.write_text("# Current state\n", encoding="utf-8")
 
 
 # --------------------------------------------------------------------------

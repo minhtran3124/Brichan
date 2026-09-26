@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Validate checkout-mode task dossiers without mutating them.
 
-A tracked task owns one dossier directory holding all eleven standard
-artifacts plus the canonical handoff receipt. Every task level produces the
-same artifact set; the level changes required evidence depth, reviewer
-strength, and authorization gates. Artifact presence alone is never accepted as
-evidence, and this validator never repairs what it diagnoses.
+A tracked task owns one dossier directory holding its level's required
+artifact set plus the canonical handoff receipt. The level selects that set
+(docs/workflows/task-dossier.md) and changes required evidence depth, reviewer
+strength, and authorization gates; an unresolvable level fails closed to the
+largest set. Artifact presence alone is never accepted as evidence, and this
+validator never repairs what it diagnoses.
 """
 
 from __future__ import annotations
@@ -27,7 +28,6 @@ from .parser import (
 )
 from .schema import (
     APPLICABILITY_STATES,
-    ARTIFACTS,
     ARTIFACT_EXTRA_SECTIONS,
     AUTHORSHIP_KINDS,
     BODY_SECTIONS,
@@ -50,11 +50,13 @@ from .schema import (
     PLAN_STATUS_SECTION,
     PROJECT_SLUG_PATTERN,
     ParsedArtifact,
+    RECOGNIZED_ARTIFACTS,
     RECEIPT_OWNED_FIELD_LABELS,
     RECEIPT_OWNED_SECTIONS,
     REMOTE_ACTION_FIELDS,
     REMOTE_ACTION_PATTERNS,
     REMOTE_ACTION_SECTION,
+    REPORT_SECTIONS,
     REQUEST_PROVENANCE_FIELDS,
     REQUEST_PROVENANCE_SECTION,
     REVIEW_ARTIFACTS,
@@ -66,6 +68,8 @@ from .schema import (
     SHIP_AUTHORIZATION_STATES,
     TASK_ID_PATTERN,
     TASK_LEVELS,
+    required_artifacts,
+    resolve_task_level,
 )
 
 
@@ -90,9 +94,17 @@ def _diagnose(
 
 def _load_artifacts(
     dossier: Path, diagnostics: list[Diagnostic]
-) -> dict[str, ParsedArtifact]:
+) -> tuple[dict[str, ParsedArtifact], set[str]]:
+    """Load every recognized artifact that exists as a regular file.
+
+    Returns the parsed artifacts and the names that are really present: a
+    symlink is diagnosed and never loaded, and an unreadable file is loaded for
+    its diagnostic but is not present. Missing files are diagnosed later,
+    against the level's required set.
+    """
     artifacts: dict[str, ParsedArtifact] = {}
-    for name in ARTIFACTS:
+    present: set[str] = set()
+    for name in RECOGNIZED_ARTIFACTS:
         path = dossier / f"{name}.md"
         if path.is_symlink():
             diagnostics.append(
@@ -100,16 +112,34 @@ def _load_artifacts(
             )
             continue
         if not path.is_file():
-            diagnostics.append(
-                Diagnostic(
-                    path,
-                    "file",
-                    f"required task-dossier artifact {name}.md is missing",
-                )
-            )
             continue
+        before = len(diagnostics)
         artifacts[name] = parse_artifact(path, name, diagnostics)
-    return artifacts
+        if not any(
+            diagnostic.message.startswith("cannot read artifact")
+            for diagnostic in diagnostics[before:]
+        ):
+            present.add(name)
+    return artifacts, present
+
+
+def _validate_presence(
+    dossier: Path,
+    artifacts: dict[str, ParsedArtifact],
+    required: Sequence[str],
+    diagnostics: list[Diagnostic],
+) -> None:
+    for name in required:
+        path = dossier / f"{name}.md"
+        if name in artifacts or path.is_symlink():
+            continue
+        diagnostics.append(
+            Diagnostic(
+                path,
+                "file",
+                f"required task-dossier artifact {name}.md is missing",
+            )
+        )
 
 
 def _validate_personal_paths(
@@ -136,6 +166,8 @@ def _validate_structure(
         expected_sections.append(section)
     if artifact.name == "index":
         expected_sections.append(INDEX_STATUS_SECTION)
+    if artifact.name == "report":
+        expected_sections.extend(REPORT_SECTIONS)
     expected_sections.extend(BODY_SECTIONS)
 
     for section in expected_sections:
@@ -330,7 +362,7 @@ def _validate_state(
             "Claim or decision",
             "passed artifacts require a concrete claim or decision",
         )
-    minimum = MINIMUM_EVIDENCE_ITEMS.get(level, 1)
+    minimum = MINIMUM_EVIDENCE_ITEMS[resolve_task_level(level)]
     if len(evidence_items) < minimum:
         _diagnose(
             diagnostics,
@@ -347,6 +379,16 @@ def _validate_state(
             "passed artifacts must concretely state unresolved uncertainty or "
             "record that none remains; a placeholder is not a statement",
         )
+    if artifact.name == "report":
+        for section in REPORT_SECTIONS:
+            if not has_concrete_statement(artifact.sections.get(section, "")):
+                _diagnose(
+                    diagnostics,
+                    artifact,
+                    section,
+                    "a passed worker report requires a concrete statement in "
+                    "each report section; a placeholder is not a statement",
+                )
 
 
 def _validate_provenance(
@@ -432,7 +474,9 @@ def _validate_ownership(
                 f"review artifacts are owned by the reviewer, found {owner!r}",
             )
 
-    for name in ("plan", "design", "requirements"):
+    # The worker report carries the plan at levels 0 and 1, so it is guarded
+    # exactly like the planning artifacts.
+    for name in ("plan", "report", "design", "requirements"):
         artifact = artifacts.get(name)
         if artifact is None:
             continue
@@ -445,30 +489,91 @@ def _validate_ownership(
                 "reviewers must not back-write planning artifacts",
             )
 
-    plan = artifacts.get("plan")
-    if plan is None:
-        return
-    plan_session = plain(plan.get(METADATA_SECTION, "Authoring session"))
-    if is_placeholder(plan_session):
-        return
-
     # The reviewing session is the session that performed the review; the
     # authoring session is the session that wrote the review artifact. Neither
-    # may be the session that authored the plan.
-    for name in REVIEW_ARTIFACTS:
+    # may be the session that authored the plan, and neither may be the session
+    # that wrote the worker report the code review examines.
+    plan = artifacts.get("plan")
+    if plan is not None:
+        _validate_independence(
+            artifacts, plan, REVIEW_ARTIFACTS, "the plan author", diagnostics
+        )
+    report = artifacts.get("report")
+    if report is not None:
+        _validate_independence(
+            artifacts, report, ("code-review",), "the report author", diagnostics
+        )
+
+
+def _validate_independence(
+    artifacts: dict[str, ParsedArtifact],
+    authored: ParsedArtifact,
+    reviews: Sequence[str],
+    author: str,
+    diagnostics: list[Diagnostic],
+) -> None:
+    author_session = plain(authored.get(METADATA_SECTION, "Authoring session"))
+    if is_placeholder(author_session):
+        return
+    for name in reviews:
         review = artifacts.get(name)
         if review is None:
             continue
         for label in ("Reviewing session", "Authoring session"):
             session = plain(review.get(METADATA_SECTION, label))
-            if is_placeholder(session) or session != plan_session:
+            if is_placeholder(session) or session != author_session:
                 continue
             _diagnose(
                 diagnostics,
                 review,
                 f"{METADATA_SECTION}.{label}",
-                f"{name} requires a session independent of the plan author",
+                f"{name} requires a session independent of {author}",
             )
+
+
+def _validate_review_applicability(
+    artifacts: dict[str, ParsedArtifact], level: str, diagnostics: list[Diagnostic]
+) -> None:
+    """Code review is mandatory at levels 1 and 2; only level 0 may waive it."""
+    review = artifacts.get("code-review")
+    if review is None or level == "0":
+        return
+    applicability = plain(review.get(METADATA_SECTION, "Applicability")).lower()
+    if applicability == "not-required":
+        _diagnose(
+            diagnostics,
+            review,
+            f"{METADATA_SECTION}.Applicability",
+            f"level {level} requires an independent code review; only level 0 "
+            "may record it 'not-required'",
+        )
+
+
+def _validate_unplanned_review_targets(
+    artifacts: dict[str, ParsedArtifact],
+    present: set[str],
+    diagnostics: list[Diagnostic],
+) -> None:
+    """Without a plan artifact there is no plan to name, so targets stay null.
+
+    Keyed on ``present``, the set ``required_artifacts`` uses, so an unreadable
+    plan is absent here exactly as it is absent when requiring the report.
+    """
+    if "plan" in present:
+        return
+    for name in REVIEW_ARTIFACTS:
+        review = artifacts.get(name)
+        if review is None:
+            continue
+        for label in REVIEW_TARGET_FIELDS:
+            if not is_placeholder(review.get(REVIEW_TARGET_SECTION, label)):
+                _diagnose(
+                    diagnostics,
+                    review,
+                    f"{REVIEW_TARGET_SECTION}.{label}",
+                    "a dossier without plan.md has no plan to review; the "
+                    "review target must be null",
+                )
 
 
 def _validate_request(
@@ -538,6 +643,7 @@ def _plan_version(artifact: ParsedArtifact | None) -> str:
 
 def _validate_plan_linkage(
     artifacts: dict[str, ParsedArtifact],
+    present: set[str],
     index_fields: dict[str, str],
     diagnostics: list[Diagnostic],
 ) -> None:
@@ -584,6 +690,9 @@ def _validate_plan_linkage(
                 f"expected {version!r} from plan.md, found {accepted_version!r}",
             )
 
+    # An unreadable plan names no plan to review; the null-target rule applies.
+    if "plan" not in present:
+        return
     for name in REVIEW_ARTIFACTS:
         review = artifacts.get(name)
         if review is None:
@@ -619,6 +728,7 @@ def _validate_index(
     project: str,
     task_id: str,
     level: str,
+    required: Sequence[str],
     diagnostics: list[Diagnostic],
 ) -> None:
     fields = index.fields.get(INDEX_IDENTITY_SECTION, {})
@@ -713,7 +823,7 @@ def _validate_index(
             "'not-requested'",
         )
 
-    _validate_status_table(index, artifacts, diagnostics)
+    _validate_status_table(index, artifacts, required, diagnostics)
 
 
 def _validate_no_duplicated_authority(
@@ -922,8 +1032,13 @@ def _validate_memory_link(
 def _validate_status_table(
     index: ParsedArtifact,
     artifacts: dict[str, ParsedArtifact],
+    required: Sequence[str],
     diagnostics: list[Diagnostic],
 ) -> None:
+    """One row per required or present artifact, and no row for anything else.
+
+    Rows naming names outside the recognized set are ignored, as before.
+    """
     rows = parse_table(index.sections.get(INDEX_STATUS_SECTION, ""))
     if not rows or [plain(cell) for cell in rows[0]] != INDEX_STATUS_HEADER:
         _diagnose(
@@ -946,14 +1061,26 @@ def _validate_status_table(
             continue
         declared[plain(row[0])] = [plain(cell) for cell in row]
 
-    for name in ARTIFACTS:
+    for name in RECOGNIZED_ARTIFACTS:
         row = declared.get(name)
+        expected = name in required or name in artifacts
         if row is None:
+            if expected:
+                _diagnose(
+                    diagnostics,
+                    index,
+                    f"{INDEX_STATUS_SECTION}.{name}",
+                    "every required or present artifact must appear in the "
+                    "status table",
+                )
+            continue
+        if not expected:
             _diagnose(
                 diagnostics,
                 index,
                 f"{INDEX_STATUS_SECTION}.{name}",
-                "every standard artifact must appear in the status table",
+                f"{name}.md is neither required at this level nor present; "
+                "the status table must not list it",
             )
             continue
         if row[3] != f"{name}.md":
@@ -978,7 +1105,7 @@ def _validate_status_table(
 
 
 def _validate_completion(
-    artifacts: dict[str, ParsedArtifact], diagnostics: list[Diagnostic]
+    artifacts: dict[str, ParsedArtifact], level: str, diagnostics: list[Diagnostic]
 ) -> None:
     """Gate the state a task must reach before it may be called complete."""
     for artifact in artifacts.values():
@@ -1003,8 +1130,10 @@ def _validate_completion(
                 f"completed tasks require an accepted plan, found {status!r}",
             )
 
+    # Plan review applies to every level 2 task. At levels 0 and 1 there is no
+    # plan review, so a present one may record 'not-required'.
     plan_review = artifacts.get("plan-review")
-    if plan_review is not None:
+    if plan_review is not None and level == "2":
         applicability = plain(
             plan_review.get(METADATA_SECTION, "Applicability")
         ).lower()
@@ -1013,7 +1142,8 @@ def _validate_completion(
                 diagnostics,
                 plan_review,
                 f"{METADATA_SECTION}.Applicability",
-                "plan review applies to every task and is never 'not-required'",
+                "plan review applies to every level 2 task and is never "
+                "'not-required'",
             )
 
     for name in REVIEW_ARTIFACTS:
@@ -1045,7 +1175,9 @@ def _resolve_level(
                 f"{METADATA_SECTION}.Task level",
                 f"must be one of {sorted(TASK_LEVELS)}, found {level!r}",
             )
-        level = "0"
+        # Fail closed: the least trustworthy metadata gets the largest
+        # required set and the deepest evidence floor.
+        level = resolve_task_level(level)
 
     for artifact in artifacts.values():
         declared = plain(artifact.get(METADATA_SECTION, "Task level"))
@@ -1101,8 +1233,10 @@ def validate_dossier(
             )
         )
 
-    artifacts = _load_artifacts(dossier, diagnostics)
+    artifacts, present = _load_artifacts(dossier, diagnostics)
     level = _resolve_level(artifacts, diagnostics)
+    required = required_artifacts(level, present)
+    _validate_presence(dossier, artifacts, required, diagnostics)
 
     for artifact in artifacts.values():
         _validate_personal_paths(artifact, diagnostics)
@@ -1112,9 +1246,11 @@ def validate_dossier(
         _validate_provenance(artifact, diagnostics)
 
     if require_complete:
-        _validate_completion(artifacts, diagnostics)
+        _validate_completion(artifacts, level, diagnostics)
 
     _validate_ownership(artifacts, diagnostics)
+    _validate_review_applicability(artifacts, level, diagnostics)
+    _validate_unplanned_review_targets(artifacts, present, diagnostics)
     if "request" in artifacts:
         _validate_request(artifacts["request"], diagnostics)
     if "pr-desc" in artifacts:
@@ -1130,10 +1266,12 @@ def validate_dossier(
             project,
             task_id,
             level,
+            required,
             diagnostics,
         )
         _validate_plan_linkage(
             artifacts,
+            present,
             index.fields.get(INDEX_IDENTITY_SECTION, {}),
             diagnostics,
         )
@@ -1177,7 +1315,7 @@ def discover_partial_dossiers(projects_root: Path) -> dict[Path, list[str]]:
     ``index.md`` would then silently exempt the task from the whole contract.
     """
     partial: dict[Path, list[str]] = {}
-    optional = [name for name in ARTIFACTS if name != "index"]
+    optional = [name for name in RECOGNIZED_ARTIFACTS if name != "index"]
     for handoff in sorted(projects_root.glob("*/handoffs/*")):
         if not handoff.is_dir() or (handoff / "index.md").exists():
             continue
@@ -1205,7 +1343,7 @@ def validate_projects(
                 "partial adoption",
                 "handoff carries dossier artifacts "
                 f"({', '.join(f'{name}.md' for name in present)}) but no "
-                "index.md; a tracked task owns the complete dossier",
+                "index.md; a tracked task owns its level's dossier",
             )
         )
 

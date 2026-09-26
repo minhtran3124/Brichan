@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Deterministic read-only summary of checkout-mode task dossiers.
 
-The summary answers "is this dossier sound?" without opening eleven files by
-eye. It reports artifact state, evidence depth against the rule that actually
+The summary answers "is this dossier sound?" without opening every file by
+eye. It reports the state of each artifact the task level requires or the
+dossier carries, resolving the level through the same fail-closed rule as the
+validator, then evidence depth against the rule that actually
 applies, effective model provenance, plan and review identity, authority-link
 health, and review independence.
 
@@ -31,15 +33,17 @@ from typing import Any, Sequence
 
 from .parser import concrete_list_items, parse_artifact, plain
 from .schema import (
-    ARTIFACTS,
     CANONICAL_MEMORY_FILES,
     Diagnostic,
     INDEX_IDENTITY_SECTION,
     METADATA_SECTION,
     MINIMUM_EVIDENCE_ITEMS,
     PLAN_STATUS_SECTION,
+    RECOGNIZED_ARTIFACTS,
     REVIEW_ARTIFACTS,
     REVIEW_TARGET_SECTION,
+    required_artifacts,
+    resolve_task_level,
 )
 from .validation import validate_dossier, validate_projects
 
@@ -97,6 +101,8 @@ class ReviewIndependence:
     review: str
     reviewing_session_arm: str
     authoring_session_arm: str
+    # The author the arms compare against: the plan's, or the worker report's.
+    against: str = "plan"
 
 
 @dataclass(frozen=True)
@@ -153,7 +159,7 @@ def _evidence_rule(applicability: str, phase_state: str, level: str) -> tuple[st
     if applicability == "not-required":
         return "one-item", 1
     if phase_state == "passed":
-        return "level-floor", MINIMUM_EVIDENCE_ITEMS.get(level, 1)
+        return "level-floor", MINIMUM_EVIDENCE_ITEMS[resolve_task_level(level)]
     return "not-applicable", 0
 
 
@@ -208,26 +214,44 @@ def summarize_dossier(dossier: Path, projects_root: Path) -> DossierSummary:
 
     unreadable: list[tuple[str, str]] = []
     parsed: dict[str, Any] = {}
-    for name in ARTIFACTS:
+    present: set[str] = set()
+    for name in RECOGNIZED_ARTIFACTS:
         path = dossier / f"{name}.md"
         if path.is_symlink():
             unreadable.append((f"{name}.md", "artifact is a symlink"))
             continue
         if not path.is_file():
-            unreadable.append((f"{name}.md", "artifact is missing"))
             continue
         collected: list[Diagnostic] = []
         artifact = parse_artifact(path, name, collected)
+        readable = True
         for diagnostic in collected:
             if diagnostic.message.startswith("cannot read artifact"):
                 unreadable.append((f"{name}.md", diagnostic.message))
+                readable = False
         parsed[name] = artifact
+        if readable:
+            present.add(name)
 
     index = parsed.get("index")
     level = plain(index.get(METADATA_SECTION, "Task level")) if index else ""
+    # Resolved exactly as the validator resolves it, so an unresolvable level
+    # reports the largest roster and the deepest floor, never the smallest.
+    effective_level = resolve_task_level(level)
+    required = required_artifacts(effective_level, present)
+    for name in required:
+        path = dossier / f"{name}.md"
+        if name not in parsed and not path.is_symlink():
+            unreadable.append((f"{name}.md", "artifact is missing"))
+    unreadable.sort(key=lambda row: RECOGNIZED_ARTIFACTS.index(row[0][:-3]))
+    roster = [
+        name
+        for name in RECOGNIZED_ARTIFACTS
+        if name in required or name in parsed
+    ]
 
     states: list[ArtifactState] = []
-    for name in ARTIFACTS:
+    for name in roster:
         artifact = parsed.get(name)
         if artifact is None:
             states.append(
@@ -251,7 +275,7 @@ def summarize_dossier(dossier: Path, projects_root: Path) -> DossierSummary:
         applicability = plain(artifact.get(METADATA_SECTION, "Applicability"))
         phase_state = plain(artifact.get(METADATA_SECTION, "Phase state"))
         items = len(concrete_list_items(artifact.sections.get("Evidence", "")))
-        rule, required = _evidence_rule(applicability, phase_state, level)
+        rule, minimum = _evidence_rule(applicability, phase_state, effective_level)
         states.append(
             ArtifactState(
                 name=name,
@@ -260,8 +284,8 @@ def summarize_dossier(dossier: Path, projects_root: Path) -> DossierSummary:
                 phase_state=phase_state,
                 evidence_items=items,
                 evidence_rule=rule,
-                evidence_required=required,
-                meets_evidence_rule=items >= required,
+                evidence_required=minimum,
+                meets_evidence_rule=items >= minimum,
                 authorship=plain(artifact.get(METADATA_SECTION, "Authorship")),
                 authoring_session=plain(
                     artifact.get(METADATA_SECTION, "Authoring session")
@@ -319,6 +343,25 @@ def summarize_dossier(dossier: Path, projects_root: Path) -> DossierSummary:
                     plain(review.get(METADATA_SECTION, "Authoring session")),
                     plan_session,
                 ),
+            )
+        )
+
+    report = parsed.get("report")
+    review = parsed.get("code-review")
+    if report is not None and review is not None:
+        report_session = plain(report.get(METADATA_SECTION, "Authoring session"))
+        independence.append(
+            ReviewIndependence(
+                review="code-review",
+                reviewing_session_arm=_independence_arm(
+                    plain(review.get(METADATA_SECTION, "Reviewing session")),
+                    report_session,
+                ),
+                authoring_session_arm=_independence_arm(
+                    plain(review.get(METADATA_SECTION, "Authoring session")),
+                    report_session,
+                ),
+                against="report",
             )
         )
 
@@ -473,8 +516,9 @@ def render_summary_text(
         lines.append("")
         lines.append("## Review independence")
         for arm in summary.independence:
+            against = "" if arm.against == "plan" else f" (against {arm.against} author)"
             lines.append(
-                f"- {arm.review}: reviewing session arm="
+                f"- {arm.review}{against}: reviewing session arm="
                 f"{arm.reviewing_session_arm}; authoring session arm="
                 f"{arm.authoring_session_arm}"
             )

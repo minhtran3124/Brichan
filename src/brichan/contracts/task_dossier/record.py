@@ -1,6 +1,8 @@
 """Structured task-dossier record: typed loading and refusal diagnostics.
 
-One UTF-8 JSON object describes one complete dossier. This module loads it
+One UTF-8 JSON object describes one dossier: the artifact set its level
+requires (docs/workflows/task-dossier.md), plus any other recognized artifact
+it chooses to carry. This module loads it
 under exhaustive key-to-type tables, refuses every malformed, hostile, or
 structurally injected value, and returns immutable dataclasses. It derives
 nothing and infers nothing: a value the contract requires is either recorded
@@ -24,7 +26,6 @@ from typing import Any, Iterable, Mapping, Sequence
 
 from .schema import (
     APPLICABILITY_STATES,
-    ARTIFACTS,
     ARTIFACT_EXTRA_SECTIONS,
     AUTHORSHIP_KINDS,
     BODY_SECTIONS,
@@ -37,14 +38,19 @@ from .schema import (
     PHASE_STATES,
     PLACEHOLDER_VALUES,
     PROJECT_SLUG_PATTERN,
+    RECOGNIZED_ARTIFACTS,
     RECORD_SCHEMA_VERSION,
     REMOTE_ACTION_PATTERNS,
+    REPORT_SECTIONS,
     REVIEW_ARTIFACTS,
     REVIEW_ROUTE_STRENGTHS,
+    REVIEW_TARGET_FIELDS,
     REVIEW_VERDICTS,
     SHIP_AUTHORIZATION_STATES,
     TASK_ID_PATTERN,
     TASK_LEVELS,
+    required_artifacts,
+    resolve_task_level,
 )
 
 
@@ -154,7 +160,8 @@ class ArtifactRecord:
     effective_effort: str | None
     reviewing_session: str | None
     review_verdict: str | None
-    fields: Mapping[str, str]
+    # A review target is JSON null exactly when the record carries no plan.
+    fields: Mapping[str, str | None]
     sections: tuple[SectionRecord, ...]
     claim: str
     evidence: tuple[str, ...]
@@ -214,6 +221,7 @@ class _Loader:
         self.task_id = task_id
         self.level = level
         self.project = project
+        self.has_plan = False
         self.diagnostics: list[str] = []
 
     # -- diagnostics ---------------------------------------------------
@@ -508,10 +516,29 @@ class _Loader:
         return identity
 
     def _load_artifacts(self, value: Any) -> dict[str, ArtifactRecord] | None:
-        if not self.exact_keys("artifacts", value, ARTIFACTS):
+        """Require the level's set and accept only recognized artifacts.
+
+        The requested level resolves through the shared fail-closed rule, so an
+        unresolvable level requires the largest set.
+        """
+        if not self.exact_type("artifacts", value, dict):
             return None
+        required = required_artifacts(
+            self.level, [name for name in value if name in RECOGNIZED_ARTIFACTS]
+        )
+        unknown = sorted(set(value) - set(RECOGNIZED_ARTIFACTS))
+        missing = sorted(set(required) - set(value))
+        if unknown:
+            self.fail("artifacts", f"unknown key(s): {unknown}")
+        if missing:
+            self.fail("artifacts", f"missing key(s): {missing}")
+        if unknown or missing:
+            return None
+        self.has_plan = "plan" in value
         artifacts: dict[str, ArtifactRecord] = {}
-        for name in ARTIFACTS:
+        for name in RECOGNIZED_ARTIFACTS:
+            if name not in value:
+                continue
             artifact = self._load_artifact(name, value[name])
             if artifact is not None:
                 artifacts[name] = artifact
@@ -639,6 +666,8 @@ class _Loader:
         uncertainty = self._load_items(f"{locator}.uncertainty", value["uncertainty"])
 
         self._evidence_depth(locator, phase, applicability, evidence)
+        if name == "report":
+            self._report_sections(locator, phase, sections)
         if name == "pr-desc":
             self._pr_description(locator, fields, claim, evidence, uncertainty, sections)
         if name == "request":
@@ -669,7 +698,7 @@ class _Loader:
 
     def _load_fields(
         self, name: str, locator: str, value: Any
-    ) -> dict[str, str] | None:
+    ) -> dict[str, str | None] | None:
         where = f"{locator}.fields"
         # The index projects its identity from `index_identity`, so its own
         # `fields` map stays empty; a record must not open a second channel.
@@ -679,8 +708,21 @@ class _Loader:
                 expected += tuple(labels)
         if not self.exact_keys(where, value, expected):
             return None
-        fields: dict[str, str] = {}
+        fields: dict[str, str | None] = {}
         for label in expected:
+            if (
+                name in REVIEW_ARTIFACTS
+                and label in REVIEW_TARGET_FIELDS
+                and not self.has_plan
+            ):
+                if value[label] is not None:
+                    self.fail(
+                        f"{where}.{label}",
+                        "a record without a plan artifact has no plan to "
+                        "review; the review target must be null",
+                    )
+                fields[label] = None
+                continue
             text = self.backtick_value(f"{where}.{label}", value[label])
             self.concrete(f"{where}.{label}", text)
             if text is not None:
@@ -772,7 +814,7 @@ class _Loader:
             return
         if phase != "passed":
             return
-        minimum = MINIMUM_EVIDENCE_ITEMS.get(self.level, 1)
+        minimum = MINIMUM_EVIDENCE_ITEMS[resolve_task_level(self.level)]
         if count < minimum:
             self.fail(
                 f"{locator}.evidence",
@@ -780,7 +822,42 @@ class _Loader:
                 f"evidence item(s), found {count}",
             )
 
-    def _request_provenance(self, locator: str, fields: Mapping[str, str] | None) -> None:
+    def _report_sections(
+        self,
+        locator: str,
+        phase: str | None,
+        sections: tuple[SectionRecord, ...] | None,
+    ) -> None:
+        """The worker report supplies its four sections, in canonical order."""
+        titles = [section.title for section in sections or ()]
+        positions = []
+        for title in REPORT_SECTIONS:
+            if title not in titles:
+                self.fail(
+                    f"{locator}.sections",
+                    f"the worker report requires the section {title!r}",
+                )
+                continue
+            positions.append(titles.index(title))
+        if positions != sorted(positions):
+            self.fail(
+                f"{locator}.sections",
+                f"the worker report sections must appear in the order "
+                f"{list(REPORT_SECTIONS)}",
+            )
+        if phase != "passed":
+            return
+        for section in sections or ():
+            if section.title not in REPORT_SECTIONS:
+                continue
+            if not any(not _is_placeholder(line) for line in section.body):
+                self.fail(
+                    f"{locator}.sections",
+                    "a passed worker report requires a concrete "
+                    f"{section.title!r} section",
+                )
+
+    def _request_provenance(self, locator: str, fields: Mapping[str, str | None] | None) -> None:
         recorded = fields or {}
         if recorded.get("Redaction applied", "").lower() != "yes":
             self.fail(
@@ -797,7 +874,7 @@ class _Loader:
     def _pr_description(
         self,
         locator: str,
-        fields: Mapping[str, str] | None,
+        fields: Mapping[str, str | None] | None,
         claim: str | None,
         evidence: tuple[str, ...] | None,
         uncertainty: tuple[str, ...] | None,
@@ -828,10 +905,30 @@ class _Loader:
                     return
 
     def _cross_record(self, record: TaskRecord) -> None:
-        """Four consistency refusals. None of them derives a value."""
-        plan = record.artifacts["plan"]
+        """Consistency refusals. None of them derives a value.
+
+        The plan checks apply only when the record carries a plan; the worker
+        report's author may not review the code either.
+        """
+        report = record.artifacts.get("report")
+        review = record.artifacts.get("code-review")
+        if report is not None and review is not None:
+            for label, session in (
+                ("reviewing_session", review.reviewing_session),
+                ("authoring_session", review.authoring_session),
+            ):
+                if session is not None and session == report.authoring_session:
+                    self.fail(
+                        f"artifacts.code-review.{label}",
+                        "code-review requires a session independent of the "
+                        "report author",
+                    )
+
+        plan = record.artifacts.get("plan")
+        if plan is None:
+            return
         plan_id = plan.fields.get("Plan ID")
-        plan_status = plan.fields.get("Plan status", "").lower()
+        plan_status = (plan.fields.get("Plan status") or "").lower()
 
         if plan_status == "accepted":
             accepted_id = record.index_identity.get("Accepted plan ID")
@@ -850,7 +947,9 @@ class _Loader:
                 )
 
         for name in REVIEW_ARTIFACTS:
-            review = record.artifacts[name]
+            review = record.artifacts.get(name)
+            if review is None:
+                continue
             reviewed_version = review.fields.get("Reviewed plan version")
             if reviewed_version != str(plan.version):
                 self.fail(
@@ -876,7 +975,7 @@ class _Loader:
                     )
 
     def _level_gates(self, record: TaskRecord) -> None:
-        """Level changes gates, never artifact presence."""
+        """Level gates beyond the artifact set `_load_artifacts` requires."""
         strength = record.index_identity.get("Review route strength")
         if self.level == "2" and strength != "stronger":
             self.fail(

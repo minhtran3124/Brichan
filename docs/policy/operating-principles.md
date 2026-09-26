@@ -30,9 +30,8 @@ Every delegated task needs a task packet. Use the template in the
 `herdr-orchestration` skill.
 
 Every tracked task also owns one task dossier. Follow
-`docs/workflows/task-dossier.md`. All task levels produce the same standard
-artifact set; the level changes evidence depth, reviewer strength, and
-authorization gates, never artifact presence.
+`docs/workflows/task-dossier.md`, which defines the lifecycle and artifact set
+for each task level.
 
 ## 3. Route deliberately
 

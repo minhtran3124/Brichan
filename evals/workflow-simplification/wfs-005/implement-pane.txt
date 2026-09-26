@@ -1,0 +1,400 @@
+      projects/brida-workflow-simplification/tasks.md    |   8 +-
+      src/brichan/contracts/task_dossier/generate.py     |  35 +-
+      src/brichan/contracts/task_dossier/record.py       | 129 +++++++-
+      src/brichan/contracts/task_dossier/scaffold.py     |  70 +++-
+      src/brichan/contracts/task_dossier/schema.py       |  92 +++++-
+      src/brichan/contracts/task_dossier/summary.py      |  66 +++-
+      src/brichan/contracts/task_dossier/validation.py   | 205 +++++++++---
+      tests/contract/test_task_dossier_contract.py       | 104 +++++-
+      tests/integration/test_task_dossier_workflow.py    | 186 ++++++++++-
+      tests/unit/test_task_dossier_generator.py          | 208 +++++++++++-
+      tests/unit/test_task_dossier_summary.py            |  82 ++++-
+      tests/unit/test_task_dossier_validator.py          | 356 ++++++++++++++++++---
+      20 files changed, 1580 insertions(+), 208 deletions(-)
+     --- resources/PRODUCT/config/techstacks/evals/Makefile tracked diff:
+     (end)
+     ?? evals/workflow-simplification/wfs-005/
+
+⏺ Everything outside my scope is untouched, confirming a clean change set. Now checking the implementation evidence file.
+
+⏺ Write(../brida/projects/brida-workflow-simplification/handoffs/WFS-005/implem
+       entation.md)
+  ⎿  Wrote 273 lines to ../brida/projects/brida-workflow-simplification/ha
+
+
+
+        3 Implementation of accepted plan `WFS-005-PLAN-001` version 3, plus coordinator
+        4 conditions M1 and M2 from the passing plan review (artifact version 2).
+        5 Written by the implementation worker (attempt `attempt-implement-1`) on
+        6 2026-09-26. All changes are uncommitted in the working tree of branch
+        7 `feat/lifecycle-simplification`.
+        8
+        9 ## Outcome
+       10
+       11 Implemented. Every plan step S1-S9 and both coordinator conditions are met.
+       12 The full gate passes on Python 3.10 and 3.14 except for the reds the packet
+       13 sanctions (WFS-005's own pending dossier artifacts). There is one extra
+       14 pre-existing red, not caused by this change: coordinator-owned untracked pane
+       15 captures under `evals/workflow-simplification/wfs-005/` embed home paths (see
+       16 Risks, item 1).
+       17
+       18 ## Techstack verification
+       19
+       20 - `bin/brichan techstacks verify --project-root <repo> --snapshot-json projects/brida-workflow-simplificatio
+          n/handoffs/WFS-005/snapshots/attempt-implement-1-97f413cb4b5634b3711b55c78848fd84145079ff1bb831d00c0da86b093
+          4a3a6.snapshot.json --as-of 2026-09-26`
+       21   returned `"status": "match"` with snapshot SHA-256
+       22   `97f413cb4b5634b3711b55c78848fd84145079ff1bb831d00c0da86b0934a3a6`. It ran
+       23   before any other work.
+       24 - All ten required selected rule files were read in full:
+       25   `techstacks/README.md`, `techstacks/general.md`,
+       26   `techstacks/policy/README.md`, `techstacks/policy/canonical.md`,
+       27   `techstacks/policy/packaged-resources.md`,
+       28   `techstacks/policy/task-dossiers.md`, `techstacks/python/README.md`,
+       29   `techstacks/python/runtime.md`, `techstacks/python/scripts.md`,
+       30   `techstacks/python/tests.md`. `docs/policy/operating-principles.md`
+       31   (including its testing discipline) was also read.
+       32
+       33 ## Changed files
+       34
+       35 Every path is inside the declared Techstack scope.
+       36
+       37 Code (`src/brichan/contracts/task_dossier/`, stdlib only):
+       38
+       39 - `schema.py`: adds `RECOGNIZED_ARTIFACTS` (the frozen eleven plus `report`
+       40   after `plan`), `LEVEL_REQUIRED_ARTIFACTS`, `FALLBACK_TASK_LEVEL = "2"`,
+       41   `REPORT_SECTIONS`, `CONTRACT_PATH_PREFIXES`, `CONTRACT_PATH_FILES`, the
+       42   `report` entries of `ARTIFACT_TITLES`/`ARTIFACT_OWNERS`, and two shared
+       43   helpers: `resolve_task_level` (the single fail-closed level rule) and
+       44   `required_artifacts` (the level set minus `report` when `plan` is really
+       45   present). `ARTIFACTS` is byte-unchanged. The stale "never changes which
+       46   artifacts must exist" comment is corrected (L1).
+       47 - `validation.py`: recognized-set loading with real-presence tracking; a
+       48   missing-file check against the effective required set; `"2"` fallback via
+       49   `resolve_task_level`; report structure and passed-phase concreteness;
+       50   `report` added to the reviewer back-write guard (M2); report-author
+       51   independence for `code-review`; code review cannot be `not-required` at
+       52   levels 1 and 2; review targets must be null without `plan.md`; the status
+       53   table requires exactly (required ∪ present); completion's plan-review
+       54   refusal narrowed to level 2; partial-adoption scan over recognized names.
+       55 - `scaffold.py`: level-keyed artifact set; `template_path` accepts every
+       56   recognized name; generated index status rows (level 2 output is
+       57   byte-identical to the templates).
+       58 - `record.py`: the effective-required key rule (⊆ `RECOGNIZED_ARTIFACTS`)
+       59   through the shared helpers; JSON-null review targets exactly when `plan` is
+       60   absent; `_cross_record` plan checks only when `plan` is present, plus
+       61   report-author independence; report sections present and in order, and
+       62   concrete when passed; evidence floor through `resolve_task_level`.
+       63 - `generate.py`: renders, plans, and publishes exactly the record's
+       64   artifacts in `RECOGNIZED_ARTIFACTS` order, including the status table.
+       65 - `summary.py`: roster = (required ∪ present); "artifact is missing" only
+       66   for required names; level and floor through `resolve_task_level` (M1);
+       67   a report-author independence arm (`ReviewIndependence.against`).
+       68 - `contract_paths.py` (new): classification over path names plus a stdin
+       69   CLI (exit 0 / 3 / 2); never runs Git or opens a repository file.
+       70
+       71 Scripts, templates, and documents:
+       72
+       73 - `scripts/check_contract_paths.py` (new): 19-line wrapper, same pattern
+       74   and file mode as `scripts/validate_task_dossiers.py`.
+       75 - `docs/workflows/task-dossier/templates/report.md` (new). The index
+       76   template is unchanged.
+       77 - `docs/workflows/task-dossier.md`: the single normative statement. It covers
+       78   the intro presence rule, the `report.md` row, the level table with a
+       79   required-artifacts column (level and minimum-evidence columns stay
+       80   adjacent), the level-determination evidence obligation, the fail-closed
+       81   rule, "Lifecycles by level", the report structure, the legacy
+       82   `plan`-satisfies rule, the stop-and-rollback rule, "Contract paths" with the
+       83   checker and the named trust boundary, and level-aware tooling text. Every
+       84   pinned needle is preserved, including the wrapped "task level changes
+       85   required" / "evidence depth" line.
+       86 - `docs/policy/operating-principles.md` section 2: now a reference to the
+       87   workflow document.
+       88 - `docs/policy/reviewer.md`: the regression-test rule inside the prompt's
+       89   `Rules:` list, the amended return item 4, the report back-write sentence,
+       90   null targets without a plan, the contract-path reference, and the
+       91   level-mis-declaration finding.
+       92 - `.agents/skills/herdr-orchestration/references/task-dossier.md` and
+       93   `SKILL.md`: the level-keyed references. No parity marker or packet label
+       94   was edited.
+       95 - `CHANGELOG.md`: Unreleased "Changed" entry.
+       96
+       97 Tests:
+       98
+       99 - `tests/unit/test_task_dossier_validator.py`, `tests/unit/test_task_dossier_generator.py`,
+      100   `tests/unit/test_task_dossier_summary.py`, `tests/unit/test_contract_paths.py` (new),
+      101   `tests/contract/test_task_dossier_contract.py`,
+      102   `tests/integration/test_task_dossier_workflow.py`.
+      103
+      104 ## Plan steps
+      105
+      106 - S1: schema constants, the template, the three re-keyed contract
+      107   assertions, and the tuple pin (`RegistryPinTest`).
+      108 - S2: validator. Design tests 1-11 and 19 landed.
+      109 - S3: scaffold. Design tests 12 and 13 landed.
+      110 - S4: record and generator. Design tests 14 and 15 landed. The frozen
+      111   eleven-artifact Level 0 fixture loads unedited
+      112   (`test_worked_record_loads`, `test_the_literal_record_renders_and_validates_clean`).
+      113 - S5: summary. Design test 16 landed.
+      114 - S6: checker, wrapper, and tests. Design test 17 landed.
+      115 - S7: documents and contract pins. Design tests 18 and 20 landed; `make
+      116   test-contract` was run as the parity guard (L4).
+      117 - S8: CHANGELOG entry.
+      118 - S9: full verification (below).
+      119
+      120 ## Coordinator conditions
+      121
+      122 - M1 (fail-closed level resolution in all four tools). One helper,
+      123   `schema.resolve_task_level`, is the only level rule. The validator, the
+      124   summary, and the record loader call it, and the loader's required-key rule
+      125   and evidence floor go through it too. None of them keeps a
+      126   `.get(level, 1)`-style fail-open lookup. The scaffold and the generator CLI
+      127   refuse an invalid level outright (`level_artifacts` raises; argparse
+      128   `choices`). Tests that fail if a tool fails open:
+      129   - validator: `test_an_invalid_level_fails_closed_to_level_2`,
+      130     `test_a_missing_index_fails_closed_to_level_2`
+      131   - summary: `test_an_unresolvable_level_fails_closed_to_level_2`
+      132   - generator/record: `test_an_unresolvable_level_requires_the_largest_set`
+      133   - scaffold: `test_scaffold_refuses_an_unresolvable_level`
+      134   - pin: `test_the_fallback_level_is_the_largest_set_and_deepest_floor`
+      135 - M2 (back-write guard covers `report.md`). `report` joins the
+      136   `_validate_ownership` tuple. The test is
+      137   `test_reviewer_must_not_author_the_report`.
+      138
+      139 ## Design test map
+      140
+      141 | # | Test |
+      142 | --- | --- |
+      143 | 1 | `test_reduced_level_0_dossier_with_a_waived_code_review_is_valid` |
+      144 | 2 | `test_reduced_level_1_dossier_with_an_independent_review_is_valid` |
+      145 | 3 | `test_reduced_dossier_without_a_report_is_rejected`; `test_a_symlinked_plan_does_not_excuse_the_report
+          ` |
+      146 | 4 | `test_levels_1_and_2_may_not_waive_code_review` |
+      147 | 5 | `test_a_passed_report_requires_concrete_report_sections`; `test_the_report_sections_are_structurally_r
+          equired` |
+      148 | 6 | `test_code_review_must_be_independent_of_the_report_author` (validator and record) |
+      149 | 7 | `test_level_2_requires_every_standard_artifact` |
+      150 | 8a | `test_full_legacy_dossier_stays_valid_at_every_level` |
+      151 | 8b | `test_the_committed_legacy_samples_validate_under_the_level_rules` |
+      152 | 9 | `test_a_report_alone_without_an_index_is_partial_adoption` |
+      153 | 10 | `test_status_table_lists_exactly_required_and_present_artifacts` |
+      154 | 11 | `test_require_complete_rejects_a_changes_required_reduced_review`; `test_require_complete_rejects_a_n
+          ot_required_plan_review_at_level_2` |
+      155 | 12 | `test_scaffold_creates_exactly_the_level_artifact_set`; `test_level_2_scaffold_output_is_byte_identic
+          al_to_the_templates` |
+      156 | 13 | `test_scaffolded_and_filled_dossiers_validate_at_every_level`; `test_reduced_level_1_flow_scaffolds_f
+          ills_validates_and_summarizes` |
+      157 | 14 | `test_a_reduced_record_renders_publishes_and_validates`; `test_a_missing_required_key_or_an_unrecogni
+          zed_key_is_refused` |
+      158 | 15 | `test_review_targets_are_null_exactly_without_a_plan` |
+      159 | 16 | `ReducedDossierSummaryTest` (four cases) |
+      160 | 17 | `tests/unit/test_contract_paths.py` (seven cases) |
+      161 | 18 | `test_contract_level_table_equals_the_required_sets`; `test_contract_path_list_equals_the_constants`;
+           `test_recognized_artifacts_are_the_frozen_eleven_plus_the_report`; `test_reviewer_policy_states_the_regress
+          ion_test_rule`; `test_level_lifecycles_are_stated_once_and_referenced_elsewhere` |
+      162 | 19 | the M1 tests above |
+      163 | 20 | `make test-contract` (skill parity, dogfood policy, repository paths): 153 OK |
+      164
+      165 TEST-003 check: in a scratch copy of the tree, each new guard was removed
+      166 one at a time (the fallback, the report back-write, report independence in
+      167 the validator and the record, the level 1 review waiver, report
+      168 concreteness, the absent-row status rule, the legacy `plan` rule, symlinked
+      169 plan presence, null targets in the validator and the record, level-keyed
+      170 scaffolding, generated status rows, completion narrowing, partial adoption
+      171 of `report`, the contract-path list, and the summary report arm). Each
+      172 removal failed its named test. No survivor remained.
+      173
+      174 ## Verification
+      175
+      176 - Focused runs: `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest`
+      177   over the validator, generator, summary, contract-path, contract, and
+      178   integration dossier modules passed, except the sanctioned
+      179   `test_repository_checkout_validates_clean`.
+      180 - `PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects`
+      181   reports 40 diagnostics across 17 dossiers, and every one is in WFS-005's
+      182   own pending coordinator/reviewer artifacts (templated `index.md`,
+      183   `code-review.md`, `pr-desc.md`, and the not-yet-written `receipt.md`).
+      184   Zero diagnostics fall on the other 16 dossiers (A3). This is a check; the
+      185   regression guards are tests 8a and 8b.
+      186 - `PYTHONDONTWRITEBYTECODE=1 make check` (3.10.11) in the checkout: unit
+      187   tier 1061 OK. The contract tier stops on the one pre-existing red,
+      188   `test_durable_artifacts_do_not_embed_home_paths`, which names only
+      189   `evals/workflow-simplification/wfs-005/plan-review-v1-pane.txt` and
+      190   `plan-review-v2-pane.txt`. Those files are untracked coordinator captures
+      191   created before this attempt started.
+      192 - To see the rest of the gate without touching those files, the checkout
+      193   (including `.git`) was copied to a scratch directory, leaving out only that
+      194   untracked capture directory, and `make -k check` was run with `codex` off
+      195   `PATH`:
+      196   - 3.10.11: metrics 10 OK, unit 1061 OK, contract 153 OK, integration 227
+      197     run with the single sanctioned failure
+      198     `test_repository_checkout_validates_clean`, techstack-eval 56 OK,
+      199     receipts 55 valid, `make dossiers` red only on WFS-005 (40 issues, all
+      200     WFS-005), memory-check, path-check (113 entries), readme-check,
+      201     phase5-preflight (eligible, retired), and package-check all pass.
+      202   - `make -k check PYTHON=/opt/homebrew/bin/python3.14` (3.14.6): identical
+      203     results.
+      204   - Eval directly under 3.14:
+      205     `PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3.14 -m unittest evals.techstack_context_v1.test_case
+          s`
+      206     ran 56 tests, OK.
+      207   - `sh -n bin/brichan`: exit 0.
+      208 - `git diff --stat -- src/brichan/resources PRODUCT.md config techstacks evals Makefile README_PYPI.md packa
+          ging`
+      209   is empty. Installed mode and packaged resources are byte-unchanged (A5).
+      210   `git status --short evals` shows only the pre-existing untracked
+      211   `evals/workflow-simplification/wfs-005/`.
+      212 - `git status --short` / `git diff --stat`: 20 modified tracked files (1580
+      213   insertions, 208 deletions) and 4 new files. Three of the modified entries
+      214   (`.codex/config.toml`, `projects/brida-workflow-simplification/decisions.md`,
+      215   `projects/brida-workflow-simplification/tasks.md`) and the untracked
+      216   `.brichan*` directories predate this attempt and were not touched.
+      217
+      218 ## Deviations and interpretations
+      219
+      220 1. Report sections in the validator come from an explicit
+      221    `REPORT_SECTIONS` branch in `_validate_structure` (like the index status
+      222    section), not from new entries in `ARTIFACT_EXTRA_SECTIONS`. The effect
+      223    is the same (presence, exactly once, canonical order). This keeps the
+      224    `validation.EXTRA_SECTION_FIELDS is ARTIFACT_EXTRA_SECTIONS` pin true
+      225    and stops the record loader from reserving the four titles away from the
+      226    report itself.
+      227 2. The design says "titles reserved for it". For a report record, the four
+      228    section titles must be supplied, in order, and be concrete when passed.
+      229    They are not refused on other artifacts, because no committed record uses
+      230    them and a refusal would add a restriction the plan does not test.
+      231 3. `ReviewIndependence` gains an `against` field (default `"plan"`). The
+      232    summary JSON therefore gains that key on every independence row. The text
+      233    form changes only for the new report arm.
+      234 4. Wording changes on existing messages: the partial-adoption message now
+      235    ends "owns its level's dossier", and the completion refusal now reads
+      236    "plan review applies to every level 2 task".
+      237 5. Existing tests that encoded the old uniform artifact set move to the level
+      238    that still has that rule. The full-set scaffold, symlink, and race tests
+      239    move to level 2. The waived-code-review case moves to level 0. The
+      240    not-required plan-review completion case moves to level 2, and a level 1
+      241    arm is added. The Level 0 wrapper dry run now expects 4 planned
+      242    artifacts. The misspelled or deleted record key now targets a required
+      243    key.
+      244 6. Folded in the plan review's L1: the `.agents` reference's `## Review` and
+      245    `## Closing` sentences no longer claim that every task has a plan review
+      246    and a plan. The second "full task dossier" wording in `SKILL.md` is also
+      247    updated.
+      248 7. The record loader does not replicate the validator's "code review
+      249    mandatory at levels 1 and 2" rule, because the design's record change list
+      250    does not include it. The validator (the sole authority) enforces it.
+      251
+      252 ## Risks and open items
+      253
+      254 1. Pre-existing gate red (coordinator action needed before landing): the
+      255    untracked pane captures `evals/workflow-simplification/wfs-005/plan-review-v1-pane.txt`
+      256    and `plan-review-v2-pane.txt` contain home paths and fail
+      257    `test_durable_artifacts_do_not_embed_home_paths`. `evals/` is out of this
+      258    task's scope, so they were not edited.
+      259 2. Pre-existing quirk, not fixed (out of plan): `summarize_dossier` passes
+      260    the caller's unresolved dossier path to `validate_dossier`. On macOS, a
+      261    temporary directory reached through the `/var` symlink therefore gets a
+      262    spurious "outside supplied projects root" diagnostic. The CLI path is
+      263    unaffected. The new tests pass resolved paths.
+      264 3. Level self-declaration stays a documented, reviewer-checked exposure
+      265    (M2 of the version 2 review); no mechanical check exists.
+      266 4. Plan-before-implementation order inside `report.md` and the Level 0
+      267    contract-path review decision are trust boundaries. The workflow document
+      268    states them explicitly; no tool can verify them.
+      269 5. The contract-path membership (the `src/brichan/` and `scripts/` prefixes)
+      270    remains a reversible user judgment, per the plan's Uncertainty.
+      271 6. `make dossiers` and `test_repository_checkout_validates_clean` stay red
+      272    until the coordinator and reviewer complete WFS-005's own `index.md`,
+      273    `code-review.md`, `pr-desc.md`, and `receipt.md`.
+
+⏺ Final hygiene: check implementation.md for home paths, confirm the dossier diagnostics count is unchanged, and remove the
+  scratch copies:
+
+⏺ Bash(grep -c "<HOME-PREFIX>/\|<HOME-DIR>/\|~/" projects/brida-workflow-simplification/handoffs/WFS-005/implementation.md;
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | tail -1; rm -rf /private/tmp/claude-501
+  /-Users-minhtran-Documents-minhtran3124-developer-brida/f856e046-4ebd-433e-b7ec-f32a55af790d/scratchpad/gate /private/tmp/c
+  laude-501/-Users-minhtran-Documents-minhtran3124-developer-brida/f856e046-4ebd-433e-b7ec-f32a55af790d/scratchpad/mut; git
+  status --short | wc -l)
+  ⎿  0
+     Invalid task dossiers: 40 issue(s) across 17 dossier(s).
+     29
+
+⏺ 1. Outcome
+
+  WFS-005 is implemented and the changes are uncommitted: all of plan WFS-005-PLAN-001 v3 (steps S1–S9) plus both coordinator
+  conditions. The full gate passes on Python 3.10 and 3.14, apart from the reds you allowed for this task's own in-flight
+  dossier and one red that was already there before I started (see section 4).
+
+  - M1: a single fail-closed level rule, resolve_task_level in schema.py, now decides the level for the validator, the
+    summary and the record loader. The scaffold and the generator refuse an invalid level outright. Each of the four tools
+    has a test that fails if it ever falls back to the smallest set.
+  - M2: report is added to the reviewer-must-not-back-write guard, tested by test_reviewer_must_not_author_the_report.
+
+  2. Files and artifacts changed
+
+  - Code: src/brichan/contracts/task_dossier/{schema,validation,scaffold,record,generate,summary}.py changed;
+    contract_paths.py and the wrapper scripts/check_contract_paths.py are new.
+  - Docs: docs/workflows/task-dossier.md is now the single place the Level 0/1 lifecycles and artifact sets are stated.
+    operating-principles.md §2 now points to it. reviewer.md gains the regression-test rule inside the reviewer prompt, the
+    amended return item, and the level mis-declaration finding. The .agents skill reference and SKILL.md are reworded with no
+    parity markers touched, and the CHANGELOG.md Unreleased entry is added.
+  - Template: new report.md; the index template is unchanged.
+  - Tests: validator, generator, summary, contract and integration dossier suites updated, plus a new
+    tests/unit/test_contract_paths.py.
+  - Report: projects/brida-workflow-simplification/handoffs/WFS-005/implementation.md, with no home paths.
+
+  3. Verification and evidence
+
+  - Techstack verify: returned match before any other work, and all ten rule files were read.
+  - Existing dossiers: the validator over projects/ gives 40 diagnostics, all in WFS-005's own pending artifacts and none on
+    the other 16 dossiers. The committed legacy samples at Level 0 and Level 1 validate cleanly (test 8b).
+  - Guards: I removed each new guard one at a time in a scratch copy, and every removal made its named test fail.
+  - Installed mode: the diff under src/brichan/resources, PRODUCT.md, config, techstacks, evals, Makefile and packaging is
+    empty.
+  - make check in the checkout (3.10): 1061 unit tests OK, then it stops on the pre-existing red in section 4.
+  - make -k check in a scratch copy of the checkout, leaving out only those untracked files, on 3.10.11 and on 3.14.6
+    (PYTHON=): everything passes except make dossiers and test_repository_checkout_validates_clean, and both fail only on
+    WFS-005's own artifacts. That covers unit 1061, contract 153 (skill parity included), integration 227, techstack-eval 56,
+    receipts, memory-check, path-check, readme-check, preflight and package-check.
+  - Eval run directly under 3.14: 56 tests OK. sh -n bin/brichan exits 0.
+  - git status --short and git diff --stat: 20 tracked files changed (+1580/−208) and 4 new files. Of those,
+    .codex/config.toml, decisions.md, tasks.md and the .brichan* directories were already modified or present before I
+    started, and I left them alone.
+
+  4. Risks, assumptions and unresolved issues
+
+  - Blocks landing (needs your action): in the real checkout, make check fails
+    test_durable_artifacts_do_not_embed_home_paths. The cause is the untracked pane captures
+    evals/workflow-simplification/wfs-005/plan-review-v{1,2}-pane.txt, which contain home paths and were written before this
+    attempt started. evals/ is out of scope, so I didn't touch them; they need redacting or moving before the change can
+    land.
+  - Existing quirk, not fixed: summarize_dossier hands its unresolved path to the validator, which gives a false "outside
+    projects root" diagnostic on macOS temp paths. The command-line path is unaffected; the new tests pass resolved paths.
+  - Design interpretations, detailed in implementation.md:
+    - The report's four section titles are required inside the report but not reserved away from other artifacts.
+    - The summary JSON gains an against key on every independence row.
+    - Two existing messages are reworded to be level-aware.
+    - Existing tests that assumed one artifact set for every level were moved to the level where that rule still holds.
+    - The plan review's L1 fix (a false sentence about plan review in the .agents reference) is folded in.
+    - The record loader doesn't repeat the "code review mandatory at Levels 1 and 2" rule; the validator enforces it.
+  - Limits the plan itself records: the task level is self-declared, so a wrong level is caught only by the reviewer. Nothing
+    checks that the plan was written before implementation, and at Level 0 the decision to skip review rests on the
+    coordinator running the contract-path checker. Which paths count as contract paths is still yours to adjust.
+  - Still red until the coordinator and reviewer finish: make dossiers and test_repository_checkout_validates_clean stay red
+    until WFS-005's own index.md, code-review.md, pr-desc.md and receipt.md are filled in.
+
+  5. Techstack acknowledgement
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=97f413cb4b5634b3711b55c78848fd84145079ff1bb831d00c0da86b0934a3a6
+
+✻ Cogitated for 22m 9s · done 11:37 AM
+                                                                                                              351982 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ redact the home paths in the wfs-005 pane captures
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5.5 │ ✍️ 34% │ brida (feat/lifecycle-simplification*) │ ◑ medium 💭
+  current ●●●●●○○○○○  56% ⟳ 12:10pm
+  weekly  ●●●●●●○○○○  66% ⟳ sep 30, 5:00am
+  fable   ●●●●○○○○○○  42% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent
