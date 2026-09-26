@@ -465,6 +465,21 @@ class ReducedDossierSummaryTest(SummaryBase):
             stdout,
         )
 
+    def test_unreadable_rows_are_listed_in_lifecycle_order(self):
+        # The symlinked review is found during the scan and the missing
+        # request only afterwards, so discovery order is the reverse.
+        dossier = build_reduced_dossier(self.projects, "1")
+        (dossier / "request.md").unlink()
+        review = dossier / "code-review.md"
+        review.unlink()
+        review.symlink_to(dossier / "report.md")
+        report = summarize_dossier(dossier, self.projects)
+        self.assertEqual(
+            [("request.md", "artifact is missing"),
+             ("code-review.md", "artifact is a symlink")],
+            list(report.unreadable),
+        )
+
     def test_an_unresolvable_level_fails_closed_to_level_2(self):
         dossier = build_reduced_dossier(
             self.projects,

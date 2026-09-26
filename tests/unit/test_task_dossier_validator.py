@@ -1097,6 +1097,44 @@ class ReducedDossierValidatorTest(DossierValidatorBase):
             "plan.md: file: cannot read artifact", self.messages(diagnostics)
         )
 
+    def test_a_symlinked_required_artifact_is_not_also_reported_missing(self):
+        dossier = build_reduced_dossier(self.projects, "1")
+        report = dossier / "report.md"
+        report.unlink()
+        report.symlink_to(dossier / "request.md")
+        diagnostics = self.assert_reports(dossier, "must not be symlinks")
+        self.assertNotIn("report.md is missing", self.messages(diagnostics))
+
+    def test_an_unreadable_plan_is_absent_for_every_review_target_rule(self):
+        dossier = build_dossier(self.projects)
+        self.assert_valid(dossier)
+        (dossier / "plan.md").write_bytes(b"\xff\xfe not utf-8\n")
+        diagnostics = self.assert_reports(
+            dossier, "required task-dossier artifact report.md is missing"
+        )
+        messages = self.messages(diagnostics)
+        for review in ("plan-review", "code-review"):
+            self.assertIn(
+                f"{review}.md: Review target.Reviewed plan ID: a dossier without "
+                "plan.md has no plan to review",
+                messages,
+            )
+        self.assertNotIn("Reviewed plan ID: expected ''", messages)
+
+    def test_an_unknown_level_gets_the_deepest_evidence_floor(self):
+        dossier = build_reduced_dossier(self.projects, "1")
+        diagnostics = []
+        artifact = task_dossier.parse_artifact(
+            dossier / "request.md", "request", diagnostics
+        )
+        self.assertEqual([], diagnostics)
+        task_dossier._validate_state(artifact, "bogus", diagnostics)
+        self.assertIn(
+            f"requires at least {MINIMUM_EVIDENCE_ITEMS['2']} concrete evidence "
+            "item(s), found 2",
+            self.messages(diagnostics),
+        )
+
     def test_levels_1_and_2_may_not_waive_code_review(self):
         dossier = build_reduced_dossier(
             self.projects, "1", overrides=WAIVED_CODE_REVIEW

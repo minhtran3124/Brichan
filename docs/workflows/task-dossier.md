@@ -240,17 +240,20 @@ so an add, a modify, a delete, and both sides of a rename all count.
 - Directory prefixes: `docs/policy/`, `docs/workflows/`, `.agents/`, `src/brichan/`, `scripts/`, `config/`, `bin/`, `packaging/`, `techstacks/`
 - Exact files: `Makefile`, `pyproject.toml`, `AGENTS.md`, `CLAUDE.md`, `PRODUCT.md`
 
-The checker makes the decision a command:
+The checker makes the decision a command. Run it under `set -o pipefail` so a
+failing `git diff` fails the pipeline instead of being hidden by it:
 
 ```bash
+set -o pipefail
 git diff --name-only --no-renames <dispatch-base> \
     | python3 scripts/check_contract_paths.py
 ```
 
 Exit `0` prints `contract-path: no`; exit `3` prints `contract-path: yes` and
-each matching path; exit `2` means an invalid invocation or input that is not
-UTF-8 path names. The checker reads names only: it never runs Git and opens no
-repository file.
+each matching path; exit `2` means an invalid invocation, input that is not
+UTF-8 path names, or empty input. Empty or whitespace-only input is refused,
+never read as `contract-path: no`, because a failed `git diff` prints nothing.
+The checker reads names only: it never runs Git and opens no repository file.
 
 **Trust boundary, stated rather than implied.** The level 0 review decision is
 the coordinator's, made with that command and recorded with its output in

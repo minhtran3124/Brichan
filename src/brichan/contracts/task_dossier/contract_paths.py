@@ -11,7 +11,9 @@ This module reads names only. It never runs git, opens no repository file, and
 fails closed on input it cannot decode.
 
 Exit codes: ``0`` no contract path, ``3`` at least one contract path, ``2``
-invalid invocation or undecodable input.
+invalid invocation, undecodable input, or input with no path name. A failed
+upstream ``git diff`` prints nothing, so empty input is refused rather than
+read as "no contract path".
 """
 
 from __future__ import annotations
@@ -66,7 +68,14 @@ def main(argv: Sequence[str] | None = None, stdin: BinaryIO | None = None) -> in
         return 2
 
     names = [line.rstrip("\r") for line in text.split("\n")]
-    matches = contract_path_matches(name for name in names if name)
+    names = [name for name in names if name.strip()]
+    if not names:
+        print(
+            "contract-path: no path names on input; refusing to decide",
+            file=sys.stderr,
+        )
+        return 2
+    matches = contract_path_matches(names)
     if matches:
         print("contract-path: yes")
         for name in matches:

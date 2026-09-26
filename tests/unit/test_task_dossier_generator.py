@@ -13,6 +13,7 @@ compare-and-swap.
 
 import contextlib
 import copy
+import dataclasses
 import errno
 import io
 import json
@@ -518,6 +519,15 @@ class ReducedRecordTest(unittest.TestCase):
             self.assertEqual(
                 [], diagnostics, " | ".join(item.format() for item in diagnostics)
             )
+
+    def test_artifacts_render_in_lifecycle_order_whatever_the_record_order(self):
+        record = self.load()
+        reordered = dataclasses.replace(
+            record, artifacts=dict(reversed(list(record.artifacts.items())))
+        )
+        self.assertEqual(
+            LEVEL_REQUIRED_ARTIFACTS["1"], generate_module.record_artifacts(reordered)
+        )
 
     def test_a_missing_required_key_or_an_unrecognized_key_is_refused(self):
         payload = copy.deepcopy(self.payload)

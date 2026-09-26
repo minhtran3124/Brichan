@@ -362,7 +362,7 @@ def _validate_state(
             "Claim or decision",
             "passed artifacts require a concrete claim or decision",
         )
-    minimum = MINIMUM_EVIDENCE_ITEMS.get(level, 1)
+    minimum = MINIMUM_EVIDENCE_ITEMS[resolve_task_level(level)]
     if len(evidence_items) < minimum:
         _diagnose(
             diagnostics,
@@ -550,10 +550,16 @@ def _validate_review_applicability(
 
 
 def _validate_unplanned_review_targets(
-    artifacts: dict[str, ParsedArtifact], diagnostics: list[Diagnostic]
+    artifacts: dict[str, ParsedArtifact],
+    present: set[str],
+    diagnostics: list[Diagnostic],
 ) -> None:
-    """Without a plan artifact there is no plan to name, so targets stay null."""
-    if "plan" in artifacts:
+    """Without a plan artifact there is no plan to name, so targets stay null.
+
+    Keyed on ``present``, the set ``required_artifacts`` uses, so an unreadable
+    plan is absent here exactly as it is absent when requiring the report.
+    """
+    if "plan" in present:
         return
     for name in REVIEW_ARTIFACTS:
         review = artifacts.get(name)
@@ -637,6 +643,7 @@ def _plan_version(artifact: ParsedArtifact | None) -> str:
 
 def _validate_plan_linkage(
     artifacts: dict[str, ParsedArtifact],
+    present: set[str],
     index_fields: dict[str, str],
     diagnostics: list[Diagnostic],
 ) -> None:
@@ -683,6 +690,9 @@ def _validate_plan_linkage(
                 f"expected {version!r} from plan.md, found {accepted_version!r}",
             )
 
+    # An unreadable plan names no plan to review; the null-target rule applies.
+    if "plan" not in present:
+        return
     for name in REVIEW_ARTIFACTS:
         review = artifacts.get(name)
         if review is None:
@@ -1240,7 +1250,7 @@ def validate_dossier(
 
     _validate_ownership(artifacts, diagnostics)
     _validate_review_applicability(artifacts, level, diagnostics)
-    _validate_unplanned_review_targets(artifacts, diagnostics)
+    _validate_unplanned_review_targets(artifacts, present, diagnostics)
     if "request" in artifacts:
         _validate_request(artifacts["request"], diagnostics)
     if "pr-desc" in artifacts:
@@ -1261,6 +1271,7 @@ def validate_dossier(
         )
         _validate_plan_linkage(
             artifacts,
+            present,
             index.fields.get(INDEX_IDENTITY_SECTION, {}),
             diagnostics,
         )

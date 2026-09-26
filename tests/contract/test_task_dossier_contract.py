@@ -186,6 +186,9 @@ class TaskDossierDocumentationContractTest(unittest.TestCase):
             CONTRACT_PATH_FILES, tuple(re.findall(r"`([^`]+)`", files.group(1)))
         )
         self.assertIn("scripts/check_contract_paths.py", section)
+        pipeline = re.search(r"```bash\n(.+?)```", section, re.DOTALL).group(1)
+        self.assertTrue(pipeline.startswith("set -o pipefail\n"), pipeline)
+        self.assertIn("Empty or whitespace-only input is refused", section)
 
     def test_level_lifecycles_are_stated_once_and_referenced_elsewhere(self):
         self.assertEqual(1, self.contract.count("### Lifecycles by level"))

@@ -80,6 +80,28 @@ class ContractPathCommandTest(unittest.TestCase):
         self.assertEqual("", stdout)
         self.assertIn("not UTF-8", stderr)
 
+    def test_empty_or_blank_input_is_refused_not_answered_no(self):
+        # A failed upstream git diff prints nothing; silence is not evidence.
+        for text in ("", "\n", "  \n\t\r\n"):
+            with self.subTest(text=text):
+                code, stdout, stderr = run(text)
+                self.assertEqual(2, code)
+                self.assertEqual("", stdout)
+                self.assertIn("no path names on input; refusing to decide", stderr)
+
+    def test_the_wrapper_refuses_empty_input(self):
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts/check_contract_paths.py")],
+            input="",
+            capture_output=True,
+            text=True,
+            check=False,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertEqual("", result.stdout)
+        self.assertIn("refusing to decide", result.stderr)
+
     def test_an_invalid_invocation_exits_two(self):
         with contextlib.redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit) as caught:

@@ -187,6 +187,25 @@ class TaskDossierWorkflowIntegrationTest(unittest.TestCase):
             plan_scaffold(linked, "TASK-004", "0", "example", repository_root=ROOT)
         self.assertIn("must not be a symlink", str(error.exception))
 
+    def test_scaffold_refuses_an_index_template_with_split_status_rows(self):
+        original = scaffold_module.template_text
+
+        def split_rows(artifact, repository_root=None):
+            text = original(artifact, repository_root)
+            if artifact == "index":
+                text = text.replace(
+                    "| `request` |", "\n| `request` |", 1
+                )
+            return text
+
+        with mock.patch.object(scaffold_module, "template_text", split_rows):
+            with self.assertRaises(ValueError) as error:
+                apply_scaffold(
+                    self.dossier, "TASK-001", "1", "example", repository_root=ROOT
+                )
+        self.assertIn("no contiguous artifact status rows", str(error.exception))
+        self.assertFalse((self.dossier / "index.md").exists())
+
     def test_scaffolded_index_links_the_canonical_authorities(self):
         apply_scaffold(self.dossier, "TASK-001", "1", "example", repository_root=ROOT)
         index = (self.dossier / "index.md").read_text(encoding="utf-8")
