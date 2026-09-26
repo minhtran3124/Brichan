@@ -1,0 +1,34 @@
+  - Byte order mark: a UTF-8 BOM at the start of the file is not stripped, so that first line counts as undecodable. The spec says plain UTF-8, so I read it strictly.
+  - Deeply nested JSON: input like [[[[… raises RecursionError rather than a parse error. I catch it and count the line as undecodable, and confirmed that path runs.
+  - Duplicate orphans: a repeated finished for an orphan counts in duplicate_finished, because rule 4 applies to every launch_id. The orphan is still listed only once.
+  - Empty launch_id: "" is a string, so it is accepted as an ID.
+
+  T2
+  - Stricter validation: rejecting "1.0.0\n" and non-ASCII digits is a behavior change. I treat it as part of "keep the existing ValueError behavior", since the
+    docstring promises ValueError for anything that is not valid SemVer.
+  - Non-string input: still raises TypeError as before. I did not change that.
+
+  T3 (escalation-style decision)
+  - The ambiguity: TASK.md says to remove empty and . components, which could mean ledger/workers.jsonl/ normalizes to ledger/workers.jsonl. But the invariant says the
+    final component must end in .jsonl, and a trailing / or /. names a directory.
+  - What I chose: I kept the invariant. The last component as supplied must end in .jsonl, so x.jsonl/, x.jsonl// and x.jsonl/. are still rejected. Only redundant .
+    components and repeated / separators before the last component are normalized. This is documented in the docstring and covered by tests.
+  - Other decisions:
+    - //ledger/x.jsonl is still rejected as absolute.
+    - .. is still rejected even inside something like ./../x.jsonl.
+    - . and // are still rejected.
+    - The .brichan check keeps the existing .lower() comparison. I left it unchanged because it wasn't part of this task.
+
+✻ Cogitated for 2m 47s · done 11:36 AM
+
+※ recap: All three WFS-002 eval tasks (ledger summary, prerelease ordering, path guard) are finished, with every test passing and changes left uncommitted inside the
+  three task directories. Next, Brichan should review the report and send it on for scoring. (disable recaps in /config)
+                                                                                                                                                           77823 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5.5 │ ✍️ 7% │ brichan-wfs-s1-b │ ◑ medium 💭
+  current ●●●○○○○○○○  33% ⟳ 2:40pm
+  weekly  ●●●○○○○○○○  30% ⟳ sep 30, 5:00am
+  fable   ●○○○○○○○○○  18% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

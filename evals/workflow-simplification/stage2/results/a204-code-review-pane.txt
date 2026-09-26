@@ -1,0 +1,400 @@
+     can append nothing, printing
+     `ledger: no ledger location for this launch; not recorded`
+     (`worker_launch.py:686`, `worker_ledger.py:97`). The packaged skill tree
+     contains no mention of the legacy form, so nothing in it is false today; the
+     sentence must be qualified if a future packaged edit documents legacy
+     launches. Deliberate per `design.md` wording notes.
+  3. **Three enforced `finish` refusals are deliberately undocumented**:
+     `target project is not a directory`, `target project is not a Git repository
+     root`, and `cannot find a Git repository from` (`src/brichan/project.py:35-51`,
+     each exit `1` through `worker_ledger.py:726-730`; the second was reproduced
+     in this session). The exit table's parenthetical never claims exhaustiveness,
+     so nothing false ships, but a coordinator who hits one of these will not find
+     it in the skill. Closed knowingly as plan-review v3 finding `L1-v3`.
+  4. **`finish` writes into unhealthy managed state.** It requires only a regular
+     `.brichan/manifest.json` (`worker_ledger.py:195-200`) and never calls
+     `inspect_project`, so a `MALFORMED` or `INCOMPATIBLE` target still accepts an
+     attestation. The packaged text states this as coordinator responsibility
+     rather than as a refusal, which matches the code exactly; whether that
+     division is right is a product decision, not a defect in this change.
+  5. **Same-model-family review.** `docs/policy/reviewer.md` prefers a different
+     verified provider. The implementer ran `claude-opus-5-5` and this review ran
+     `claude-opus-5` in a fresh session with no implementation context — an
+     independent session, not an independent provider. `config/model-routing.json`
+     routes `review` to `codex`/`gpt-5.6-sol`/`medium`, so this session is a
+     coordinator one-off override. Human decision: whether that satisfies the
+     preference for this level-1 documentation change.
+  6. **The expected-red baseline is worktree- and dossier-specific.** The two
+     `tests/contract/test_repository_paths.py` failures and `make path-check` are
+     caused by this detached worktree's `.git` file; `make dossiers` and
+     `tests.integration.test_task_dossier_workflow.test_repository_checkout_validates_clean`
+     are red only while this dossier is in flight. They must be re-measured on the
+     main checkout before merge, where all gates must be green. Writing this
+     artifact clears the five `code-review.md` diagnostics; `index.md`,
+     `pr-desc.md`, and the missing `receipt.md` remain coordinator-owned work.
+
+  ## Claim or decision
+
+  Accepted plan `WFS-A-204-PLAN-001` version 4 was implemented faithfully and is
+  accepted: verdict `PASS`, scores 5/5/5. The packaged `herdr-orchestration`
+  skill now states `--task <TASK-ID>` and its verbatim-recording rule, the fixed
+  installed `.brichan/ledger/workers.jsonl` location, the installed rejection of
+  `--ledger-file`, and the installed `finish` attestation with its `--project`
+  resolution, its four integrity refusals, its exit table, and the
+  attestation-not-proof invariant — every literal matching the shipped CLI. The
+  parity, packaging, and dogfood-policy contracts stay green, extended only where
+  they legitimately pin the changed bytes. One low finding (`L1`) and six residual
+  risks are recorded; none requires a change before merge.
+
+  ## Evidence
+
+  - `git status --short` lists exactly two modified tracked files,
+    `src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md`
+    and `tests/contract/test_skill_parity_contract.py`; `git diff --stat` is
+    `2 files changed, 90 insertions(+)` with zero deletions. The dossier is
+    gitignored (`.gitignore:67`), so dossier writes cannot appear here; file
+    mtimes show the two source files last written at `21:16:46` and
+    `implementation.md` at `21:23:39` on 2026-09-25, i.e. the evidence file
+    postdates the last edit.
+  - Transcription fidelity: a script extracted the two `design.md` v4 blockquotes
+    and confirmed each is an exact substring of the edited packaged file (342 and
+    2004 characters). The packaged diff is a pure insertion at two points, so no
+    existing safeguard text moved or changed.
+  - CLI fidelity, executed in this session with `PYTHONDONTWRITEBYTECODE=1
+    PYTHONPATH=src` on Python 3.10.11 against a scratch Git target outside the
+    repository: `brichan-herdr-agent-start --help` lists `--task` with help text
+    "task identifier recorded verbatim in the worker ledger; never inferred when
+    the flag is absent" and no `--ledger-file`; passing `--ledger-file` to the
+    installed launcher gives `error: unrecognized arguments: --ledger-file
+    x.jsonl`, exit `2`, before any Herdr call; `finish --help` lists `--worker`,
+    `--launch-id`, `--evidence`, `--task`, `--pane`, `--project` and no
+    `--ledger-file`, which likewise exits `2`. Refusals reproduced, each exit `1`
+    with nothing written: `no ledger for this target: <path>` (no manifest);
+    `no launched record for launch_id u`; `worker name must begin with brichan-:
+    other`; `every --evidence item must be non-empty` (whitespace evidence);
+    and, after seeding one `launched` record, a first `finish` exit `0` followed
+    by `launch_id L1 already has a finished record`, exit `1`. After the first
+    four refusals the target held no `.brichan/ledger` directory.
+  - Parser and behavior source read directly: `worker_ledger.py:76-79` and
+    `139-150` (fixed `.brichan/ledger/workers.jsonl`), `:195-200`
+    (`_state_manifest_is_regular`, `os.lstat` + `S_ISREG`), `:203-220`
+    (`--project` else upward Git-root walk; `no ledger for this target`),
+    `:445-453` (first `finished` record in file order wins), `:633-637`
+    (unmatched and already-finished refusals), `:670-692` (installed `finish`
+    defines `--project`, checkout defines `--ledger-file`), `:700-742` (prefix
+    and evidence refusals, exit `1`; checkout-only exit `2` path);
+    `worker_launch.py:422-442` (`--task` help; `--ledger-file` defined only when
+    a checkout root is present), `:513-521` (routed installed launches always use
+    `installed_location`), `:568-570` (`--dry-run`/`--json` return `0` before any
+    ledger write), `:680-704` (record written only after the rollback scope
+    closes; `ledger: launch_id=<uuid>` and `warning: worker started but ledger
+    write failed: ` on stderr, exit stays `0`), `:715` (stdout is the verbatim
+    start envelope). `task_id=args.task` is passed straight through
+    (`worker_ledger.py:735`); nothing infers it.
+  - Contract liveness, by mutation on a scratchpad copy of the packaged skill
+    tree (no tracked file was modified): deleting the `## Worker ledger` section
+    fails the heading guard plus 10 markers; moving it above the observation
+    safeguards fails the `safeguards < ledger` ordering assertion; appending an
+    affirmative `--ledger-file` sentence raises the occurrence count to 2 and
+    fails; dropping "recorded verbatim and is never inferred" or "attestation,
+    not proof" each fails one marker; deleting the safeguards paragraph raises
+    `ValueError` (test gap 3). The unmutated tree is clean. All thirteen new
+    markers were confirmed present in both skill trees, and the checkout path
+    shape `projects/<slug>/ledger/workers.jsonl` is absent from the packaged
+    tree.
+  - Focused contracts (`test_skill_parity_contract`, `test_dogfood_policy_contract`,
+    `test_packaging_metadata`): 43 tests `OK` on Python 3.10.11 and on 3.14.6.
+  - Completion gate, `client-follow-up-questions.md` v2 as extended by plan step 6,
+    all runs with `PYTHONDONTWRITEBYTECODE=1`. On 3.10: `test-unit` 1026 tests
+    `OK`; `test-contract` 149 tests, 2 failures, 1 skipped; `test-integration` 222
+    tests, 1 failure; `techstack-eval`, `metrics`, `receipts`, `memory-check`,
+    `readme-check`, `phase5-preflight`, `package-check` exit `0`; `dossiers` and
+    `path-check` exit `2`; `sh -n bin/brichan` exit `0`;
+    `metrics/test_validate_metrics.py` 10 tests `OK`. On 3.14.6 via
+    `PYTHON=/opt/homebrew/bin/python3.14`: identical results, with the two direct
+    invocations the recipes do not honor green
+    (`evals.techstack_context_v1.test_cases` 56 tests `OK`;
+    `metrics/test_validate_metrics.py` 10 tests `OK`). The failing tests are
+    exactly `test_current_path_and_link_contracts_pass`,
+    `test_every_non_ephemeral_root_file_is_classified` (both
+    `unclassified root files: .git`, this worktree's `.git` file) and
+    `test_repository_checkout_validates_clean`. Literal
+    `PYTHONDONTWRITEBYTECODE=1 make check` was also run: it exits `2`, stopping at
+    those same two contract failures after `test-unit` and the metrics tests pass.
+    `make check`'s target set equals the ratified list plus `sh -n bin/brichan`
+    and `metrics/test_validate_metrics.py` (`Makefile:24-27,75-76`), so the
+    decomposed run is `make check`-equivalent and strictly more informative.
+  - Dossier-diagnostic ownership before this artifact was written: 40 issues,
+    `index.md` 30 (including the `canonical receipt does not exist` row),
+    `code-review.md` 5, `pr-desc.md` 5 — all pending coordinator- or
+    reviewer-owned WFS-A-204 artifacts, none owned by a planner artifact, by
+    `implementation.md`, or by another dossier. This matches
+    `implementation.md`'s split exactly.
+  - No frozen digest of the packaged resources exists in the repository: the only
+    non-resource reference to the edited file is `src/brichan/lifecycle.py:37`
+    (`IMMUTABLE_PATHS`), and manifest hashes are computed at `init` time
+    (`:143-153`), so no contract byte needed updating beyond the parity markers.
+    The packaged skill's other files carry no `ledger` or `--task` text in either
+    tree, so the change creates no intra-tree contradiction and no packaged /
+    checkout parity gap outside `references/commands.md`.
+
+  ## Uncertainty
+
+  - This session cannot observe its own effort setting from inside; `high` is
+    recorded as the depth actually applied (full gate on both interpreters,
+    mutation testing, CLI reproduction against a scratch target), not as a value
+    read from configuration. `config/model-routing.json` routes `review` to
+    `codex`/`gpt-5.6-sol`/`medium`, so this session ran under a coordinator
+    one-off model override.
+  - Review independence rests on identifier and model-identifier inequality plus
+    this session having no implementation context; `implementation.md` records no
+    authoring session identifier, so independence from the implementer cannot be
+    proved from the dossier alone.
+  - The window between the last source edit (`21:16:46`) and `implementation.md`
+    (`21:23:39`) is about seven minutes, which is tight for a gate that took this
+    session roughly six minutes across both interpreters. Every result claimed in
+    that table was independently re-measured here on the current bytes and
+    matched, so the claims are verified regardless of when the implementer ran
+    them.
+  - The expected-red baseline is specific to this detached worktree and this
+    in-flight dossier; it is not evidence about the main checkout.
+  - No other unresolved uncertainty remains.
+  MARKDOWN
+  echo "written"; grep -c "" projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md)
+  ⎿  written
+     334
+
+⏺ Bash(grep -n "finish.add_argument\|def _state_manifest_is_regular\|def resolve_installed_location\|def
+  finished_record\|already has a finished record\|must begin with\|must be non-empty\|task_id=args.task"
+  src/brichan/orchestration/worker_ledger.py && echo "--- launch ---" && grep -n
+  "NO_LOCATION_NOTE\|installed_location(paths.project_root)\|if args.dry_run\|sys.stdout.write(start_stdout)\|ledger:
+  launch_id" src/brichan/orchestration/worker_launch.py && grep -n "NO_LOCATION_NOTE"
+  src/brichan/orchestration/worker_ledger.py)
+  ⎿  195:def _state_manifest_is_regular(project_root: Path) -> bool:
+     203:def resolve_installed_location(project: str | Path | None = None) -> LedgerLocation:
+     445:def finished_record(
+     638:            return f"launch_id {launch_id} already has a finished record"
+     679:    finish.add_argument("--worker", required=True)
+     680:    finish.add_argument("--launch-id", required=True)
+     681:    finish.add_argument(
+     687:    finish.add_argument("--task")
+     688:    finish.add_argument("--pane")
+     690:        finish.add_argument("--ledger-file", required=True)
+     692:        finish.add_argument("--project")
+     705:            f"{PROGRAM}: worker name must begin with {WORKER_NAME_PREFIX}: "
+     713:                f"{PROGRAM}: every --evidence item must be non-empty",
+     735:        task_id=args.task,
+     --- launch ---
+     32:    NO_LOCATION_NOTE,
+     523:                else installed_location(paths.project_root)
+     568:        if args.dry_run:
+     680:            print(NO_LOCATION_NOTE, file=sys.stderr)
+     698:                print(f"ledger: launch_id={launch_id}", file=sys.stderr)
+     716:        sys.stdout.write(start_stdout)
+     96:NO_LOCATION_NOTE = "ledger: no ledger location for this launch; not recorded"
+
+⏺ Bash(F=projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md && python3 - "$F" <<'EOF'
+  import sys
+  from pathlib import Path
+  p=Path(sys.argv[1]); t=p.read_text(encoding="utf-8")
+  fixes=[
+   ("`worker_ledger.py:702-708`","`worker_ledger.py:704-709`"),
+   ("the empty-evidence check (`:709-716`)","the empty-evidence check (`:710-717`)"),
+   ("`:633-637`\n   (unmatched","`:634-638`\n   (unmatched"),
+   ("`worker_launch.py:513-521`","`worker_launch.py:514-524`"),
+   ("(`worker_launch.py:686`, `worker_ledger.py:97`)","(`worker_launch.py:680`, `worker_ledger.py:96`)"),
+   ("`:568-570` (`--dry-run`","`:568-570` (`--dry-run`"),
+   ("`:715` (stdout is the verbatim","`:716` (stdout is the verbatim"),
+   ("`worker_ledger.py:700-742` (prefix","`worker_ledger.py:701-742` (prefix"),
+  ]
+  for a,b in fixes:
+      if a not in t: print("MISS:",repr(a[:50]))
+      t=t.replace(a,b)
+  p.write_text(t,encoding="utf-8")
+  print("ok")
+  EOF)
+  ⎿  MISS: '`:633-637`\n   (unmatched'
+     MISS: '`worker_ledger.py:700-742` (prefix'
+     ok
+
+⏺ Bash(grep -n "633-637\|700-742\|445-453\|195-200\|203-220"
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md)
+  ⎿  188:   `.brichan/manifest.json` (`worker_ledger.py:195-200`) and never calls
+     252:  `139-150` (fixed `.brichan/ledger/workers.jsonl`), `:195-200`
+     253:  (`_state_manifest_is_regular`, `os.lstat` + `S_ISREG`), `:203-220`
+     255:  `:445-453` (first `finished` record in file order wins), `:633-637`
+     257:  defines `--project`, checkout defines `--ledger-file`), `:700-742` (prefix
+
+⏺ Bash(sed -i '' 's/`:633-637`/`:634-638`/; s/`:700-742` (prefix/`:701-742` (prefix/'
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md && sed -n '250,260p'
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md && sed -n '195,200p;203,206p;445,455p'
+  src/brichan/orchestration/worker_ledger.py)
+  ⎿    four refusals the target held no `.brichan/ledger` directory.
+     - Parser and behavior source read directly: `worker_ledger.py:76-79` and
+       `139-150` (fixed `.brichan/ledger/workers.jsonl`), `:195-200`
+       (`_state_manifest_is_regular`, `os.lstat` + `S_ISREG`), `:203-220`
+       (`--project` else upward Git-root walk; `no ledger for this target`),
+       `:445-453` (first `finished` record in file order wins), `:634-638`
+       (unmatched and already-finished refusals), `:670-692` (installed `finish`
+       defines `--project`, checkout defines `--ledger-file`), `:701-742` (prefix
+       and evidence refusals, exit `1`; checkout-only exit `2` path);
+       `worker_launch.py:422-442` (`--task` help; `--ledger-file` defined only when
+       a checkout root is present), `:513-521` (routed installed launches always use
+     def _state_manifest_is_regular(project_root: Path) -> bool:
+         try:
+             info = os.lstat(project_root / STATE_DIRECTORY / STATE_MANIFEST)
+         except OSError:
+             return False
+         return stat.S_ISREG(info.st_mode)
+     def resolve_installed_location(project: str | Path | None = None) -> LedgerLocation:
+         """The installed ledger for an explicit or discovered target root.
+
+         The target root is ``--project`` when given, else the Git root discovered
+     def finished_record(
+         records: Iterable[dict[str, Any]], launch_id: str
+     ) -> dict[str, Any] | None:
+         """The winning ``finished`` record for ``launch_id``.
+
+         The first ``finished`` record for a ``launch_id`` in file order wins; any
+         later one is a duplicate. This is the tie-break consumers apply when two
+         overlapping ``finish`` runs both pass the duplicate check.
+         """
+
+         for record in records:
+
+⏺ Bash(grep -n "513-521\|514-524" projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md && sed -i ''
+  's/`:513-521` (routed/`:514-524` (routed/' projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md && grep
+  -n "513-521\|514-524\|worker_launch.py:680\|:716 (stdout\|:704-709\|:710-717"
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md)
+  ⎿  172:   the fixed location (`worker_launch.py:514-524`). A legacy installed launch
+     260:  a checkout root is present), `:513-521` (routed installed launches always use
+     123:   (`worker_ledger.py:704-709`) or the empty-evidence check (`:710-717`), the
+     172:   the fixed location (`worker_launch.py:514-524`). A legacy installed launch
+     176:   (`worker_launch.py:680`, `worker_ledger.py:96`). The packaged skill tree
+     260:  a checkout root is present), `:514-524` (routed installed launches always use
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | grep -E "code-review|Invalid task"
+  )
+  ⎿  ../brichan-wfs-204a/projects/brida-workflow-simplification/handoffs/WFS-A-2
+     04/index.md: Artifact status.code-review.Applicability: index says '<required or not-required>' but code-review.md says
+     'required'
+     ../brichan-wfs-204a/projects/brida-workflow-simplification/handoffs/WFS-A-2
+     04/index.md: Artifact status.code-review.Phase state: index says '<phase state>' but code-review.md says 'passed'
+     Invalid task dossiers: 36 issue(s) across 8 dossier(s).
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | grep "^/" | sed
+  's|^.*handoffs/WFS-A-204/||;s|^.*/||;s|:.*||' | sort | uniq -c; echo "--- contracts ---"; PYTHONDONTWRITEBYTECODE=1 python3
+  -m unittest tests.contract.test_task_dossier_contract 2>&1 | tail -3; echo "--- receipts/memory ---";
+  PYTHONDONTWRITEBYTECODE=1 make receipts >/dev/null 2>&1; echo "receipts=$?"; PYTHONDONTWRITEBYTECODE=1 make memory-check
+  >/dev/null 2>&1; echo "memory-check=$?")
+  ⎿    30 index.md
+        5 pr-desc.md
+        1 receipt.md
+     --- contracts ---
+     Ran 26 tests in 0.058s
+
+     OK
+     --- receipts/memory ---
+     receipts=0
+     memory-check=0
+
+⏺ Bash(export PYTHONDONTWRITEBYTECODE=1 && for t in test-contract test-integration; do printf "%-16s " "$t"; out=$(make $t
+  2>&1); echo "| $(echo "$out" | grep -E '^(Ran |OK|FAILED)' | tr '\n' ' ')"; echo "$out" | grep -E '^(FAIL|ERROR):'; done)
+  ⎿  test-contract    | Ran 149 tests in 0.845s FAILED (failures=2, skipped=1)
+     FAIL: test_current_path_and_link_contracts_pass (tests.contract.test_repository_paths.RepositoryPathContractTest)
+     FAIL: test_every_non_ephemeral_root_file_is_classified (tests.contract.test_repository_paths.RepositoryPathContractTest)
+     test-integration | Ran 222 tests in 84.455s FAILED (failures=1)
+     FAIL: test_repository_checkout_validates_clean
+     (tests.integration.test_task_dossier_workflow.TaskDossierWorkflowIntegrationTest)
+  ⎿  (timeout 10m)
+
+⏺ Bash(git status --short && echo "--- my file ---" && ls -l
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md && head -22
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md)
+  ⎿   M src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md
+      M tests/contract/test_skill_parity_contract.py
+     --- my file ---
+     -rw-r--r--@ 1 minhtran  staff  20514 Sep 25 21:41
+     projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md
+     # Code review
+
+     Independent review of the implementation, or the recorded evidence for why no implementation review applies.
+
+     ## Artifact metadata
+
+     - Task ID: `WFS-A-204`
+     - Task level: `1`
+     - Artifact: `code-review`
+     - Artifact version: `1`
+     - Origin: `packet:WFS-A-204-REVIEW@2026-09-25#attempt-code-review-1`
+     - Owner: `reviewer`
+     - Phase state: `passed`
+     - Applicability: `required`
+     - Applicability rationale: `null`
+     - Authorship: `model`
+     - Authoring session: `e8260526-ff5e-4b3c-8a87-21ee0e449ba9`
+     - Effective route: `review`
+     - Effective model: `claude-opus-5`
+     - Effective effort: `high`
+     - Reviewing session: `e8260526-ff5e-4b3c-8a87-21ee0e449ba9`
+     - Review verdict: `PASS`
+
+⏺ Review complete.
+
+  1. Verdict and totals
+
+  PASS. Spec fidelity 5, Code review 5, Empirical verification 5 — total 15/15. One low finding, no critical/high/medium.
+
+  - L1 (low): the finish usage block renders --project <absolute-target-project> unbracketed (commands.md:88) while bracketing
+    the other optional flags on the line above; the shipped parser has finish.add_argument("--project") with no required=True
+    (worker_ledger.py:692) and --help prints [--project PROJECT]. Mitigated by the very next sentence, which documents the
+    omission behavior; deliberate in design.md:107. Not verdict-changing.
+
+  2. File written
+
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/code-review.md (only file written; git status --short still lists
+  exactly the two implementer-modified tracked files).
+
+  3. Verification
+
+  - Techstack verify → status: match, run first; all eight selected rule files read.
+  - Transcription: both design.md v4 blockquotes (342 and 2004 chars) are exact substrings of the edited packaged file; diff
+    is 2 files, 90 insertions(+), 0 deletions.
+  - CLI fidelity, executed here: --task help text verbatim; installed launcher and installed finish both reject --ledger-file
+    at exit 2; the four documented refusals reproduced at exit 1 with nothing written; seeded launched record → first finish
+    exit 0, second refused already has a finished record, exit 1.
+  - Mutation testing on a scratchpad copy: every one of the new test's assertions and the new markers go red when the text is
+    deleted, moved above the safeguards, or given an affirmative --ledger-file mention.
+  - Gate, both interpreters (3.10.11 / 3.14.6): focused contracts 43 tests OK; test-unit 1026 OK; test-contract 149/2
+    failures; test-integration 222/1 failure; all other targets exit 0 except dossiers and path-check. Literal make check
+    exits 2 at the two known .git-file failures. Failing tests are exactly the two worktree-only test_repository_paths cases
+    plus the in-flight-dossier test_repository_checkout_validates_clean — reported, not fixed.
+  - Dossier diagnostics were 40 (index 30 / code-review 5 / pr-desc 5), now 36 after writing this artifact — the five
+    code-review.md diagnostics cleared; the rest are coordinator-owned (index.md, pr-desc.md, missing receipt.md).
+
+  4. Uncertainties
+
+  - implementation.md records no authoring session id, so independence from the implementer rests on model-identifier
+    inequality and this session's lack of implementation context.
+  - The implementer's last source edit (21:16:46) to their evidence file (21:23:39) is ~7 minutes, tight for a gate that took
+    me ~6 minutes across both interpreters; every row was independently re-measured here on the current bytes and matched.
+  - This session cannot read its own effort setting; high records the depth actually applied. config/model-routing.json routes
+    review to codex/gpt-5.6-sol, so this is a one-off override and the review is same-family (opus-5 reviewing opus-5-5) — a
+    human decision under reviewer.md's different-provider preference.
+  - Expected-red baseline is worktree- and dossier-specific; re-measure on the main checkout before merge.
+
+  5.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=83f558c900eef80979d2c64fa295ac4b1b89d4aed2bcceea89b876d330f6e1c4
+
+✻ Crunched for 18m 33s · done 9:43 PM
+                                                                                                               159272 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Fix L1 and bracket --project in the usage block
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 15% │ brichan-wfs-204a │ ● high 💭
+  current ●●●●○○○○○○  40% ⟳ 12:40am
+  weekly  ●●●●●○○○○○  57% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  35% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

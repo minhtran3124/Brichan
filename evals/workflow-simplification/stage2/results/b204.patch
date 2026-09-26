@@ -1,0 +1,302 @@
+diff --git a/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/SKILL.md b/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/SKILL.md
+index f11db86..47d364e 100644
+--- a/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/SKILL.md
++++ b/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/SKILL.md
+@@ -13,11 +13,16 @@ or automatic delegation.
+ 1. Confirm `herdr status`, `herdr integration status`, and `herdr agent list`.
+ 2. Write a bounded task packet using `references/task-packet.md`.
+ 3. Start a unique `brichan-` worker with `brichan-herdr-agent-start`, an absolute
+-   target `--cwd`, and a named route.
+-4. Record its name, pane ID, model, task, and status in project memory.
++   target `--cwd`, a named route, and `--task <TASK-ID>`. The launch records
++   itself in the target's `.brichan/ledger/workers.jsonl`.
++4. Record its name, pane ID, model, task, `launch_id`, and status in project
++   memory.
+ 5. Submit the packet, monitor without busy-polling, and collect final evidence.
+ 6. Check acceptance criteria and material risks.
+-7. Update project memory and close only the pane Brichan created.
++7. Attest the finish with `brichan-herdr-worker-ledger finish --project
++   <absolute-target-project>`, citing the evidence. The record is an
++   attestation, not proof. See `references/commands.md`.
++8. Update project memory and close only the pane Brichan created.
+ 
+ Do not broaden permissions, include secrets, use permission-bypass flags, let a
+ worker spawn agents, or choose Codex `ultra` for a worker.
+diff --git a/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md b/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md
+index 1d1d86a..1b0d368 100644
+--- a/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md
++++ b/src/brichan/resources/dogfood_v1/skills/herdr-orchestration/references/commands.md
+@@ -15,11 +15,13 @@ Start a named-route worker from the installed package:
+ brichan-herdr-agent-start brichan-<name> \
+   --anchor-pane <coordinator-pane-id> \
+   --cwd <absolute-target-project> \
+-  --route <plan|implement|review|scan>
++  --route <plan|implement|review|scan> \
++  --task <TASK-ID>
+ ```
+ 
+-Use `--dry-run` or `--json` to resolve a route without calling Herdr. Submit
+-prompts with `herdr pane run`. Close only a recorded Brichan-owned pane with
++`--task` records the task this worker serves in the worker ledger; see Worker
++ledger below. Use `--dry-run` or `--json` to resolve a route without calling
++Herdr. Submit prompts with `herdr pane run`. Close only a recorded Brichan-owned pane with
+ `herdr pane close <pane-id>`.
+ 
+ Observe workers through the read-only helper:
+@@ -62,6 +64,56 @@ Safeguards that apply to every observation:
+ - Before declaring a worker stale, record three timestamped no-progress
+   observations, then allow one bounded replacement, then escalate.
+ 
++## Worker ledger
++
++Pass `--task <TASK-ID>` on every launch. The value is recorded verbatim and is
++never inferred when the flag is absent. An installed launch always writes the
++target's fixed `.brichan/ledger/workers.jsonl`; there is no ledger-location
++option, and `--ledger-file` is rejected as an unrecognized argument (exit `2`)
++before any Herdr call.
++
++A successful launch appends exactly one `launched` record and prints
++`ledger: launch_id=<uuid>` on stderr; stdout stays the verbatim
++`agent_started` envelope. Record that `launch_id` in project memory with the
++worker's name and pane ID. A launch that rolls back appends nothing, and
++`--dry-run` and `--json` write nothing. A ledger failure after a start prints
++`warning: worker started but ledger write failed: <reason>` and changes
++nothing else: the exit code stays `0` and the worker stays up. A named-route
++launch always resolves the fixed ledger; only a legacy launch with an explicit
++command after `--` whose `--cwd` is not inside an initialized target prints
++`ledger: no ledger location for this launch; not recorded` and proceeds.
++
++Record the worker's end only from evidence, never from scheduling state:
++
++```text
++brichan-herdr-worker-ledger finish \
++  --project <absolute-target-project> \
++  --worker <brichan-name> \
++  --launch-id <uuid> \
++  --evidence <repo-relative-path> [--evidence <citation> ...] \
++  [--task <TASK-ID>] [--pane <pane-id>]
++```
++
++`--project` names the target's Git root, whose `.brichan/ledger/workers.jsonl`
++receives the record; without it, the Git root found upward from the current
++directory is used. A `finished` record is a coordinator attestation, not proof:
++the command cannot verify completion. It refuses a `--launch-id` that matches
++no `launched` record, a `--launch-id` that already has a `finished` record, a
++worker name without the `brichan-` prefix, an empty or whitespace-only
++`--evidence` item, and a target that is not a Git root or has no regular
++`.brichan/manifest.json`, each with exit `1` and nothing written. Each launch
++takes at most one attestation; when two `finish` runs overlap, consumers take
++the first `finished` record for that `launch_id` in file order as the winning
++one.
++Absence of a `finished` record means "unknown", never "still running" or
++"failed".
++
++| Exit | Meaning |
++|---:|---|
++| `0` | Attestation recorded |
++| `1` | Refused or failed (no ledger, unmatched or already-finished `launch_id`, write failure) |
++| `2` | Invalid invocation, including a missing required flag or `--ledger-file` |
++
+ ## Recover a swallowed Enter
+ 
+ A multi-line or long task packet can arrive in an agent TUI as a single paste
+diff --git a/tests/contract/test_packaged_ledger_guidance_contract.py b/tests/contract/test_packaged_ledger_guidance_contract.py
+new file mode 100644
+index 0000000..8a49253
+--- /dev/null
++++ b/tests/contract/test_packaged_ledger_guidance_contract.py
+@@ -0,0 +1,173 @@
++"""The packaged skill's worker-ledger commands must run on the shipped CLI.
++
++Regression guard for WLG-001's residual risk: the packaged
++`herdr-orchestration` skill that `brichan init` installs said nothing about the
++worker ledger, so an installed coordinator never passed `--task` or attested a
++finish. The guidance now exists; these checks keep its command blocks
++executable against the installed entry points, so a renamed or removed flag
++fails `make check` instead of shipping stale instructions. The checkout-only
++`--ledger-file` must never appear as a usable installed option.
++"""
++
++import contextlib
++import io
++import json
++import re
++import shlex
++import sys
++import tempfile
++import unittest
++from pathlib import Path
++
++
++ROOT = Path(__file__).resolve().parents[2]
++sys.path.insert(0, str(ROOT / "src"))
++
++from brichan.orchestration import worker_launch, worker_ledger
++
++
++PACKAGED_SKILL = ROOT / "src/brichan/resources/dogfood_v1/skills/herdr-orchestration"
++COMMANDS = PACKAGED_SKILL / "references/commands.md"
++
++LAUNCH_ID = "00000000-0000-4000-8000-000000000000"
++
++
++def command_block(prefix: str) -> list[str]:
++    """Tokenize the one fenced `text` block that starts with ``prefix``.
++
++    Optional groups (`[...]`) are taken as written, so every documented flag
++    is exercised, and a trailing `...` repetition marker is dropped.
++    """
++
++    text = COMMANDS.read_text(encoding="utf-8")
++    blocks = [
++        block
++        for block in re.findall(r"```text\n(.*?)```", text, re.DOTALL)
++        if block.startswith(prefix)
++    ]
++    if len(blocks) != 1:
++        raise AssertionError(f"expected one block starting {prefix!r}: {blocks}")
++    joined = blocks[0].replace("\\\n", " ").replace("[", " ").replace("]", " ")
++    return [token for token in shlex.split(joined) if token != "..."]
++
++
++def substitute(tokens: list[str], values: dict[str, str]) -> list[str]:
++    result = [values.get(token, token) for token in tokens]
++    leftover = [token for token in result if token.startswith("<")]
++    if leftover:
++        raise AssertionError(f"unsubstituted placeholders: {leftover}")
++    return result
++
++
++def run_quietly(entrypoint, argv: list[str]) -> tuple[int, str]:
++    stderr = io.StringIO()
++    with contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(
++        io.StringIO()
++    ):
++        try:
++            code = entrypoint(argv)
++        except SystemExit as exc:  # the launcher lets argparse exit directly
++            code = int(exc.code or 0)
++    return code, stderr.getvalue()
++
++
++class PackagedLedgerGuidanceContractTest(unittest.TestCase):
++    def setUp(self):
++        self.commands = COMMANDS.read_text(encoding="utf-8")
++        self.normalized = " ".join(self.commands.split())
++        temp = tempfile.TemporaryDirectory()
++        self.addCleanup(temp.cleanup)
++        self.target = Path(temp.name).resolve()
++
++    def make_installed_target_with_one_launch(self) -> Path:
++        (self.target / ".git").mkdir()
++        (self.target / ".brichan/ledger").mkdir(parents=True)
++        (self.target / ".brichan/manifest.json").write_text("{}\n", encoding="utf-8")
++        ledger = self.target / ".brichan/ledger/workers.jsonl"
++        ledger.write_text(
++            json.dumps({"event": "launched", "launch_id": LAUNCH_ID}) + "\n",
++            encoding="utf-8",
++        )
++        return ledger
++
++    def test_the_documented_finish_command_records_an_installed_attestation(self):
++        ledger = self.make_installed_target_with_one_launch()
++        tokens = command_block("brichan-herdr-worker-ledger finish")
++        self.assertEqual("brichan-herdr-worker-ledger", tokens[0])
++        argv = substitute(
++            tokens[1:],
++            {
++                "<absolute-target-project>": str(self.target),
++                "<brichan-name>": "brichan-worker",
++                "<uuid>": LAUNCH_ID,
++                "<repo-relative-path>": "projects/p/handoffs/T/worker-report.md",
++                "<citation>": "make check",
++                "<TASK-ID>": "T-1",
++                "<pane-id>": "p1",
++            },
++        )
++
++        code, stderr = run_quietly(worker_ledger.main, argv)
++
++        self.assertEqual(0, code, stderr)
++        records = [
++            json.loads(line)
++            for line in ledger.read_text(encoding="utf-8").splitlines()
++        ]
++        self.assertEqual("finished", records[-1]["event"])
++        self.assertEqual(LAUNCH_ID, records[-1]["launch_id"])
++        self.assertEqual("T-1", records[-1]["task_id"])
++
++    def test_the_documented_launch_command_parses_on_the_installed_launcher(self):
++        """Every documented launch flag, `--task` included, is accepted.
++
++        The launch cannot start here, so the check is that argument parsing
++        passes: a parse failure exits `2` with usage text, while this run stops
++        later with exit `1` because the temporary target is not initialized.
++        """
++
++        tokens = command_block("brichan-herdr-agent-start")
++        self.assertIn("--task", tokens)
++        argv = substitute(
++            tokens[1:],
++            {
++                "brichan-<name>": "brichan-worker",
++                "<coordinator-pane-id>": "p0",
++                "<absolute-target-project>": str(self.target),
++                "<plan|implement|review|scan>": "implement",
++                "<TASK-ID>": "T-1",
++            },
++        )
++
++        code, stderr = run_quietly(worker_launch.main, [*argv, "--dry-run"])
++
++        self.assertEqual(1, code, stderr)
++        self.assertNotIn("usage:", stderr)
++
++    def test_the_installed_guidance_never_offers_the_checkout_ledger_flag(self):
++        for block in re.findall(r"```text\n(.*?)```", self.commands, re.DOTALL):
++            self.assertNotIn("--ledger-file", block)
++        self.assertIn(
++            "`--ledger-file` is rejected as an unrecognized argument (exit `2`)",
++            self.normalized,
++        )
++        self.assertNotIn("projects/<slug>/ledger", self.commands)
++
++    def test_the_installed_guidance_states_the_ledger_rules(self):
++        for marker in (
++            "Pass `--task <TASK-ID>` on every launch",
++            "recorded verbatim and is never inferred when the flag is absent",
++            "An installed launch always writes the target's fixed "
++            "`.brichan/ledger/workers.jsonl`",
++            "--project <absolute-target-project>",
++            "A `finished` record is a coordinator attestation, not proof",
++            "matches no `launched` record",
++            "already has a `finished` record",
++            "without the `brichan-` prefix",
++            "empty or whitespace-only `--evidence` item",
++        ):
++            self.assertIn(marker, self.normalized, marker)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/contract/test_skill_parity_contract.py b/tests/contract/test_skill_parity_contract.py
+index 10d3c1e..e3752ab 100644
+--- a/tests/contract/test_skill_parity_contract.py
++++ b/tests/contract/test_skill_parity_contract.py
+@@ -63,6 +63,16 @@ PARITY_MARKERS = (
+     "at most three drifted observations",
+     "blocked and not-applicable stop with no artifact",
+     "an unmatched attempt can never enter a packet",
++    # Worker ledger (WFS-B-204, closing WLG-001's residual risk): the task
++    # identifier is never inferred, a finish is only ever an evidence-backed
++    # attestation, and a missing finish is never read as a worker state.
++    "recorded verbatim and is never inferred when the flag is absent",
++    ".brichan/ledger/workers.jsonl",
++    "Record the worker's end only from evidence, never from scheduling state",
++    "coordinator attestation, not proof",
++    "cannot verify completion",
++    "in file order as the winning one",
++    'Absence of a `finished` record means "unknown"',
+ )
+ 
+ #: The sixteen exact packet labels, in order. Both task-packet templates carry

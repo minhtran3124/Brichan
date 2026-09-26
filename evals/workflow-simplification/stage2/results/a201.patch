@@ -1,0 +1,13 @@
+diff --git a/tests/unit/test_techstack_markdown.py b/tests/unit/test_techstack_markdown.py
+index 9c79045..30d07a6 100644
+--- a/tests/unit/test_techstack_markdown.py
++++ b/tests/unit/test_techstack_markdown.py
+@@ -562,7 +562,7 @@ class LeafGrammarTest(unittest.TestCase):
+         self.assertEqual(("Run `make check` and see <exit 0>.",), parsed.verification)
+         self.assertEqual(("Waive `GENERAL-001` for <legacy> trees.",), parsed.exceptions)
+ 
+-    def test_prose_rejects_control_and_markup_characters(self):
++    def test_prose_rejects_pipe_and_category_c_characters(self):
+         # The retained rejections after the section 6 amendment: U+007C, and
+         # any Unicode category C character. U+0085 is category Cc and is not
+         # stripped as surrounding whitespace here, so it reaches the
