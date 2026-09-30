@@ -1,0 +1,32 @@
+    negative or window assertion trips.
+  - Baseline re-measured: make test-contract 148 tests / 2 failures ('.git'), make test-integration 222 / 1 failure,
+    check_repository_paths.py → unclassified root files: .git, validator 42 issues exit 1 (make dossiers exit 2).
+  - Post-write PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects: zero diagnostics owned by
+    plan-review.md (was 5 template diagnostics, now none). Total 42 → 38, exit 1. The two remaining lines mentioning
+    plan-review are owned by the still-templated index.md — coordinator-owned and out of my scope. That is finding L1
+    demonstrating itself.
+
+  4. Uncertainties
+
+  - M1 has two acceptable fixes and the contract evidence does not prefer one; that editorial call is the coordinator's.
+  - The packet's fourth acceptance criterion ("apart from the two known worktree-only failures") is not literally satisfiable
+    here. The plan's R12 widens it to include path-check, make dossiers, and one integration test. I verified all three and
+    the widening is correct, but it changes a stated acceptance criterion and should be ratified explicitly rather than
+    implicitly.
+  - projects/brida-worker-ledger/handoffs/WLG-001/code-review.md is absent from this worktree, so the originating residual
+    risk could not be re-read at source — as requirements.md already records. The gap itself was verified directly against the
+    packaged tree.
+
+  5. Techstack verification acknowledgement: yes;
+  snapshot_sha256=3b5cf1ede21684e0f8d285dbd9d9cee3472602ab964067e9424b7c87d355a7ab
+
+✻ Cogitated for 10m 26s · done 4:14 PM
+                                                                                                               158693 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 15% │ brichan-wfs-204a │ ● high 💭
+  current ●●●○○○○○○○  32% ⟳ 7:40pm
+  weekly  ●●●●○○○○○○  43% ⟳ sep 30, 5:00am
+  fable   ●●○○○○○○○○  25% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

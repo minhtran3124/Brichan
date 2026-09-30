@@ -1,0 +1,400 @@
+    (`tests/contract/test_repository_paths.py:90`), which asserts
+    `[".git.bak", "stray.txt"]` from a root also holding `.git`, an ignored
+    `.env`, and an inventoried `AGENTS.md`.
+  - Acceptance criterion 3, mutation, run on a scratch detached worktree with the
+    two changed files copied in, never on the main checkout. Baseline on that copy
+    was `Ran 10 tests` / `OK`. Four mutations, each applied to a pristine copy:
+
+    | Mutation | Result |
+    | --- | --- |
+    | delete `and path.name != GIT_METADATA` | `FAILED (failures=3)`:
+  `test_a_worktree_git_file_is_not_an_unclassified_root_file`, `test_other_unclassified_root_files_are_still_reported`,
+  `test_current_path_and_link_contracts_pass` |
+    | `!= GIT_METADATA` becomes `not path.name.startswith(GIT_METADATA)` | `FAILED (failures=1)`:
+  `test_other_unclassified_root_files_are_still_reported` |
+    | `!= GIT_METADATA` becomes `path.name not in SKIPPED_PARTS` | `OK` — survives (L2) |
+    | `if path.is_file()` becomes `if path.exists()` | `FAILED (failures=1)`: `test_current_path_and_link_contracts_pass` |
+
+    The first mutation shows three failures where the report records two; both are
+    right. The report ran the mutation in the main checkout, where `.git` is a
+    directory and `test_current_path_and_link_contracts_pass` therefore stays
+    green; I ran it in a worktree, where that test fails too. The regression is
+    caught in both environments.
+  - File restored byte-for-byte. Because every mutation ran on a scratch copy, the
+    main checkout was never modified. `shasum -a 256` of both files before and
+    after all mutation work is identical, and `diff` of the two recordings is
+    empty:
+    `867e609eee1959f065b725accaff178766769fffd327d7a2b5351e29793c0255  scripts/check_repository_paths.py`
+    and
+    `1a032a7036082b7b149d7795963072fc35f94de93df89b845030c88ca82540de  tests/contract/test_repository_paths.py`.
+    The script digest equals the value `report.md` records. `git status --short`
+    after the exercise is unchanged from before it, and the second scratch
+    worktree was removed and pruned.
+  - Acceptance criterion 4, `make check` on both interpreters.
+    `PYTHONDONTWRITEBYTECODE=1 make -k check` (Python 3.10.11) and the same with
+    `PYTHON=/opt/homebrew/bin/python3.14` (3.14.6) both exit 2 with identical
+    results. `-k` was needed to observe every target, because `check` runs `test`
+    first and a plain `make check` stops there. Green on both: `test-unit`
+    1069 `OK`, `test-contract` 156 `OK`, the metrics unit module 10 `OK`,
+    `techstack-eval` 56 `OK`, `metrics` `valid: 31 row(s)`, `receipts`
+    `Validated 58 canonical handoff receipt(s).`, `memory-check`
+    `project memory consistent: 10 indexed projects, 8 active documents`,
+    `path-check` `repository paths valid: 113 entries, 75 references`,
+    `readme-check` `README_PYPI.md is in sync with packaging/pypi-readme.md`,
+    `phase5-preflight` all six checks `pass`, and `package-check`'s three import
+    probes. Red on both: `test-integration`, one failure,
+    `test_task_dossier_workflow.TaskDossierWorkflowIntegrationTest.test_repository_checkout_validates_clean`,
+    and `dossiers`, `Invalid task dossiers: 20 issue(s)`.
+  - The red is confined to WFS-008's own pending artifacts. All 20 validator
+    issues name this task: 15 on `index.md` — five `Artifact metadata`
+    placeholders, four `Task identity` placeholders including the not-yet-written
+    canonical `receipt.md`, and six `Artifact status` rows disagreeing with the
+    artifacts — and five on `code-review.md`'s `Artifact metadata` placeholders.
+    Filtering both logs for `handoffs/` lines that do not name WFS-008 returns
+    nothing, on both interpreters. The integration failure's assertion message is
+    that same validator output. Acceptance criterion 4 holds under its stated
+    exception.
+  - `techstack-eval` run directly under 3.14, because its recipe freezes `python3`
+    literally (`Makefile:39-40`) and so does not follow `PYTHON=`, as
+    `techstacks/python/tests.md` requires:
+    `PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3.14 -m unittest
+    evals.techstack_context_v1.test_cases` reports `Ran 56 tests` / `OK`.
+    `path-check` does follow `$(PYTHON)` (`Makefile:55-56`), so the 3.14 run
+    exercised the changed script under 3.14.
+  - The manifest is untouched and the plan's reason for that holds:
+    `config/repository-paths.json` carries
+    `ignored_root_files: ['.DS_Store', '.env', 'CLAUDE.local.md']`, all
+    machine-local ephemera, alongside 113 entries and 75 references, and 15
+    inventoried root files.
+  - The repository already treated a regular-file `.git` as legitimate, so the fix
+    aligns the outlier rather than inventing an exemption:
+    `src/brichan/techstacks/filesystem.py:823` defines `GIT_MARKER_NAME = ".git"`
+    and its comments at lines 939-994 distinguish "a directory `.git`" from "a
+    regular worktree file"; `src/brichan/project.py:39` and `:49` probe
+    `(candidate / ".git").exists()`, which covers both. A grep for `.git` across
+    `scripts/` and `src/` found no remaining site that assumes a directory.
+  - L1 evidence: three isolated runs of
+    `tests.contract.test_repository_paths.RepositoryPathContractTest.test_a_git_directory_is_not_an_unclassified_root_file`
+    on a scratch copy — `OK` with the exemption deleted, `OK` with `is_file()`
+    changed to `exists()`, `FAILED (failures=1)` with both removed together.
+  - L2 evidence: the `path.name not in SKIPPED_PARTS` mutation row above, `OK`
+    across all 10 tests.
+  - L3 evidence: `scripts/check_repository_paths.py:18` and `:21`;
+    `tests/contract/test_repository_paths.py:68`;
+    `src/brichan/techstacks/filesystem.py:823`.
+  - L4 evidence:
+    `projects/brida-workflow-simplification/handoffs/WFS-008/index.md` is the
+    unedited template, its `Evidence` section still reading
+    `<repository or source evidence for the claim>`, so it records no level
+    determination for a reviewer to check.
+  - Techstack scope: Snapshot pointer
+    `projects/brida-workflow-simplification/handoffs/WFS-008/snapshots/attempt-code-review-1-c3cc32be0f59dfdb6718727822999219
+  6929b2f94ba1d0beac67f6933082e1e5.snapshot.json`,
+    digest `c3cc32be0f59dfdb67187278229992196929b2f94ba1d0beac67f6933082e1e5`.
+    `bin/brichan techstacks verify --as-of 2026-09-26` returned `status: match`
+    with `observed_snapshot_sha256` equal to that digest, run before any review
+    work. All seven required selected rule files were read:
+    `techstacks/README.md`, `techstacks/general.md`, `techstacks/policy/README.md`,
+    `techstacks/policy/task-dossiers.md`, `techstacks/python/README.md`,
+    `techstacks/python/scripts.md`, and `techstacks/python/tests.md`.
+
+  ## Uncertainty
+
+  Three uncertainties remain, none of which changes the verdict.
+
+  1. Provider independence is not satisfied. `config/model-routing.json` routes
+     `review` to `codex`/`gpt-5.6-sol` and `docs/policy/reviewer.md` prefers a
+     different verified provider, but Codex is usage-limited, so this review ran
+     Claude `claude-opus-5` at `high` effort. Model independence holds
+     (`claude-opus-5-5` implemented) and level 0 requires only routine reviewer
+     strength, which this meets or exceeds, so I judge the verdict sound.
+  2. Whether the manifest-versus-code choice counts as "multiple credible options
+     exist" under the level 1 triggers is a judgment call. I concluded it does not
+     and accepted level 0, and I recorded the reasoning in L4. Nothing material
+     turns on it: the two levels share the artifact set, the reviewer strength,
+     the ship gate, and, here, the mandatory review. The call belongs to the
+     coordinator, who owns `index.md`.
+  3. Real-worktree coverage rests on the temporary-directory stand-in plus this
+     session's live reproduction, not on a committed test that exercises a genuine
+     worktree from a main checkout. I confirmed the stand-in matches the real
+     artifact byte-shape, and the end-to-end test does cover the real case
+     whenever the suite runs inside a worktree, so I judge the coverage adequate;
+     a reader who wants the strongest possible guarantee would add a test that
+     shells out to `git worktree add`.
+  ARTIFACT
+  echo "written: $(wc -l < projects/brida-workflow-simplification/handoffs/WFS-008/code-review.md) lines")
+  ⎿  written:      501 lines
+
+⏺ Now validating the artifact I wrote.
+
+⏺ Bash(cd ../brida
+  F=projects/brida-workflow-simplification/handoffs/WFS-008/code-review.md
+  echo "=== home-path scan: forbidden literals in my artifact ==="
+  grep -n '<HOME-PREFIX>/\|<HOME-DIR>/' "$F" && echo "VIOLATION" || echo "clean: neither literal present"
+  echo "=== home-path contract test ==="
+  PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.contract.test_repository_contract 2>&1 | tail -4
+  echo "=== dossier validator: issues on code-review.md now ==="
+  python3 scripts/validate_task_dossiers.py projects 2>&1 | tail -25)
+  ⎿  === home-path scan: forbidden literals in my artifact ===
+     clean: neither literal present
+     === home-path contract test ===
+     ----------------------------------------------------------------------
+     Ran 18 tests in 0.433s
+
+     OK
+     === dossier validator: issues on code-review.md now ===
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact metadata.Artifact version: must be a positive integer
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact metadata.Origin: must record a concrete immutable origin marker
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact metadata.Phase state: must be one of ['active', 'blocked', 'not-required', 'passed', 'pending'], found
+     '<pending, active, passed, not-required, or blocked>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact metadata.Applicability: must be one of ['not-required', 'required'], found '<required or not-required>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact metadata.Authorship: must be one of ['human', 'model'], found '<model or human>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Task identity.Canonical receipt path: canonical receipt does not exist:
+     projects/brida-workflow-simplification/handoffs/WFS-008/receipt.md
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Task identity.Review route strength: must be one of ['routine', 'stronger'], found '<routine or stronger>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Task identity.Ship authorization: must be one of ['not-requested', 'user-authorized'], found '<not-requested or
+     user-authorized>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Task identity.Ship authorization: level 0 does not gate a ship; authorization must be 'not-requested'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact status.index.Phase state: index says '<phase state>' but index.md says '<pending, active, passed,
+     not-required, or blocked>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact status.request.Applicability: index says '<required or not-required>' but request.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact status.request.Phase state: index says '<phase state>' but request.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact status.report.Applicability: index says '<required or not-required>' but report.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact status.report.Phase state: index says '<phase state>' but report.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact status.code-review.Applicability: index says '<required or not-required>' but code-review.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-008/index.md:
+     Artifact status.code-review.Phase state: index says '<phase state>' but code-review.md says 'passed'
+     Invalid task dossiers: 16 issue(s) across 20 dossier(s).
+
+⏺ Bash(echo "dossier dirs with index.md or an artifact:" && find projects -path '*/handoffs/*' -name '*.md' -maxdepth 4
+  2>/dev/null | xargs -I{} dirname {} | sort -u | wc -l && echo "--- validator summary wording ---" && grep -n 'across'
+  scripts/validate_task_dossiers.py)
+  ⎿  dossier dirs with index.md or an artifact:
+     59
+     --- validator summary wording ---
+
+⏺ Bash(grep -rn 'Invalid task dossiers' scripts/ src/ | head -5)
+  ⎿  src/brichan/contracts/task_dossier/validation.py:1406:            f"Invalid task dossiers: {len(diagnostics)} issue(s)
+     across "
+
+⏺ Bash(sed -n '1390,1415p' src/brichan/contracts/task_dossier/validation.py)
+  ⎿      args = _build_parser().parse_args(argv)
+         projects_root = args.projects_root
+         if not projects_root.is_dir():
+             print(
+                 f"{projects_root}: projects root: directory does not exist",
+                 file=sys.stderr,
+             )
+             return 2
+
+         dossiers, diagnostics = validate_projects(
+             projects_root, require_complete=args.require_complete
+         )
+         if diagnostics:
+             for diagnostic in diagnostics:
+                 print(diagnostic.format(), file=sys.stderr)
+             print(
+                 f"Invalid task dossiers: {len(diagnostics)} issue(s) across "
+                 f"{len(dossiers)} dossier(s).",
+                 file=sys.stderr,
+             )
+             return 1
+
+         print(f"Validated {len(dossiers)} task dossier(s).")
+         return 0
+
+
+
+
+  projects/brida-workflow-simplification/handoffs/WFS-008/code-review.md)
+  ⎿  4. **The dossier validator's summary line overstates the blast radius.**
+        `make dossiers` prints `Invalid task dossiers: 20 issue(s) across 20
+        dossier(s).` while all 20 issues are on the single WFS-008 dossier. The count
+        of dossiers appears to be counting issues. It is pre-existing, outside this
+        diff, and cosmetic, but it invites a future reader to over-read a sanctioned
+        red.
+     5. **Provider independence is not satisfied.** Codex is usage-limited, so a
+
+⏺ Update(../brida/projects/brida-workflow-simplification/handoffs/WFS-008/code-
+        review.md)
+  ⎿  Added 11 lines, removed 6 lines
+      316     classified. This is pre-existing and unchanged by the diff; the extraction
+      317     moved the comprehension verbatim. Noted so it is not later mistaken for
+      318     something this change introduced.
+      319 -4. **The dossier validator's summary line overstates the blast radius.**
+      320 -   `make dossiers` prints `Invalid task dossiers: 20 issue(s) across 20
+      321 -   dossier(s).` while all 20 issues are on the single WFS-008 dossier. The count
+      322 -   of dossiers appears to be counting issues. It is pre-existing, outside this
+      323 -   diff, and cosmetic, but it invites a future reader to over-read a sanctioned
+      324 -   red.
+      319 +4. **The dossier validator's summary line reads as if the blast radius were
+      320 +   wider than it is.** `make dossiers` prints `Invalid task dossiers: 20
+      321 +   issue(s) across 20 dossier(s).` while all 20 issues are on the single WFS-008
+      322 +   dossier. The second number is not the count of dossiers with issues: in
+      323 +   `src/brichan/contracts/task_dossier/validation.py:1406-1407` it is
+      324 +   `len(dossiers)`, the number of contract-adopting dossiers scanned. The two
+      325 +   numbers coinciding at 20 makes the line read as one issue per dossier. After
+      326 +   this artifact replaced the template the same line reads `16 issue(s) across
+      327 +   20 dossier(s)`, which shows the second number is the scan population. It is
+      328 +   pre-existing, outside this diff, and cosmetic, but it invites a future reader
+      329 +   to over-read a sanctioned red.
+      330  5. **Provider independence is not satisfied.** Codex is usage-limited, so a
+      331     Claude change was reviewed by Claude. Model independence holds and level 0
+      332     asks only for routine reviewer strength.
+
+⏺ Bash(cd ../brida
+  F=projects/brida-workflow-simplification/handoffs/WFS-008/code-review.md
+  grep -c '<HOME-PREFIX>/\|<HOME-DIR>/' "$F" | sed 's/^/forbidden-literal hits: /'
+  echo "=== issues naming code-review.md ==="
+  python3 scripts/validate_task_dossiers.py projects 2>&1 | grep -c 'code-review.md:' | sed 's/^/count: /'
+  echo "=== full summary ==="
+  python3 scripts/validate_task_dossiers.py projects 2>&1 | tail -1
+  echo "=== contract + path + receipts + memory re-check (3.10) ==="
+  PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.contract.test_repository_contract
+  tests.contract.test_task_dossier_contract tests.contract.test_repository_paths 2>&1 | tail -4
+  PYTHONDONTWRITEBYTECODE=1 make path-check receipts memory-check 2>&1 | grep -vE '^python3 '
+  echo "=== same under 3.14 ==="
+  PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /opt/homebrew/bin/python3.14 -m unittest tests.contract.test_repository_contract
+  tests.contract.test_task_dossier_contract tests.contract.test_repository_paths 2>&1 | tail -4
+  echo "=== working tree: exactly one artifact written by me ==="
+  git status --short)
+  ⎿  forbidden-literal hits: 0
+     === issues naming code-review.md ===
+     count: 0
+     === full summary ===
+     Invalid task dossiers: 16 issue(s) across 20 dossier(s).
+     === contract + path + receipts + memory re-check (3.10) ===
+     ----------------------------------------------------------------------
+     Ran 59 tests in 0.608s
+
+     OK
+     repository paths valid: 113 entries, 75 references
+     Validated 58 canonical handoff receipt(s).
+     project memory consistent: 10 indexed projects, 8 active documents
+     === same under 3.14 ===
+     ----------------------------------------------------------------------
+     Ran 59 tests in 0.611s
+
+     OK
+     === working tree: exactly one artifact written by me ===
+      M .codex/config.toml
+      M scripts/check_repository_paths.py
+      M tests/contract/test_repository_paths.py
+     ?? .brichan.bak-2026-08-26/
+     ?? .brichan.bak-2026-08-28/
+     ?? .brichan.bak-2026-09-18/
+     ?? .brichan/
+     ?? evals/workflow-simplification/wfs-005/wfs008-implement-pane.txt
+     ?? evals/workflow-simplification/wfs-005/wfs008-implement-report.md
+
+⏺ Bash(cd ../brida
+  echo "=== the artifact exists and is gitignored (expected: Local Git boundary) ==="
+  ls -l projects/brida-workflow-simplification/handoffs/WFS-008/code-review.md
+  git check-ignore -v projects/brida-workflow-simplification/handoffs/WFS-008/code-review.md
+  echo "=== no scratch worktree left behind ==="
+  git worktree list
+  ls <scratch>
+  tchpad
+  echo "=== reviewed files still byte-identical ==="
+  shasum -a 256 scripts/check_repository_paths.py tests/contract/test_repository_paths.py)
+  ⎿  === the artifact exists and is gitignored (expected: Local Git boundary) ===
+     -rw-r--r--@ 1 minhtran  staff  31352 Sep 26 16:52 projects/brida-workflow-simplification/handoffs/WFS-008/code-review.md
+     .gitignore:67:/projects/*/handoffs/*/      projects/brida-workflow-simplification/handoffs/WFS-008/code-review.md
+     === no scratch worktree left behind ===
+     ../brida                     6bab70d [fix/worktree-git-file]
+     ../brichan-policy-benchmark  b345385 [eval/policy-002-benchmark]
+     check-310.log
+     check-314.log
+     pristine-script.py
+     sha-before.txt
+     === reviewed files still byte-identical ===
+     867e609eee1959f065b725accaff178766769fffd327d7a2b5351e29793c0255  scripts/check_repository_paths.py
+     1a032a7036082b7b149d7795963072fc35f94de93df89b845030c88ca82540de  tests/contract/test_repository_paths.py
+
+⏺ Review complete.
+
+  1. Verdict
+
+  PASS. The change is correct and minimal: the root-file classification now exempts exactly the root entry named .git, which
+  is the one thing that differs between a main checkout (.git is a directory, already excluded by is_file()) and a linked
+  worktree (.git is a regular pointer file). All four acceptance criteria hold, established by execution rather than by
+  reading the report.
+
+  Four Low findings, none blocking:
+  - L1 — report.md's Risks claim that test_a_git_directory_is_not_an_unclassified_root_file "guards a change from is_file()
+    to exists()" is wrong. It guards neither mutation alone; it fails only when both guards are removed. (Also: the Plan
+    gives a stale two-arg signature vs. the shipped three-arg one.)
+  - L2 — the Plan's explicit rejection of SKIPPED_PARTS reuse is unpinned. Mutating the exemption to path.name not in
+    SKIPPED_PARTS survives all 10 tests; a root file named __pycache__ would be silently exempt. One-word fix in the existing
+    test.
+  - L3 — the literal .git now appears three times (SKIPPED_PARTS:18, GIT_METADATA:21, hardcoded at
+    test_repository_paths.py:68), so the new constant isn't the single source of truth it was introduced to be.
+  - L4 — index.md is the unedited template, so the required level determination is unrecorded. I checked the triggers myself
+    and accept level 0; the "multiple credible options" trigger (manifest vs. code) is arguable, but nothing material turns
+    on it.
+
+  No missing-regression-test defect: two committed tests fail if the exemption regresses, verified by mutation.
+
+  2. File written
+
+  projects/brida-workflow-simplification/handoffs/WFS-008/code-review.md — exactly one file. (It doesn't show in git status
+  because /projects/*/handoffs/*/ is gitignored per the Local Git boundary.)
+
+  3. Verification
+
+  - Worktree — fresh detached worktree of 6bab70d, root .git confirmed a 92-byte regular ASCII file. Pre-fix: unclassified
+    root files: .git, FAILED (failures=2). Post-fix: repository paths valid: 113 entries, 75 references, Ran 10 tests / OK on
+    both 3.10 and 3.14. Live strictness check — stray.txt and .git.bak still reported alongside the exempt .git. Worktree
+    removed and pruned.
+  - Main checkout — path-check exit 0 and 10 tests OK on both interpreters.
+  - Mutation — four mutations on a scratch copy, so the main checkout was never touched; SHA-256 of both files identical
+    before and after (867e609e…0255, matching the report).
+  - make -k check — exit 2 on 3.10.11 and with PYTHON=/opt/homebrew/bin/python3.14, identical on both. Red is only
+    test-integration (1 failure) and dossiers; all 20 validator issues name WFS-008's own index.md, code-review.md, and
+    missing receipt.md. techstack-eval run directly under 3.14 since its recipe freezes python3.
+  - Post-write — 0 validator issues on code-review.md (20 → 16, remainder coordinator-owned index.md); no <HOME-PREFIX>/ or <HOME-DIR>/
+    literal; repository, dossier, and path contract tests pass on both interpreters.
+
+  I corrected one residual-risk bullet in place after checking the source: the validator's across N dossier(s) is the scan
+  population (validation.py:1406), not a miscount of issues.
+
+  4. Uncertainties
+
+  - Provider independence not satisfied — Codex is usage-limited, so a Claude change was reviewed by Claude. Model
+    independence holds (claude-opus-5-5 implemented, claude-opus-5 reviewed) and level 0 needs only routine reviewer
+    strength.
+  - Level 0 vs. 1 on the "multiple credible options" trigger is a judgment call; both levels share the artifact set, reviewer
+    strength, ship gate, and mandatory review here, so nothing material changes. Coordinator's call.
+  - Real-worktree coverage rests on the temp-dir stand-in (whose byte-shape I confirmed matches) plus this session's live
+    reproduction, not a committed test that spawns a worktree from a main checkout.
+
+  5.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=c3cc32be0f59dfdb67187278229992196929b2f94ba1d0beac67f6933082e1e5
+
+✻ Churned for 14m 51s · done 4:52 PM
+                                                                                                              154304 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 15% │ brida (fix/worktree-git-file*) │ ● high 💭
+  current ●●●●●●○○○○  60% ⟳ 5:10pm
+  weekly  ●●●●●●●○○○  75% ⟳ sep 30, 5:00am
+  fable   ●●●●○○○○○○  42% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

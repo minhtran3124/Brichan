@@ -1,0 +1,400 @@
+     docstring first; it states the distinction plainly.
+  5. Review-route deviation, for the coordinator to record: the `review` route in
+     `config/model-routing.json` names the Codex runtime and `gpt-5.6-sol`, and
+     this review ran a Claude session on `claude-opus-5`. Level 1 permits the
+     routine route, and the session is fresh with no implementation context, but
+     `docs/policy/reviewer.md` prefers a different verified provider from the
+     implementer, and the implementer was a Claude session on `claude-opus-5-5`.
+     Same provider family, and not a stronger model. Nothing in the change turns
+     on this; it is a provenance fact the index should carry.
+  6. Coordinator-owned remainder, not a risk in the code: `index.md` and
+     `receipt.md` are still scaffold templates, so `make dossiers` and
+     `test_repository_checkout_validates_clean` stay red on 20 diagnostics until
+     they are completed. 15 are on `index.md`, 5 were on this file before this
+     version, and 1 is the missing receipt. `make check` cannot exit 0 until
+     then.
+  7. `report.md` records `Effective model: claude-opus-5-5` while the `implement`
+     route names `claude-opus-5`. Recording what actually ran is what the
+     evidence contract asks for, so this is correct as written; I note it only so
+     the coordinator does not read it as an inconsistency to be edited away.
+
+  ## Claim or decision
+
+  WFS-006 passes independent code review. Every acceptance criterion is verified
+  in this session: each of the L1 to L4 mutations now fails a committed test with
+  the mutated file restored byte-for-byte; L5 refuses empty and whitespace-only
+  input with exit 2, a stderr message, and no stdout, pinned by tests and stated
+  in the workflow document alongside the recommended `set -o pipefail`; L8 keys
+  the review-target rules and the required-artifact rule on the same `present`
+  set, pinned by a test on the unreadable-`plan.md` state; L9 leaves no
+  fail-open level lookup in the package and fails closed to the level 2 floor
+  with a test; every existing dossier under `projects` validates exactly as
+  before; and `make check` on Python 3.10 and 3.14 is red only through WFS-006's
+  own pending `index.md`, `code-review.md`, and `receipt.md`. Four non-blocking
+  Lows are recorded. No critical, high, or medium finding.
+
+  ## Evidence
+
+  - Techstack verify, run before any other work:
+    `"status": "match"`, observed snapshot SHA-256
+    `98ac1e7e0a07371264f05acc47a27ad5bf8fbc6d2f90bfae297bec5dda7ed26b`, pointer
+    `projects/brida-workflow-simplification/handoffs/WFS-006/snapshots/attempt-code-review-1-98ac1e7e0a07371264f05acc47a27ad5
+  bf8fbc6d2f90bfae297bec5dda7ed26b.snapshot.json`,
+    as-of `2026-09-26`. All nine selected rule files read:
+    `techstacks/README.md`, `general.md`, `policy/README.md`,
+    `policy/canonical.md`, `policy/task-dossiers.md`, `python/README.md`,
+    `python/runtime.md`, `python/scripts.md`, `python/tests.md`.
+  - L1 mutation, drop `or path.is_symlink()` at `validation.py:134`:
+    `tests.unit.test_task_dossier_validator` 86 run, 1 failure,
+    `test_a_symlinked_required_artifact_is_not_also_reported_missing`.
+    `validation.py` SHA-256
+    `ef851365af79ae181aff39550dcff2e0801eb3806939985de2a43c4d6779e678` before and
+    after.
+  - L2 mutation, contiguity `raise` to `pass` at `scaffold.py:91`:
+    `tests.integration.test_task_dossier_workflow` 50 run, 2 failures,
+    `test_scaffold_refuses_an_index_template_with_split_status_rows` and the
+    pending-dossier `test_repository_checkout_validates_clean`. `scaffold.py`
+    SHA-256 `c8c460080705d9abb764651f22d4755d1a2762b1eac41de75ce6ab7e2f5c8447`
+    before and after.
+  - L3 mutation, `return tuple(record.artifacts)` at `generate.py:155`:
+    `tests.unit.test_task_dossier_generator` 86 run, 1 failure,
+    `test_artifacts_render_in_lifecycle_order_whatever_the_record_order`.
+    `generate.py` SHA-256
+    `c9d25da69baa8cf9c457c2db96b8ecf4db2424d8e6d9d577827dba6c202a6116` before and
+    after.
+  - L4 mutation, delete `unreadable.sort(...)` at `summary.py:246`:
+    `tests.unit.test_task_dossier_summary` 31 run, 1 failure,
+    `test_unreadable_rows_are_listed_in_lifecycle_order`. `summary.py` SHA-256
+    `861ed479ee10c48bad960bfebee382e640c71760b75c4204998dfaabe3b83546` before and
+    after. All four values equal the ones `report.md` recorded.
+  - Revert runs, each in isolation, are listed under Test gaps. Files restored
+    byte-for-byte: `contract_paths.py`
+    `e830347f7fbc3e67066f65357f06ae83bf22bccef14c983924a6deb5eb5ccc0b`,
+    `docs/workflows/task-dossier.md`
+    `e1fae424d7ca10ebcaa7d6b75dddf2c72b62b9c48d437f126325f2bc6c66b5b3`, which is
+    the post-change hash `report.md` names in its drift risk.
+  - L5 exit behavior, observed through `scripts/check_contract_paths.py`: empty,
+    `\n`, and `  \n\t\r\n` each print
+    `contract-path: no path names on input; refusing to decide` on stderr, print
+    nothing on stdout, and exit 2; `README.md` prints `contract-path: no` and
+    exits 0; `docs/policy/x.md` prints `contract-path: yes` and the path and
+    exits 3; undecodable input still exits 2 with the UTF-8 message. Compared
+    against the same module from `git archive HEAD`: the three empty cases are
+    the only delta.
+  - L9 sweep over `src/brichan/contracts/task_dossier`: no
+    `.get(<level>, <default>)` lookup anywhere. `validation.py:365`,
+    `record.py:817`, and `summary.py:162` index through `resolve_task_level`;
+    `schema.py:322` resolves before indexing; `scaffold.py:73-75` raises
+    `ValueError`; `validation.py:1170` and `record.py:383` test `TASK_LEVELS`
+    membership; the two CLIs restrict `--level` with argparse `choices`.
+  - L8 reachability traced in `_load_artifacts`
+    (`validation.py:95-123`): an unreadable artifact is loaded into `artifacts`
+    for its diagnostic but excluded from `present`, a symlink enters neither. So
+    after the change exactly one rule owns review targets in each state, and the
+    new test's level 1 eleven-artifact dossier with an undecodable `plan.md`
+    requires `report.md`, demands null review targets under
+    `_validate_unplanned_review_targets`, and no longer demands targets equal to
+    the unreadable plan's empty ID.
+  - Dossier sweep: `scripts/validate_task_dossiers.py projects` under the changed
+    code and under `HEAD`'s `src` and `scripts` from `git archive HEAD`, both
+    against the same `projects` tree, produce identical output modulo the
+    absolute root prefix: 20 issues across 18 dossiers, all on WFS-006
+    `index.md` (15), `code-review.md` (5), and the missing `receipt.md` (1), none
+    on `report.md`. Every other dossier validates as before.
+  - Gates on Python 3.10 and with `PYTHON=/opt/homebrew/bin/python3.14`:
+    `PYTHONDONTWRITEBYTECODE=1 make check` exits 2 on both, stopping at
+    `make test` with module boundaries 10 OK, unit 1069 OK, contract 153 OK, and
+    integration 228 with the single `test_repository_checkout_validates_clean`
+    failure whose diagnostics are all WFS-006's pending artifacts. Because make
+    stops there, the remaining `check` prerequisites were run one by one under
+    both interpreters: `techstack-eval`, `metrics`, `receipts`, `memory-check`,
+    `path-check`, `readme-check`, `phase5-preflight`, and `package-check` exit 0,
+    `sh -n bin/brichan` exits 0, and `dossiers` exits 2 on the same 20 issues.
+    The frozen eval's recipe pins `python3`, so it was also run directly:
+    `evals.techstack_context_v1.test_cases` 56 tests OK under 3.14.
+  - Probe for Residual risk 3: a reduced level 1 dossier with no `plan.md` and an
+    index naming `GHOST-PLAN-001` version 7 yields the same diagnostics as the
+    same dossier with both fields null.
+  - Plan-to-work check: `report.md`'s `Plan` section names each of the seven
+    Lows, the mechanism for each, and the verification protocol, all before the
+    `Changes` section. Every claim in `Changes` matches the diff, including that
+    `scripts/check_contract_paths.py` is unchanged, and the diffstat holds no
+    file the plan does not name.
+
+  ## Uncertainty
+
+  - `Effective effort` is recorded as `medium`, the `review` route's configured
+    effort in `config/model-routing.json`; this session did not report its own
+    effort setting. The runtime and model differ from that route, as Residual
+    risk 5 records.
+  - I did not re-verify the pre-work verify digest `c87ca1f7…` that `report.md`
+    records, because the L5 edit to `docs/workflows/task-dossier.md` changed an
+    evidence file of `techstacks/policy/task-dossiers.md` and that snapshot no
+    longer matches the tree. The document's post-change hash
+    `e1fae424…` is consistent with the drift the report predicted, and my own
+    pre-work verify against the fresh snapshot returned `match`.
+  - Whether `.codex/config.toml` was modified by the implementer or predates the
+    attempt is not something the working tree can settle. Its content is
+    unrelated to WFS-006 and the task packet places it outside the diff, so it
+    does not affect this verdict.
+  - No other unresolved uncertainty remains.
+  REVIEW_EOF
+  echo "written: $(wc -c < projects/brida-workflow-simplification/handoffs/WFS-006/code-review.md) bytes")
+  ⎿  written:    22097 bytes
+
+⏺ Now validating the artifact I wrote.
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | sed 's#^.*handoffs/#handoffs/#' |
+  sort | uniq -c | sort -rn | head -30; echo "---- count by file ----"; PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | grep -oE 'WFS-006/[a-z-]*\.md' | sort | uniq -c)
+  ⎿     1 Invalid task dossiers: 16 issue(s) across 18 dossier(s).
+        1 handoffs/WFS-006/receipt.md
+        1 handoffs/WFS-006/index.md: Task identity.Ship authorization: must be one of ['not-requested', 'user-authorized'],
+     found '<not-requested or user-authorized>'
+        1 handoffs/WFS-006/index.md: Task identity.Ship authorization: level 1 does not gate a ship; authorization must be
+     'not-requested'
+        1 handoffs/WFS-006/index.md: Task identity.Review route strength: must be one of ['routine', 'stronger'], found
+     '<routine or stronger>'
+        1 handoffs/WFS-006/index.md: Artifact status.request.Phase state: index says '<phase state>' but request.md says
+     'passed'
+        1 handoffs/WFS-006/index.md: Artifact status.request.Applicability: index says '<required or not-required>' but
+     request.md says 'required'
+        1 handoffs/WFS-006/index.md: Artifact status.report.Phase state: index says '<phase state>' but report.md says
+     'passed'
+        1 handoffs/WFS-006/index.md: Artifact status.report.Applicability: index says '<required or not-required>' but
+     report.md says 'required'
+        1 handoffs/WFS-006/index.md: Artifact status.index.Phase state: index says '<phase state>' but index.md says
+     '<pending, active, passed, not-required, or blocked>'
+        1 handoffs/WFS-006/index.md: Artifact status.code-review.Phase state: index says '<phase state>' but code-review.md
+     says 'passed'
+        1 handoffs/WFS-006/index.md: Artifact status.code-review.Applicability: index says '<required or not-required>' but
+     code-review.md says 'required'
+        1 handoffs/WFS-006/index.md: Artifact metadata.Phase state: must be one of ['active', 'blocked', 'not-required',
+     'passed', 'pending'], found '<pending, active, passed, not-required, or blocked>'
+        1 handoffs/WFS-006/index.md: Artifact metadata.Origin: must record a concrete immutable origin marker
+        1 handoffs/WFS-006/index.md: Artifact metadata.Authorship: must be one of ['human', 'model'], found '<model or
+     human>'
+        1 handoffs/WFS-006/index.md: Artifact metadata.Artifact version: must be a positive integer
+        1 handoffs/WFS-006/index.md: Artifact metadata.Applicability: must be one of ['not-required', 'required'], found
+     '<required or not-required>'
+     ---- count by file ----
+       16 WFS-006/index.md
+        1 WFS-006/receipt.md
+
+⏺ Bash(cd ../brida
+  PYTHONDONTWRITEBYTECODE=1 make path-check receipts memory-check > /dev/null 2>&1; echo "path-check+receipts+memory-check
+  exit=$?"
+  PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.integration.test_task_dossier_workflow
+  tests.contract.test_task_dossier_contract 2>&1 | grep -E '^(FAIL|ERROR):|^Ran |^OK|^FAILED'
+  echo "--- git status (confirm only the one file written) ---"; git status --short)
+  ⎿  path-check+receipts+memory-check exit=0
+     FAIL: test_repository_checkout_validates_clean
+     (tests.integration.test_task_dossier_workflow.TaskDossierWorkflowIntegrationTest)
+     Ran 81 tests in 1.309s
+     FAILED (failures=1)
+     --- git status (confirm only the one file written) ---
+      M .codex/config.toml
+      M docs/workflows/task-dossier.md
+      M src/brichan/contracts/task_dossier/contract_paths.py
+      M src/brichan/contracts/task_dossier/validation.py
+      M tests/contract/test_task_dossier_contract.py
+      M tests/integration/test_task_dossier_workflow.py
+      M tests/unit/test_contract_paths.py
+      M tests/unit/test_task_dossier_generator.py
+      M tests/unit/test_task_dossier_summary.py
+      M tests/unit/test_task_dossier_validator.py
+     ?? .brichan.bak-2026-08-26/
+     ?? .brichan.bak-2026-08-28/
+     ?? .brichan.bak-2026-09-18/
+     ?? .brichan/
+     ?? evals/workflow-simplification/wfs-005/wfs006-implement-pane.txt
+     ?? evals/workflow-simplification/wfs-005/wfs006-implement-report.md
+
+⏺ One correction for accuracy: the diagnostic counts shifted once my file replaced the stub. Fixing that bullet in place.
+
+⏺ Bash(sed -n '/^6\. Coordinator-owned remainder/,/^7\./p'
+  projects/brida-workflow-simplification/handoffs/WFS-006/code-review.md)
+  ⎿  6. Coordinator-owned remainder, not a risk in the code: `index.md` and
+        `receipt.md` are still scaffold templates, so `make dossiers` and
+        `test_repository_checkout_validates_clean` stay red on 20 diagnostics until
+        they are completed. 15 are on `index.md`, 5 were on this file before this
+        version, and 1 is the missing receipt. `make check` cannot exit 0 until
+        then.
+     7. `report.md` records `Effective model: claude-opus-5-5` while the `implement`
+
+⏺ Bash(python3 - <<'PYEOF'
+  p = 'projects/brida-workflow-simplification/handoffs/WFS-006/code-review.md'
+  s = open(p, encoding='utf-8').read()
+  old = """6. Coordinator-owned remainder, not a risk in the code: `index.md` and
+     `receipt.md` are still scaffold templates, so `make dossiers` and
+     `test_repository_checkout_validates_clean` stay red on 20 diagnostics until
+     they are completed. 15 are on `index.md`, 5 were on this file before this
+     version, and 1 is the missing receipt. `make check` cannot exit 0 until
+     then.
+  """
+  new = """6. Coordinator-owned remainder, not a risk in the code: `index.md` and
+     `receipt.md` are still scaffold templates, so `make dossiers` and
+     `test_repository_checkout_validates_clean` stay red until they are
+     completed, and `make check` cannot exit 0 until then. The count moved when
+     this version replaced the scaffold `code-review.md`: 20 diagnostics before
+     (15 `index.md`, 5 `code-review.md`, 1 missing receipt), 16 after (16
+     `index.md`, 1 missing receipt), because this file now validates clean while
+     the index's status table does not yet match the real applicability and
+     phase state it declares.
+  """
+  assert s.count(old) == 1
+  open(p, 'w', encoding='utf-8').write(s.replace(old, new))
+  print("corrected in place")
+  PYEOF
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | grep -c "code-review.md" ; echo
+  "code-review.md diagnostics: (0 expected above)"; PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py
+  projects 2>&1 | tail -1)
+  ⎿  corrected in place
+     2
+     code-review.md diagnostics: (0 expected above)
+     Invalid task dossiers: 16 issue(s) across 18 dossier(s).
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | grep -E "code-review\.md:" | sed
+  's#^.*handoffs/#handoffs/#'; echo "--- (above: diagnostics whose subject is code-review.md; none expected) ---";
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | sed 's#^.*handoffs/#handoffs/#' | grep
+  -oE '^handoffs/[^:]+' | sort | uniq -c)
+  ⎿  --- (above: diagnostics whose subject is code-review.md; none expected) ---
+       15 handoffs/WFS-006/index.md
+        1 handoffs/WFS-006/receipt.md
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | sed 's#^.*handoffs/#handoffs/#' |
+  grep -v '^Invalid' | cat -n)
+  ⎿       1     handoffs/WFS-006/index.md: Artifact metadata.Artifact version: must be a positive integer
+          2     handoffs/WFS-006/index.md: Artifact metadata.Origin: must record a concrete immutable origin marker
+          3     handoffs/WFS-006/index.md: Artifact metadata.Phase state: must be one of ['active', 'blocked', 'not-required'
+     'passed', 'pending'], found '<pending, active, passed, not-required, or blocked>'
+          4     handoffs/WFS-006/index.md: Artifact metadata.Applicability: must be one of ['not-required', 'required'], foun
+     '<required or not-required>'
+          5     handoffs/WFS-006/index.md: Artifact metadata.Authorship: must be one of ['human', 'model'], found '<model or
+     human>'
+          6     handoffs/WFS-006/receipt.md
+          7     handoffs/WFS-006/index.md: Task identity.Review route strength: must be one of ['routine', 'stronger'], found
+     '<routine or stronger>'
+          8     handoffs/WFS-006/index.md: Task identity.Ship authorization: must be one of ['not-requested', 'user-authorize
+     found '<not-requested or user-authorized>'
+          9     handoffs/WFS-006/index.md: Task identity.Ship authorization: level 1 does not gate a ship; authorization must
+     'not-requested'
+         10     handoffs/WFS-006/index.md: Artifact status.index.Phase state: index says '<phase state>' but index.md says
+     '<pending, active, passed, not-required, or blocked>'
+         11     handoffs/WFS-006/index.md: Artifact status.request.Applicability: index says '<required or not-required>' but
+     request.md says 'required'
+         12     handoffs/WFS-006/index.md: Artifact status.request.Phase state: index says '<phase state>' but request.md say
+     'passed'
+         13     handoffs/WFS-006/index.md: Artifact status.report.Applicability: index says '<required or not-required>' but
+     report.md says 'required'
+         14     handoffs/WFS-006/index.md: Artifact status.report.Phase state: index says '<phase state>' but report.md says
+     'passed'
+         15     handoffs/WFS-006/index.md: Artifact status.code-review.Applicability: index says '<required or not-required>'
+     code-review.md says 'required'
+         16     handoffs/WFS-006/index.md: Artifact status.code-review.Phase state: index says '<phase state>' but code-revie
+     says 'passed'
+
+⏺ Bash(python3 - <<'PYEOF'
+  p = 'projects/brida-workflow-simplification/handoffs/WFS-006/code-review.md'
+  s = open(p, encoding='utf-8').read()
+  old = """   this version replaced the scaffold `code-review.md`: 20 diagnostics before
+     (15 `index.md`, 5 `code-review.md`, 1 missing receipt), 16 after (16
+     `index.md`, 1 missing receipt), because this file now validates clean while
+     the index's status table does not yet match the real applicability and
+     phase state it declares.
+  """
+  new = """   this version replaced the scaffold `code-review.md`: 20 diagnostics before
+     (15 on `index.md`, 5 on `code-review.md`), 16 after, all 16 on `index.md`,
+     one of them the missing receipt reported against the index's
+     `Canonical receipt path`. This file now validates clean; the index's status
+     table does not yet match the real applicability and phase state this file
+     declares, which accounts for two of the sixteen.
+  """
+  assert s.count(old) == 1
+  open(p, 'w', encoding='utf-8').write(s.replace(old, new))
+  print("corrected")
+  PYEOF
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | tail -1
+  PYTHONDONTWRITEBYTECODE=1 make path-check memory-check receipts > /dev/null 2>&1; echo "path-check+memory-check+receipts
+  exit=$?")
+  ⎿  corrected
+     Invalid task dossiers: 16 issue(s) across 18 dossier(s).
+     path-check+memory-check+receipts exit=0
+
+⏺ Review complete.
+
+  1. Verdict and scores
+
+  PASS
+
+  ┌────────────────────────┬───────┐
+  │       Criterion        │ Score │
+  ├────────────────────────┼───────┤
+  │ Spec fidelity          │ 5/5   │
+  ├────────────────────────┼───────┤
+  │ Code review            │ 5/5   │
+  ├────────────────────────┼───────┤
+  │ Empirical verification │ 5/5   │
+  └────────────────────────┴───────┘
+
+  No critical, high, or medium findings. Four non-blocking Lows: the L9 test calls a private _validate_state (justified — the
+  branch is unreachable from validate_dossier, and both existing public-path level tests pass under the old .get so they
+  don't cover the change); the L2 test patches a module attribute (justified — only route to a guard over an already-pinned
+  template); L5's filter change also drops whitespace-only path names (fail-closed, and no real git diff --name-only output
+  is affected); the doc's or empty input clause in the exit-code enumeration isn't itself pinned.
+
+  2. File written
+
+  projects/brida-workflow-simplification/handoffs/WFS-006/code-review.md — the only file this session wrote. It validates
+  clean (zero diagnostics against it). git status --short is unchanged from session start.
+
+  3. Verification
+
+  - L1–L4 mutations, all re-run on a scratch copy outside the repo, each failing exactly its new test, each file
+    byte-identical before and after — and all four SHA-256s equal the ones report.md recorded: validation.py ef851365… (86
+    run, 1 fail), scaffold.py c8c46008… (50 run, 2 fails, second is the pending-dossier test), generate.py c9d25da6… (86/1),
+    summary.py 861ed479… (31/1).
+  - L5: empty, \n,   \n\t\r\n → exit 2, stderr message, empty stdout, through the wrapper script. Compared eight input
+    classes against HEAD's module from git archive — the three empty cases are the only delta. Doc revert (pipefail line +
+    sentence) fails test_contract_path_list_equals_the_constants.
+  - L8: traced _load_artifacts — unreadable enters artifacts but not present, symlink enters neither, so exactly one rule now
+    owns review targets in every plan state. Each arm reverted separately fails the new test alone.
+  - L9: swept the package — no .get(level, <default>) anywhere; every level lookup goes through resolve_task_level, a
+    TASK_LEVELS test, or a raise. MINIMUM_EVIDENCE_ITEMS[FALLBACK_TASK_LEVEL] is already pinned to the deepest floor at
+    tests/unit/test_task_dossier_generator.py:620, so the direct index cannot KeyError.
+  - Dossier sweep: validator output over projects identical under changed code and HEAD code (modulo the absolute root
+    prefix) — 20 issues, all WFS-006 pending artifacts, none on report.md.
+  - Gates: make check exits 2 on 3.10 and on 3.14, stopping only at test_repository_checkout_validates_clean; boundaries 10
+    OK, unit 1069 OK, contract 153 OK, integration 228/1. All nine other check prerequisites exit 0 under both interpreters;
+    dossiers exits 2 on the same pending artifacts; the frozen eval (whose recipe pins python3) also run directly under 3.14,
+    56 OK.
+  - Two probes the report did not run: the HEAD-vs-now input comparison above, and a ghost-accepted-plan probe showing the
+    workflow doc's "the index's accepted-plan fields stay null" half has no validator rule — pre-existing, recorded as a
+    follow-up Low under residual risks, not a defect here.
+
+  4. Uncertainties
+
+  - Effective effort recorded as medium from the review route; the session didn't report its own setting.
+  - This review ran Claude/claude-opus-5, not the review route's configured Codex/gpt-5.6-sol — same provider family as the
+    implementer and not a stronger model. Level 1 permits the routine route, but it's a provenance deviation the
+    coordinator's index should carry.
+  - I could not re-verify the implementer's pre-work digest c87ca1f7… (the L5 doc edit changed a Techstack evidence file);
+    the post-change doc hash e1fae424… matches the drift the report predicted.
+  - index.md and receipt.md remain scaffold templates, so the index records no level-determination evidence — I checked the
+    level-1 declaration against request.md's stated rationale instead and recorded that substitution.
+
+  5.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=98ac1e7e0a07371264f05acc47a27ad5bf8fbc6d2f90bfae297bec5dda7ed26b
+
+✻ Cogitated for 22m 14s · done 1:46 PM
+                                                                                                              176418 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Now complete index.md and receipt.md so make check goes green
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 17% │ brida (feat/lifecycle-simplification*) ⑃ #37 │ ● high 💭
+  current ●●○○○○○○○○  29% ⟳ 5:10pm
+  weekly  ●●●●●●●○○○  71% ⟳ sep 30, 5:00am
+  fable   ●●●●○○○○○○  42% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

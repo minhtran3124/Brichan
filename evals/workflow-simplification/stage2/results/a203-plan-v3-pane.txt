@@ -1,0 +1,400 @@
+      201    (`src/brichan/techstacks/filesystem.py:307
+           -309`) attaches a real errno to
+      202    every errno-mapped, non-`FILESYSTEM_ERROR`
+            observation code, and those
+      203    reach `diagnostic_detail` via `_add_locate
+           d`
+      160 -  (`src/brichan/techstacks/resolver.py:266-2
+          -77`) — and plan-review version 1
+      161 -  reproduced it against a real unreadable se
+          -lected rule file. The objective
+      162 -  stands, but a guard without step 4 would b
+          -reak resolution. This is why the
+      163 -  plan touches `resolver.py`.
+      204 +  (`src/brichan/techstacks/resolver.py:266-2
+          +77`) — and plan-review version 2
+      205 +  demonstrated by revert that a guard withou
+          +t step 4 breaks resolution. The
+      206 +  objective stands; this is why the plan tou
+          +ches `resolver.py`.
+      207  - `CHANGELOG.md` stays out of scope, per pla
+           n-review's residual-risk note:
+      208    no gate requires an entry and `diagnostic_
+           detail` is not public API; any
+      209    entry is a coordinator decision at close.
+      210
+      211  ## Open questions
+      212
+      170 -- None. The version-1 open question (the com
+          -pletion-gate carve-out for this
+      171 -  dossier's pending coordinator- and reviewe
+          -r-owned artifacts) was answered
+      172 -  and ratified by the coordinator on 2026-09
+          --25 in
+      173 -  client-follow-up-questions.md version 2, w
+          -hich this plan adopts verbatim
+      174 -  in step 6(c) and "Expected residual failur
+          -es".
+      213 +- None. Plan-review version 2's one uncertai
+          +nty item — whether `H1` warrants
+      214 +  a plan version 3 — was decided by the coor
+          +dinator in this task packet:
+      215 +  version 3 it is, and no finding implied a
+          +code-design revision, so the two
+      216 +  production edits are byte-identical to the
+          + reviewed version-2 design.
+      217
+      218  ## Evidence
+      219
+      178 -- requirements.md, options.md, and design.md
+          - version 2 in this dossier;
+      179 -  plan-review.md version 1 (the findings clo
+          -sed above); and the planning
+      180 -  baseline runs of 2026-09-25 at commit `6fe
+          -3977`: the reproduced 122-call
+      181 -  digest, the new 244-call digest, and the o
+          -bserved silent drops
+      182 -  (`diagnostic_detail("UNREADABLE_FILE", lin
+          -e=0)` and `errno_value=0` both
+      183 -  returning the registry detail).
+      220 +- requirements.md, options.md, and design.md
+          + version 3 in this dossier;
+      221 +  plan-review.md version 2 (the findings clo
+          +sed above; its version-1 closure
+      222 +  check covers the superseded table now in `
+          +versions/v2/plan.md`); and this
+      223 +  session's baseline runs of 2026-09-25 at c
+          +ommit `6fe3977`: the reproduced
+      224 +  244-call digest, the class (b) pre-change
+          +probes (slots-supplied calls
+      225 +  return the leaf detail; slotless calls alr
+          +eady raise), the direct 3.14
+      226 +  eval run (56 tests, `OK`), the metrics tes
+          +t module under both interpreters
+      227 +  (10 tests, `OK` each), `make -n techstack-
+          +eval
+      228 +  PYTHON=/opt/homebrew/bin/python3.14` print
+          +ing a literal `python3` command,
+      229 +  and the dossier validator baseline (38 iss
+          +ues, all coordinator- or
+      230 +  reviewer-owned causes).
+      231  - client-follow-up-questions.md version 2 —
+           the coordinator-ratified
+      185 -  completion gate and expected-red list this
+          - plan adopts.
+      232 +  completion gate and expected-red list this
+          + plan adopts, executed truthfully
+      233 +  per plan-review version 2 findings `M1` an
+          +d `M2`.
+      234  - Techstack Snapshot pointer:
+      187 -  `projects/brida-workflow-simplification/ha
+          -ndoffs/WFS-A-203/snapshots/attempt-plan-2-bd
+          -6ff653b4385638f80a525c72362232bf073f6e5d9214
+          -dfa607ce8efb36f2fe.snapshot.json`,
+      235 +  `projects/brida-workflow-simplification/ha
+          +ndoffs/WFS-A-203/snapshots/attempt-plan-3-00
+          +8ff53c2dd71f14fc9f541d7e9cd5e93bd0cbfffc1bb7
+          +061ef0a6f300a8b67e.snapshot.json`,
+      236    sha256
+      189 -  `bd6ff653b4385638f80a525c72362232bf073f6e5
+          -d9214dfa607ce8efb36f2fe`,
+      190 -  verify status `match` on 2026-09-25 (attem
+          -pt `attempt-plan-2`, acknowledged
+      237 +  `008ff53c2dd71f14fc9f541d7e9cd5e93bd0cbfff
+          +c1bb7061ef0a6f300a8b67e`,
+      238 +  verify status `match` on 2026-09-25 (attem
+          +pt `attempt-plan-3`, acknowledged
+      239    Context IDs `general`, `policy`, `policy-d
+           ossiers`, `python`,
+      240    `python-runtime`, `python-tests`, `root`).
+      241
+      242  ## Uncertainty
+      243
+      196 -- No unresolved uncertainty remains. Superse
+          -ded version 1 of every planner
+      197 -  artifact is preserved under `versions/v1/`
+          -, per the dossier contract
+      198 -  (`DOSSIER-003`).
+      244 +- No unresolved uncertainty remains. Superse
+          +ded versions 1 and 2 of every
+      245 +  planner artifact are preserved under `vers
+          +ions/v1/` and `versions/v2/`,
+      246 +  per the dossier contract (`DOSSIER-003`),
+          +and were not edited.
+
+⏺ All five artifacts written. Running the dossier validator to
+  confirm no diagnostic names the planner artifacts:
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | tee
+  <scratch>
+  24-developer-brichan-wfs-203a/9e873e25-e1da-4639-8f3b-5ef21c
+  edbba8/scratchpad/validator-after.txt | grep -Ei 'requiremen
+  ts\.md|brief\.md|options\.md|design\.md|/plan\.md' ; echo
+  "---"; tail -1 <scratch>
+  ents-minhtran3124-developer-brichan-wfs-203a/9e873e25-e1da-4
+  639-8f3b-5ef21cedbba8/scratchpad/validator-after.txt)
+  ⎿  ../brichan-
+     wfs-203a/projects/brida-workflow-simplification/handoffs/
+     WFS-A-203/index.md: Artifact
+     status.requirements.Applicability: index says '<required
+     or not-required>' but requirements.md says 'required'
+     ../brichan-
+     wfs-203a/projects/brida-workflow-simplification/handoffs/
+     WFS-A-203/index.md: Artifact status.requirements.Phase
+     state: index says '<phase state>' but requirements.md
+     says 'passed'
+     ../brichan-
+     wfs-203a/projects/brida-workflow-simplification/handoffs/
+     WFS-A-203/index.md: Artifact status.brief.Applicability:
+     index says '<required or not-required>' but brief.md says
+     'required'
+     ../brichan-
+     wfs-203a/projects/brida-workflow-simplification/handoffs/
+     WFS-A-203/index.md: Artifact status.brief.Phase state:
+     index says '<phase state>' but brief.md says 'passed'
+     ../brichan-
+     wfs-203a/projects/brida-workflow-simplification/handoffs/
+     WFS-A-203/index.md: Artifact
+     status.options.Applicability: index says '<required or
+     not-required>' but options.md says 'required'
+     ../brichan-
+     wfs-203a/projects/brida-workflow-simplification/handoffs/
+     WFS-A-203/index.md: Artifact status.options.Phase state:
+     index says '<phase state>' but options.md says 'passed'
+     ../brichan-
+     wfs-203a/projects/brida-workflow-simplification/handoffs/
+     WFS-A-203/index.md: Artifact status.design.Applicability:
+     index says '<required or not-required>' but design.md
+     says 'required'
+     ../brichan-
+     wfs-203a/projects/brida-workflow-simplification/handoffs/
+     WFS-A-203/index.md: Artifact status.design.Phase state:
+     index says '<phase state>' but design.md says 'passed'
+     ---
+     Invalid task dossiers: 39 issue(s) across 8 dossier(s).
+
+⏺ The count went from 38 to 39 — one new diagnostic appeared.
+  Finding it:
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | sort >
+  /tmp/after.sorted 2>/dev/null; true)
+  ⎿  (No output)
+
+⏺ Bash(S=<scratch>
+  htran3124-developer-brichan-wfs-203a/9e873e25-e1da-4639-8f3b
+  -5ef21cedbba8/scratchpad; PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects > "$S/after.txt"
+  2>&1; git stash list >/dev/null; diff <(sort "$S/after.txt")
+  <(sort "$S/validator-after.txt") ; grep -c .
+  "$S/after.txt")
+  ⎿  40
+
+⏺ Bash(S=<scratch>
+  htran3124-developer-brichan-wfs-203a/9e873e25-e1da-4639-8f3b
+  -5ef21cedbba8/scratchpad; grep -v 'index.md: Artifact
+  status' "$S/after.txt" | grep -v 'code-review.md: Artifact
+  metadata' | grep -v 'pr-desc.md: Artifact metadata' | grep
+  -v 'index.md: Artifact metadata' | grep -v 'Task identity')
+  ⎿  ../brichan-
+     wfs-203a/projects/brida-workflow-simplification/handoffs/
+     WFS-A-203/plan-review.md: Review target.Reviewed plan
+     version: review must reference the exact accepted plan
+     version '3', found '2'
+     Invalid task dossiers: 39 issue(s) across 8 dossier(s).
+
+
+
+
+  in plan.md so the implementer isn't left to judge it alone.
+  · summary
+
+⏺ Update(../bric
+        han-wfs-203a/projects/brida-workflow-simplification/ha
+        ndoffs/WFS-A-203/plan.md)
+  ⎿  Added 6 lines, removed 1 line
+      182    (`Task identity.Canonical receipt path: ca
+           nonical receipt does not
+      183    exist`) — all outside the implementer's au
+           thorized paths. This session's
+      184    baseline run of the dossier validator repo
+           rts 38 issues, every one naming
+      185 -  one of those four causes and none naming a
+          - planner-owned artifact.
+      185 +  one of those four causes and none naming a
+          + planner-owned artifact. A fifth
+      186 +  expected diagnostic appears once plan vers
+          +ion 3 exists:
+      187 +  `plan-review.md: Review target.Reviewed pl
+          +an version: review must reference
+      188 +  the exact accepted plan version '3', found
+          + '2'` — reviewer-owned, cleared
+      189 +  by the next plan review; observed by this
+          +session (39 issues total after
+      190 +  authoring version 3).
+      191
+      192  ## Scope findings
+      193
+
+
+  dossier artifacts, and archived versions untouched:
+
+⏺ Bash(cd
+  projects/brida-workflow-simplification/handoffs/WFS-A-203 &&
+  grep -l -E '/Users|/home|minhtran' requirements.md brief.md
+  options.md design.md plan.md; echo "grep exit: $?"; for f
+  in requirements.md brief.md options.md design.md plan.md; do
+  cmp -s "versions/v2/$f" "$f" && echo "$f: identical to
+  archive (BAD)" || echo "$f: differs from archive
+  (expected)"; done; cd ~/Documents/minhtran3124
+  /developer/brichan-wfs-203a)
+  ⎿  requirements.md
+     plan.md
+     grep exit: 0
+     requirements.md: differs from archive (expected)
+     brief.md: differs from archive (expected)
+     options.md: differs from archive (expected)
+     design.md: differs from archive (expected)
+     plan.md: differs from archive (expected)
+
+⏺ Bash(grep -n -E '/Users|/home|minhtran' projects/brida-workf
+  low-simplification/handoffs/WFS-A-203/requirements.md projec
+  ts/brida-workflow-simplification/handoffs/WFS-A-203/plan.md)
+  ⎿  projects/brida-workflow-simplification/handoffs/WFS-A-203
+     /requirements.md:130:
+     `PYTHON=/opt/homebrew/bin/python3.14` — with two
+     additions that make the
+     projects/brida-workflow-simplification/handoffs/WFS-A-203
+     /requirements.md:133:    `PYTHONDONTWRITEBYTECODE=1
+     /opt/homebrew/bin/python3.14 -m unittest
+     projects/brida-workflow-simplification/handoffs/WFS-A-203
+     /requirements.md:139:
+     PYTHON=/opt/homebrew/bin/python3.14` silently repeats the
+     3.10 run;
+     projects/brida-workflow-simplification/handoffs/WFS-A-203
+     /requirements.md:173:  `make -n techstack-eval
+     PYTHON=/opt/homebrew/bin/python3.14` prints a
+     projects/brida-workflow-simplification/handoffs/WFS-A-203
+     /plan.md:99:     `PYTHON=/opt/homebrew/bin/python3.14`,
+     except the frozen eval, which
+     projects/brida-workflow-simplification/handoffs/WFS-A-203
+     /plan.md:101:     `PYTHONDONTWRITEBYTECODE=1
+     /opt/homebrew/bin/python3.14 -m unittest
+     projects/brida-workflow-simplification/handoffs/WFS-A-203
+     /plan.md:107:     `PYTHONDONTWRITEBYTECODE=1
+     /opt/homebrew/bin/python3.14 -m unittest
+     projects/brida-workflow-simplification/handoffs/WFS-A-203
+     /plan.md:135:| `M1` (3.14 arm never ran the frozen eval
+     under 3.14: `techstack-eval` pins literal `python3`) |
+     Step 6(c)'s 3.14 arm invokes the eval module directly
+     under the 3.14 interpreter (`PYTHONDONTWRITEBYTECODE=1
+     /opt/homebrew/bin/python3.14 -m unittest
+     evals.techstack_context_v1.test_cases -v`) instead of
+     `make techstack-eval PYTHON=...`, per the
+     `techstacks/python/tests.md` Verification note and rule
+     `TEST-001`; requirements R7 matches. Verified green at
+     baseline by this session (56 tests, `OK`). |
+     projects/brida-workflow-simplification/handoffs/WFS-A-203
+     /plan.md:233:  PYTHON=/opt/homebrew/bin/python3.14`
+     printing a literal `python3` command,
+
+⏺ All matches are /opt/homebrew/... system paths (the grep
+  caught /home inside homebrew) — no personal paths.
+  Re-running the validator once more after the final plan.md
+  edit:
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | grep -E
+  'WFS-A-203/(requirements|brief|options|design|plan)\.md:' ;
+  echo "planner-artifact diagnostics above (none expected)";
+  PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | tail -1)
+  ⎿  planner-artifact diagnostics above (none expected)
+     Invalid task dossiers: 39 issue(s) across 8 dossier(s).
+
+⏺ 1. Outcome. Plan version 3 of WFS-A-203-PLAN-001 (status
+  draft) is authored, closing all five plan-review version 2
+  findings. The two production edits are unchanged from the
+  version the review verified by construction; every version-3
+  change is to verification design: the class (b) refusal
+  test now supplies valid line=1, rule="TITLE" slots alongside
+  the inapplicable errno so it returns a detail on the
+  unguarded tree and fails when the guard is removed (H1); the
+  3.14 gate arm invokes the frozen eval directly under
+  /opt/homebrew/bin/python3.14 since the techstack-eval recipe
+  pins a literal python3 (M1); the metrics test module make
+  test runs is added to both gate arms (M2); the absent
+  receipt.md is named as a fourth expected-red cause for make
+  dossiers (L1); and the falsy-value warrant is restated to
+  match the evidence, with the draft-status field explained
+  (L2). No path outside the declared Techstack scope paths was
+  discovered.
+
+  2. Files/artifacts changed. Rewritten at version 3, all
+  under
+  projects/brida-workflow-simplification/handoffs/WFS-A-203/:
+  requirements.md, brief.md, options.md, design.md, plan.md
+  (with the findings-closure table mapping every v2 finding to
+  its resolution). The superseded version-2 copies are
+  preserved byte-for-byte under versions/v2/. Each artifact
+  records route plan, model claude-fable-5, effort high,
+  session 9e873e25-e1da-4639-8f3b-5ef21cedbba8, and the
+  attempt-plan-3 Snapshot pointer. Nothing else was modified;
+  nothing was committed.
+
+  3. Verification and evidence.
+  - Techstack verify ran before any other work and returned
+    match; all seven required selected rule files were read.
+  - H1 remedy reproduced on the unpatched tree at commit
+    6fe3977: diagnostic_detail("INVALID_LEAF", errno_value=13,
+    line=1, rule="TITLE") and the errno_value=0 companion
+    both return leaf bytes do not match the leaf grammar at
+    line 1: TITLE (removal-sensitive), while the slotless
+    shapes already raise ValueError (the inert v2 assertion).
+  - M1/M2 remedies verified green at baseline: make -n
+    techstack-eval PYTHON=/opt/homebrew/bin/python3.14 prints
+    a literal python3; the direct 3.14 eval run passes (56
+    tests OK); metrics/test_validate_metrics.py passes under
+    both interpreters (10 tests OK each).
+  - The 244-call byte-identity baseline digest 6a26f5…63ef69
+    was reproduced exactly by this session.
+  - Dossier validator: PYTHONDONTWRITEBYTECODE=1 python3
+    scripts/validate_task_dossiers.py projects reports 39
+    issues, none naming the five planner artifacts. All are
+    expected pending-artifact diagnostics: template-state
+    metadata in index.md, code-review.md, pr-desc.md; the
+    absent canonical receipt.md; index status-table
+    placeholder mismatches; and one new reviewer-owned
+    diagnostic — plan-review.md: Reviewed plan version: must
+    reference '3', found '2' — which is inherent to authoring
+    version 3 and clears at the next review; it is recorded in
+    plan.md's expected-red list. I did not run the full
+    per-target gate; that is implementer work at step 6(c).
+
+  4. Risks, assumptions, and unresolved issues. No unresolved
+  issues and no escalation needed: no finding required
+  changing a frozen contract, and the coordinator's ratified
+  gate is adopted with the two truthfulness additions rather
+  than replaced. Residual risks carried forward from review:
+  the plan edits a production caller (_add_located) while
+  criterion 3 says production callers are unaffected — review
+  accepted this as necessary and byte-identical, and it stays
+  a coordinator-visible wording deviation; CHANGELOG.md
+  remains a coordinator scope decision at close; plan
+  acceptance (draft → accepted) is the coordinator's step.
+
+  5. Techstack verification acknowledgement: yes;
+  snapshot_sha256=008ff53c2dd71f14fc9f541d7e9cd5e93bd0cbfffc1b
+  b7061ef0a6f300a8b67e
+
+✻ Crunched for 10m 19s · done 4:58 PM
+                                               161064 tokens
+──────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────
+  👤 <user> │ Fable 5 │ ✍️ 15% │ brichan-…
+  current ●●●●●●●●○○  85% ⟳ 7:40pm
+  weekly  ●●●●●○○○○○  50% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  32% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

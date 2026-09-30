@@ -1,0 +1,21 @@
+
+  4. Uncertainties
+
+  - One methodological caution recorded for the code reviewer: tests/unit/test_techstack_resolver.py:22 prepends the worktree's src to sys.path, so pointing PYTHONPATH at a patched copy of src alone silently tests the unpatched code. My first revert
+    experiment was wrong for this reason before I caught it; all recorded results come from full-tree copies with imported module paths printed and checked.
+  - Route divergence for the coordinator: config/model-routing.json gives review → codex/gpt-5.6-sol/medium; this ran claude/claude-opus-5/high, as did reviews 1 and 2. Session independence holds, but all three rounds have now run on the same runtime as
+    the planner.
+  - Whether the two low findings are corrected before acceptance or carried as code-reviewer notes is a coordinator decision; neither is a condition of PASS.
+
+  5. Techstack verification acknowledgement: yes; snapshot_sha256=ac166c55717e3653582eb43fe389cc2d98884a8812240c136cdbee65c1d47073
+
+✻ Cogitated for 36m 49s · done 8:58 PM
+                                                                                                                                                                                                                                               196211 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 19% │ brichan-wfs-203a │ ● high 💭
+  current ●●●○○○○○○○  31% ⟳ 12:40am
+  weekly  ●●●●●○○○○○  56% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  35% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

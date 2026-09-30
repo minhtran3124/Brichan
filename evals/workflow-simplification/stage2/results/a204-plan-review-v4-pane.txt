@@ -1,0 +1,400 @@
+  `test_task_dossier_workflow.test_repository_checkout_validates_clean`, whose
+  output is this dossier's own diagnostics. Ownership, taken as the artifact
+  path before the first colon: `index.md` 28 (5 unfilled metadata placeholders,
+  4 unfilled task-identity fields including the `canonical receipt does not
+  exist` row, 19 artifact-status comparison rows), `code-review.md` 5,
+  `pr-desc.md` 5, and `plan-review.md` 1 — `Review target.Reviewed plan version:
+  review must reference the exact accepted plan version '4', found '3'`, the row
+  this artifact clears. No diagnostic is owned by a planner artifact or by
+  another dossier, so the plan's acceptance rule holds.
+
+  Scope and completeness of the planned change. The plan neither misses a
+  necessary change nor adds an unnecessary one. The checkout tree needs no edit,
+  verified by count rather than assumed: all thirteen markers already occur
+  there. The packaged `SKILL.md` exclusion (`options.md:101-109`) is sound — the
+  packaged `SKILL.md` already routes the coordinator to
+  `references/commands.md`. Both files the plan touches are inside the declared
+  scope paths, and `plan.md:63-68`'s "no path outside the declared scope paths"
+  statement is correct.
+
+  ## Test gaps
+
+  1. **The launch paragraph's placement is unpinned; only the section's is.**
+     New this round, verified by mutation: relocating the whole `--task` /
+     `--ledger-file` paragraph out of the launch guidance and into the
+     `## Worker ledger` section leaves all 17 tests `OK`, because every marker
+     is still present and the placement pin constrains only
+     `safeguards < ledger < recovery`. No action asked: the consequence is
+     reading order, not a lost safeguard, and `plan.md:75-88` states the
+     position exactly. Recorded so a later session does not mistake the passing
+     suite for a placement guarantee on that paragraph.
+  2. **Nothing guards `R5`'s refusal list against the `L1-v3` gap, and nothing
+     can cheaply.** Carried from v2 gap 1 / v3 gap 1 and correctly recorded at
+     `design.md:235-240`. The fix was the requirement correction, now made. No
+     action.
+  3. **The markers are asserted on concatenated tree text.** Carried from all
+     three earlier reviews, recorded at `design.md:229-234`. Prose moved between
+     packaged `.md` files would still pass; acceptable because
+     `IMMUTABLE_PATHS` fixes the packaged file set and the placement pin is
+     per-file. No action.
+  4. **The placement pin is legible but coarse.** It asserts offsets, which
+     catches reordering and deletion — I verified both — but not a section moved
+     into a different packaged `.md` file, which gap 3 already covers. No
+     action.
+  5. **No test distinguishes the installed exit-`2` table row from the checkout
+     one.** Covered indirectly by the exactly-once occurrence count, which I
+     mutation-tested. No action.
+
+  ## Residual risks and required human decisions
+
+  - **The version notes under-enumerate their diffs (`O1`).** Non-blocking, with
+    a suggested in-place correction while the plan is still `draft`. An auditor
+    who trusts either note instead of re-diffing would not learn that step 2
+    gained a prohibition or that a recorded limitation was broadened; both
+    changes are correct, so the risk is to audit fidelity only.
+  - **The expected-red `make dossiers` masks that target's second recipe line.**
+    `Makefile:66-68` runs the validator and then an import smoke check; while
+    the validator exits `1` the import line never executes, so a regression in
+    it would be invisible during this task's gate. I ran it directly and it
+    passes today (`import brichan`, the receipts validation module, and
+    `worker_launch` all import). Worth one line of implementer awareness, not a
+    plan change.
+  - **Installed legacy launches stay undocumented.** Carried and now verified at
+    the branch level (`worker_launch.py:516-524,679`): the note cannot fire for
+    a routed installed launch, and the packaged file documents no legacy launch,
+    so nothing in it is false. `design.md:161-165` records the omission with its
+    reason. No acceptance criterion requires the extra sentence.
+  - **Manifest-hash churn on an immutable resource.** `design.md:259-266` states
+    it correctly and I found no contract that needs editing: a target
+    initialized from an older build of the same `package_version` would inspect
+    as `MALFORMED` against a locally rebuilt package. Release-process handled;
+    no action in this task.
+  - **The expected-red list stays worktree-specific and dossier-specific.** I
+    re-measured every entry rather than inheriting it. On the main checkout with
+    a closed dossier all of it must be green, as
+    `client-follow-up-questions.md` and `plan.md:194-197` both say. The dossier
+    half will shift as the coordinator fills `index.md`, `code-review.md`,
+    `pr-desc.md`, and `receipt.md`: with this artifact written, the
+    `plan-review.md` row clears, so the implementation should expect **38**
+    issues unless another artifact changes first. The plan's ownership rule, not
+    the count, is the acceptance test.
+  - **`plan.md` records `Plan status: draft`.** Correct for a version awaiting
+    review, but `--require-complete` needs `accepted` and the validator reads
+    the live plan version as `4`. Coordinator action after this verdict, not a
+    plan defect.
+  - **Provenance of the originating residual risk could not be re-read at
+    source.** `projects/brida-worker-ledger/handoffs/WLG-001/code-review.md` is
+    not present in this worktree, as `requirements.md:83` records. The gap it
+    describes was verified directly against the packaged tree — zero
+    occurrences of `--ledger-file`, `workers.jsonl`, or `Worker ledger` in
+    `src/brichan/resources/dogfood_v1/` — so no requirement depends on it.
+  - **No decision is required from the user.** `O1` is a coordinator-level call
+    on planner-owned wording, and it does not gate implementation.
+
+  ## Claim or decision
+
+  Plan `WFS-A-204-PLAN-001` version 4 is `PASS`. Both version 3 findings are
+  genuinely closed and each closure was re-derived by execution: the narrowed
+  `R5` matches the refusal set I reproduced against the shipped `finish`, and
+  the corrected `options.md` version note matches the diff I re-ran. Following
+  this plan would satisfy all four packet acceptance criteria. The packaged text
+  states `--task` with its verbatim-recording rule, the fixed installed ledger
+  with the `--ledger-file` rejection, and the installed `finish` attestation
+  with `--project`, `--worker`, `--launch-id`, `--evidence`, its
+  integrity-bounding refusals, and the attestation-not-proof rule. Every
+  command, flag, refusal string, and exit code in it matches captured `--help`
+  output or the parser source, claims no refusal the CLI does not enforce, and
+  claims no exhaustiveness it does not have. Packaging, manifest, and
+  skill-parity contracts stay green with the parity contract extended rather
+  than weakened — 17 tests `OK` on both interpreters over the real drafted text,
+  thirteen markers newly guarded, three mutations correctly red. And the gate is
+  `make check`-equivalent and green apart from the ratified expected-red list,
+  which I measured. The one remaining item is a low, non-blocking imprecision in
+  two version notes, recorded as `O1` with a correction the coordinator may
+  apply in place before accepting the plan.
+
+  ## Evidence
+
+  - `requirements.md:49` (`R5`, narrowed and explicitly non-exhaustive, recording
+  the `R4` resolution refusal and the three `find_git_root` messages) with
+  `design.md:149-160` (the companion wording note) closes `L1-v3`; ground
+  re-derived by reproducing all four refusals against the shipped installed
+  `finish`, each exit `1`: `worker_ledger.py:203-220` and `:195-200` for `no ledger
+  for this target`, `project.py:9,36-38,41-42,51` with the `except (LedgerError,
+  ValueError, OSError)` arm at `worker_ledger.py:727` for the three path-resolution
+  messages.
+  - `options.md:26-37` closes `L2-v3`; `diff versions/v2/options.md
+  versions/v3/options.md` re-run in this session is exactly the metadata block, the
+  version note, and two Evidence bullets, which is what the corrected note states.
+  The archived versions are unmodified (`DOSSIER-003`).
+  - The real parity module run against a scratch copy carrying the version 4
+  drafted text (`design.md:77-131`) and the proposed extension
+  (`design.md:180-227`): 17 tests `OK` under 3.10 and 3.14; packaged headings at
+  lines 1, 71, 114 with the observation safeguards under the top-level heading; all
+  thirteen markers `0`→`1` in the packaged tree and already `1` in the checkout
+  tree; `--ledger-file` `0`→exactly `1` with `projects/<slug>/ledger/workers.jsonl`
+  absent; three mutations red (`3799 not less than 927`; `'## Worker ledger' not
+  found`; `1 != 2`); and the paste-recovery ±900-character window still satisfied
+  at 82/156/86 characters — confirming `R8`, `R10`, `R13`, and `TEST-003`.
+  - Captured installed `--help` for both entry points plus reproduced refusals
+  confirm every literal in `R1`-`R7`: the `--task` help text verbatim
+  (`worker_launch.py:422-428`); the installed usage line with no `--ledger-file`
+  (`:429-441`) and its `unrecognized arguments` exit `2`; `finish` usage `[-h]
+  --worker WORKER --launch-id LAUNCH_ID --evidence EVIDENCE [--task TASK] [--pane
+  PANE] [--project PROJECT]` (`worker_ledger.py:660-692`); `worker name must begin
+  with brichan-` (`:705`) and `every --evidence item must be non-empty` (`:713`)
+  each exit `1` before ledger resolution with nothing written; `no launched record
+  for launch_id` (`:636`) and the already-finished refusal (`:638`); the
+  first-`finished`-wins tie-break (`:445-453`); write failures returning a reason
+  through `record_finish` (`:611-651`) into exit `1` (`:696-742`); and
+  `worker_launch.py:698,701` for the stderr `launch_id` line and the warning that
+  leaves exit `0`.
+  - `src/brichan/lifecycle.py:29-40,143-155`, the absence of any byte, size, or
+  digest assertion against `dogfood_v1` in `tests/`, and
+  `config/repository-paths.json:991-994` (checkout-sourced) confirm `R9` and `R11`;
+  the three focused contracts pass today (42 tests, `OK`).
+  `worker_launch.py:516-524,679` confirms the legacy-note omission is correct for
+  routed installed launches.
+  - `Makefile:24-28,75-76` (`check` = `test` plus nine targets plus `sh -n
+  bin/brichan`, with `test` running the metrics unittest first) and `:39-40`
+  (`techstack-eval` hardcodes `python3`) confirm `plan.md:113-131` is step-for-step
+  equivalent to `make check`; measured: `test-unit` 1026 `OK`; `test-contract` 148
+  with the two `unclassified root files: .git` failures; `test-integration` 222
+  with the single in-flight-dossier failure; seven targets exit `0`; `path-check`
+  exit `2`; `dossiers` make exit `2` over script exit `1`; `sh -n bin/brichan` exit
+  `0`; and both 3.14 direct invocations `OK`.
+  - `scripts/validate_task_dossiers.py projects` reports `39 issue(s) across 8
+  dossier(s).`, script exit `1`, owned `index.md` 28 / `code-review.md` 5 /
+  `pr-desc.md` 5 / `plan-review.md` 1, the last being the version-mismatch row
+  naming `'4'` — the plan's predicted baseline and distribution exactly
+  (`plan.md:149-158`).
+  - `diff versions/v3/plan.md plan.md` and `diff versions/v3/design.md design.md`
+  are the evidence for `O1`: changes at `plan.md:82-88,129-131,174,201-214` and
+  `design.md:232,235-240,255-258,278-282,286` fall outside the notes' enumerations
+  at `plan.md:39-45` and `design.md:31`.
+  - `git status --short` is empty apart from this artifact: the parity verification
+  ran on a scratch copy outside the repository, and no other repository file was
+  modified by this review.
+
+  ## Uncertainty
+
+  - The two `tests/contract/test_repository_paths.py` failures and `make
+  path-check` share one cause I did not attempt to fix, as instructed: this
+  detached worktree's `.git` is a file, so the root-file scan reports it as
+  unclassified. They are worktree-only and are reported, not diagnosed.
+  - The parity verification ran the real contract module against a faithful scratch
+  copy of both skill trees, not against a modified worktree, because this task may
+  write one file only. The copy is byte-identical to the trees plus the specified
+  edit, and the module computes its own tree text, so the result is the suite's
+  real behavior on the edited content — but the implementation must still run plan
+  step 5 in place and report the real result, and a transcription differing from
+  the drafted text in any marker-bearing phrase could still fail. One transcription
+  detail the implementer should note: the absence-rule marker contains double
+  quotes, so it must be written as a single-quoted Python string.
+  - My reproduction of the four `L1-v3` refusals used temporary directories rather
+  than a real `brichan init` target, because initializing one is outside this
+  task's scope. Since any project `brichan init` touches is a Git root by
+  construction, the three `find_git_root` refusals cannot fire on a legitimately
+  initialized target — which is why leaving them out of the packaged text is sound.
+  - I measured the gate on the 3.10 shell interpreter and ran only the parity
+  module and the two prescribed direct invocations under 3.14; the full 3.14 sweep
+  is version 3's measurement, which I did not repeat. Nothing in this
+  documentation-and-contract change is interpreter-sensitive, and the parity module
+  is the only suite the change touches.
+  - I did not re-verify every line number the planner artifacts cite, only those
+  load-bearing for a finding, a closure, or an acceptance criterion; the ones I
+  checked were accurate.
+  - No other unresolved uncertainty remains about the reviewed plan.
+  EOF
+  echo "written: $(wc -l <
+  ../brichan-wfs-204a/projects/brida-
+  workflow-simplification/handoffs/WFS-A-204/plan-review.md) lines")
+  ⎿  written:      437 lines
+
+⏺ Bash(grep -n "^dossiers:" -A 2 Makefile; echo "=== home paths in artifact ===";
+  grep -c "<HOME-PREFIX>/\|<HOME-DIR>/"
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/plan-review.md || echo
+  "none")
+  ⎿  49:dossiers:
+     50-        $(PYTHON) scripts/validate_task_dossiers.py projects
+     51-
+     === home paths in artifact ===
+     0
+     none
+
+⏺ Bash(sed -n '49,56p;66,76p' Makefile | cat -n; echo "=== grep import brichan line
+  ==="; grep -n "import brichan;" Makefile)
+  ⎿       1     dossiers:
+          2             $(PYTHON) scripts/validate_task_dossiers.py projects
+     3
+          4     memory-check:
+          5             $(PYTHON) scripts/check_project_memory.py
+     6
+          7     path-check:
+          8             $(PYTHON) scripts/check_repository_paths.py
+     9
+         10     package-check:
+         11             PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "impo
+     brichan.cli.provider_commands"
+         12             PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "impo
+     brichan.orchestration; import sys; assert not any(name == 'brichan.cli' or
+     name.startswith('brichan.cli.') for name in sys.modules)"
+         13             PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "impo
+     from brichan.contracts.receipts import validation; from brichan.orchestration
+     import worker_launch"
+     14
+         15     contract-check: path-check test-contract
+         16             sh -n bin/brichan
+     17
+         18     check: test techstack-eval metrics receipts dossiers memory-check
+     path-check readme-check phase5-preflight package-check
+         19             sh -n bin/brichan
+     === grep import brichan line ===
+     70:        PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c "import brich
+     brichan.contracts.receipts import validation; from brichan.orchestration
+     import worker_launch"
+
+⏺ One citation in my own draft was wrong — the import smoke check belongs to
+  package-check, not dossiers. Correcting it.
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'
+  import pathlib
+  p = pathlib.Path("projects/brida-workflow-simplification/handoffs/WFS-A-204/plan-
+  review.md")
+  t = p.read_text(encoding="utf-8")
+  start = t.index("- **The expected-red `make dossiers` masks that target's second
+  recipe line.**")
+  end = t.index("- **Installed legacy launches stay undocumented.**")
+  t = t[:start] + t[end:]
+  p.write_text(t, encoding="utf-8")
+  print("removed the inaccurate bullet;", len(t.splitlines()), "lines")
+  PY
+  grep -n "masks\|Makefile:66"
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/plan-review.md || echo
+  "bullet gone")
+  ⎿  removed the inaccurate bullet; 430 lines
+     bullet gone
+
+⏺ Now the required post-write validation.
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects
+  >/tmp/val2.log 2>&1; echo "script exit=$?"; tail -1 /tmp/val2.log; echo "===
+  diagnostics naming plan-review.md as owner ==="; grep -E
+  "WFS-A-204/plan-review\.md:" /tmp/val2.log | sed -E 's|^.*/handoffs/||' || echo
+  "none — plan-review.md owns no diagnostic"; echo "=== ownership distribution
+  ==="; grep -v "^Invalid" /tmp/val2.log | sed -E
+  's|^.*/handoffs/(WFS-A-204/[a-z-]+\.md):.*|\1|' | sort | uniq -c | sort -rn)
+  ⎿  script exit=1
+     Invalid task dossiers: 38 issue(s) across 8 dossier(s).
+     === diagnostics naming plan-review.md as owner ===
+     === ownership distribution ===
+       28 WFS-A-204/index.md
+        5 WFS-A-204/pr-desc.md
+        5 WFS-A-204/code-review.md
+
+⏺ Bash(git status --short; echo "=== repository contract home-path scan over
+  projects/ ==="; PYTHONDONTWRITEBYTECODE=1 python3 -m unittest
+  tests.contract.test_repository_contract 2>&1 | tail -3; echo "=== dossier
+  contract ==="; PYTHONDONTWRITEBYTECODE=1 python3 -m unittest
+  tests.contract.test_task_dossier_contract 2>&1 | tail -3)
+  ⎿  === repository contract home-path scan over projects/ ===
+     Ran 18 tests in 0.203s
+
+     OK
+     === dossier contract ===
+     Ran 26 tests in 0.059s
+
+     OK
+
+⏺ 1. Verdict
+
+  PASS — plan WFS-A-204-PLAN-001 version 4.
+
+  Both version 3 findings are genuinely closed, and I re-derived each closure by
+  execution rather than reading the closure table:
+
+  - L1-v3: R5 (requirements.md:49) is narrowed to "the refusals that bound
+    attestation integrity", explicitly disclaims exhaustiveness, and records the
+    four omitted refusals; design.md:149-160 forbids adding them to the packaged
+    text. I reproduced all four against the shipped finish at exit 1, and confirmed
+    the drafted packaged text is byte-identical to v3's.
+  - L2-v3: options.md:26-37 now states the true v3 diff; I re-ran diff
+    versions/v2/options.md versions/v3/options.md — metadata, version note, two
+    Evidence bullets, exactly as claimed.
+
+  One low, non-blocking observation (O1): the plan.md:39-45 and design.md:31
+  version notes under-enumerate their own v3→v4 diffs (step 2 gained a prohibition,
+  a recorded limitation was broadened, two Claim or decision sections were
+  rewritten). Unlike L2-v3 neither makes an exclusive false claim, every unlisted
+  hunk traces to a driver they do name, and no work changes — so I recorded it with
+  a suggested in-place correction instead of blocking a fourth round.
+
+  2. File written
+
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/plan-review.md (430
+  lines, artifact version 4, verdict PASS). No other file was modified; git status
+  --short is empty.
+
+  3. Verification
+
+  - Techstack verify returned status: match before any other work; all eight
+    required selected rule files read.
+  - Real parity suite over a scratch copy carrying the v4 drafted text and proposed
+    extension: 17 tests OK on 3.10 and 3.14; headings at 1/71/114 (safeguards stay
+    under the top-level heading); all 13 markers 0→1 packaged and already 1 in
+    checkout; --ledger-file 0→exactly 1; three mutations red (3799 not less than
+    927; '## Worker ledger' not found; 1 != 2). Paste-recovery ±900-char window
+    holds with margin (82/156/86).
+  - CLI fidelity: --task help text verbatim; installed launcher rejects
+    --ledger-file (unrecognized arguments, exit 2); finish usage line exactly as
+    documented; reproduced worker name must begin with brichan-, every --evidence
+    item must be non-empty, no ledger for this target, no launched record for
+    launch_id, and all three find_git_root refusals — each exit 1, nothing written.
+    Legacy no-location note is unreachable for routed installed launches
+    (worker_launch.py:516-524,679).
+  - Gate measured: unit 1026 OK; contract 148 with the 2 known .git worktree
+    failures; integration 222 with the 1 in-flight-dossier failure; 7 targets exit
+    0; path-check exit 2; dossiers make 2/script 1; sh -n exit 0; both direct 3.14
+    invocations OK. make check-equivalence confirmed against
+    Makefile:24-28,39-40,75-76.
+  - Post-write: validate_task_dossiers.py projects → exit 1, 38 issue(s) across 8
+    dossier(s)., owned index.md 28 / code-review.md 5 / pr-desc.md 5 — no
+    diagnostic owned by plan-review.md; the version-mismatch row cleared as
+    predicted. The other pending artifacts are coordinator-owned and expected.
+
+  Known worktree-only failures reported, not fixed: tests/contract/test_repository_
+  paths.py::test_current_path_and_link_contracts_pass and
+  ::test_every_non_ephemeral_root_file_is_classified, both unclassified root files:
+  .git, plus make path-check sharing that cause.
+
+  4. Uncertainties
+
+  - Parity verification ran on a faithful scratch copy outside the repository (this
+    task may write one file only); the implementation must still run plan step 5
+    in place. One transcription note for the implementer: the absence-rule marker
+    contains double quotes and must be a single-quoted Python string.
+  - I measured the full gate on 3.10 and ran only the parity module plus the two
+    prescribed direct invocations under 3.14; nothing in this
+    documentation-and-contract change is interpreter-sensitive.
+  - My refusal reproductions used temporary directories, not a real brichan init
+    target.
+  - One correction inside my own review pass: I initially attributed the import
+    smoke check to make dossiers; it belongs to package-check (Makefile:68-70),
+    which exits 0, so that bullet was removed before finalizing.
+  - Plan status is still draft; acceptance is the coordinator's action.
+
+  5.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=de980e60b988a5b6cd3268935435ac1efa476f9c8735062d957dff0074b278fe
+
+✻ Crunched for 22m 18s · done 9:14 PM
+                                                                    215386 tokens
+───────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 21% │ brichan-wfs-204a │ ● high 💭
+  current ●●●○○○○○○○  35% ⟳ 12:40am
+  weekly  ●●●●●○○○○○  57% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  35% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

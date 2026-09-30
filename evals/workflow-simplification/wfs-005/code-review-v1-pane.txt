@@ -1,0 +1,400 @@
+  otherwise valid legacy dossier on a scratch copy: 43 diagnostics, including
+  both `cannot read artifact` and `report.md is missing`.
+
+  Fix. One unit test beside `test_a_symlinked_plan_does_not_excuse_the_report`:
+  build a valid full dossier, overwrite `plan.md` with non-UTF-8 bytes, and
+  assert the diagnostics include `required task-dossier artifact report.md is
+  missing`. It fails when the filter is removed.
+
+  ### L1 — Low, not blocking. `_validate_presence`'s symlink skip is invisible to the suite
+
+  `src/brichan/contracts/task_dossier/validation.py:134` skips the missing-file
+  diagnostic when the required path is a symlink. Removing `or
+  path.is_symlink()` fails no test. The effect of the regression is one extra,
+  redundant diagnostic beside the existing `artifact is a symlink` one, so the
+  validator becomes noisier rather than weaker, and the symlink refusal itself
+  stays tested. Does not block: no contract statement depends on the suppressed
+  duplicate.
+
+  ### L2 — Low, not blocking. The index-template contiguity guard is untested
+
+  `src/brichan/contracts/task_dossier/scaffold.py:91` raises when the index
+  template's status rows are not contiguous. Replacing the check with `pass`
+  fails no test. It guards a template whose eleven rows are already pinned by
+  `test_index_template_links_authorities_without_duplicating_them`, so the state
+  it defends against cannot reach a released tree. Does not block: defensive
+  depth on an already-pinned input.
+
+  ### L3 — Low, not blocking. `record_artifacts`' ordering is redundant, so its mutation survives
+
+  `src/brichan/contracts/task_dossier/generate.py:153` re-orders the record's
+  keys into `RECOGNIZED_ARTIFACTS` order. Returning `tuple(record.artifacts)`
+  instead fails no test, because `record.py`'s loader already builds
+  `record.artifacts` by iterating `RECOGNIZED_ARTIFACTS`, so the input is always
+  ordered. Does not block: the property is real and enforced one layer down, and
+  rendering order is cosmetic.
+
+  ### L4 — Low, not blocking. The summary's unreadable-row sort is untested
+
+  `src/brichan/contracts/task_dossier/summary.py:246` sorts the unreadable rows
+  into lifecycle order. Removing the sort fails no test. Presentation only; the
+  summary is explicitly a non-authority. Does not block.
+
+  ### L5 — Low, not blocking. The contract-path checker treats empty input as "no contract path"
+
+  `src/brichan/contracts/task_dossier/contract_paths.py:56-76` returns exit 0
+  and prints `contract-path: no` on empty stdin. In the documented pipeline
+  (`docs/workflows/task-dossier.md`, Contract paths), a `git diff` that fails —
+  a bad dispatch base, a wrong worktree, a forgotten pipe — produces empty
+  stdout, and an ordinary shell does not propagate the upstream exit status, so
+  the checker answers "no review needed" from no evidence. I confirmed this:
+  piping nothing prints `contract-path: no` with exit 0, while non-UTF-8 input
+  correctly exits 2.
+
+  Does not block: this is the behavior the accepted design specifies (exit 0 no,
+  3 yes, 2 invalid invocation or undecodable input), and the workflow document
+  already states the trust boundary explicitly — the level 0 decision is the
+  coordinator's and is recorded with the checker's output. Worth a follow-up
+  sentence recommending `set -o pipefail`, or an `--expect-nonempty` flag, since
+  the cheapest failure mode of a safety check should not be silence.
+
+  ### L6 — Low, not blocking. The legacy `plan`-satisfies rule is not restricted to legacy dossiers
+
+  `required_artifacts` drops `report` whenever `plan` is present, with no
+  condition on the dossier's age. A brand-new Level 0 or Level 1 task can
+  therefore carry `plan.md` instead of `report.md` and never write the mandated
+  `Plan`, `Changes`, `Verification`, `Risks` structure that R2 and R3 describe
+  as the lifecycle. I verified it: a level 0 dossier holding `index`, `request`,
+  `plan`, `code-review` and no report validates with zero diagnostics under
+  `--require-complete`.
+
+  Does not block. This is the plan review's shape (a), which plan version 3
+  adopted deliberately to close C1 without an exemption list, and
+  `docs/workflows/task-dossier.md` states it plainly ("At levels 0 and 1 a
+  present `plan.md` carries the plan, so `report.md` is then not required").
+  Nothing is escaped — a level 1 task still needs a mandatory independent code
+  review, and a present `plan.md` validates under the full plan rules. Recording
+  it so the coordinator knows the report structure is a documented obligation,
+  not a mechanical one.
+
+  ### L7 — Low, not blocking. `implementation.md`'s TEST-003 claim overstates what the suite verifies
+
+  `implementation.md` states: "Each removal failed its named test. No survivor
+  remained." My sweep of seven new guards found five survivors (M1, L1, L2, L3,
+  L4) and two kills (`render_artifact`'s missing-key guard, killed by
+  `test_rendering_an_artifact_the_record_lacks_is_refused`; `_unquote`, killed
+  by `test_contract_paths_match_and_other_paths_do_not`). The named guards the
+  report enumerates do each fail their named test — I did not find a
+  counterexample among those — but the blanket claim is wrong, so the report
+  should not be relied on as the TEST-003 record. Does not block on its own;
+  correct the sentence in place when M1 is fixed (DOSSIER-004: correct in place,
+  never append a contradicting section).
+
+  ### L8 — Low, not blocking. Presence and review-target rules key on different sets
+
+  `_validate_unplanned_review_targets` keys on `"plan" in artifacts`
+  (`validation.py:556`) while `required_artifacts` keys on the stricter `present`
+  set. An unreadable — not symlinked — `plan.md` therefore both requires
+  `report.md` and forbids null review targets at once. Only reachable in a
+  dossier that is already invalid for the unreadable file, so no valid state is
+  affected. Does not block.
+
+  ### Stale risk item in `implementation.md`, for the record
+
+  `implementation.md` Risks item 1 reports a pre-existing gate red,
+  `test_durable_artifacts_do_not_embed_home_paths`, naming two untracked pane
+  captures. It does not reproduce: the contract tier is 153 OK on both
+  interpreters in my runs, and `tests.contract.test_repository_contract` passes
+  18 tests. The captures were rewritten after the implementation attempt ended.
+  No coordinator action is needed for it; the item can be closed.
+
+  ## Test gaps
+
+  Per the rule this change adds, a behavior change with no committed regression
+  test is a defect, so the gaps are filed as findings above rather than here.
+  Listed once more as a checklist:
+
+  - M1 (blocking): no test for the unreadable-plan arm of the fail-closed
+    presence rule.
+  - L1-L4 (not blocking): four new lines whose removal the suite cannot detect.
+    L1 and L2 defend states that are already caught or already pinned, L3 is
+    redundant with the record loader, and L4 is presentational; a test for each
+    is optional, not owed.
+
+  What is not a gap. The tests this change lands are substantive, not
+  decorative. I confirmed by mutation that the fail-closed level fallback, the
+  `report.md` back-write guard, report-author independence in both the validator
+  and the record loader, the level 1/2 review mandate, report concreteness, the
+  status-table absent-row rule, the legacy `plan` rule, the symlink arm, null
+  review targets, level-keyed scaffolding, generated status rows, completion
+  narrowing, partial adoption of `report`, and the contract-path list each have
+  at least one test that fails when the guard is removed. The two committed
+  legacy samples under `evals/task-dossier-pilots/concise` now own a real
+  regression guard (`test_the_committed_legacy_samples_validate_under_the_level_rules`),
+  which is the right answer to TEST-004 given that dossiers under `projects` are
+  gitignored.
+
+  ## What I verified
+
+  Packet checks, each run rather than read:
+
+  - Every existing dossier validates unchanged.
+    `PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects`
+    reports 40 diagnostics, and all 40 name WFS-005's own artifacts: 29 on the
+    templated `index.md`, 5 on the templated `code-review.md`, 5 on the
+    templated `pr-desc.md`, 1 on the absent `receipt.md`. Zero fall on the other
+    16 dossiers.
+  - A reduced dossier cannot escape level 2. Declaring level 2 while carrying
+    only the reduced four artifacts yields 18 diagnostics, one missing-file
+    diagnostic per absent artifact. Downgrading a valid level 2 dossier by
+    editing only `index.md` and deleting the eight artifacts level 0 does not
+    require yields 14 diagnostics from four independent rules at once: the
+    per-artifact `Task level` mismatch, the required `report.md`, the null
+    review targets, and the status table's absent-row rule. The remaining
+    exposure is self-declaration at creation time, which is M2's documented,
+    reviewer-checked residual.
+  - Partial-adoption protection holds and is stronger. `discover_partial_dossiers`
+    scans all recognized names, a `report.md`-only handoff is reported, and the
+    real `projects` run produced no partial-adoption diagnostic.
+  - Installed mode and packaged resources are byte-unchanged.
+    `git diff --stat -- src/brichan/resources PRODUCT.md config techstacks evals Makefile README_PYPI.md packaging`
+    is empty, and `make test-contract` (skill parity, dogfood policy,
+    repository paths) is 153 OK.
+  - The lifecycle is stated canonically once. `### Lifecycles by level` appears
+    once, in `docs/workflows/task-dossier.md`; `docs/policy/operating-principles.md`
+    section 2, `docs/policy/reviewer.md`, and both `herdr-orchestration` files
+    now reference it. A repository-wide search for "eleven", "all levels", "all
+    task levels", and "same standard artifact" across `docs`, `.agents`,
+    `AGENTS.md`, `PRODUCT.md`, `CLAUDE.md`, and `src/brichan` finds no remaining
+    normative duplicate; the three surviving mentions of "eleven" are code
+    comments.
+
+  Additional checks:
+
+  - Both coordinator conditions. M1: `resolve_task_level` is the single level
+    rule; the validator, summary, and record loader call it, the scaffold raises
+    through `level_artifacts`, and the generator CLI refuses via argparse
+    `choices`. M2: `report` is in the `_validate_ownership` back-write tuple and
+    `test_reviewer_must_not_author_the_report` covers it.
+  - Level 2 is not weakened anywhere, and is tightened in one place: a
+    `code-review` recorded `not-required` is now a diagnostic at level 2 as well
+    as level 1, which no existing dossier trips.
+  - The monotone rule holds: a reduced level 1 dossier carrying an extra
+    `design.md` validates with zero diagnostics under `--require-complete`.
+  - `report.md` is not a validation hole: it takes the level evidence floor,
+    the structural section check, the passed-phase concreteness check, and the
+    reviewer back-write guard.
+  - Level 2 scaffold output is byte-identical to the templates, which also pins
+    `scaffold.STATUS_ROW` equal to the index template's row form.
+  - Contract-path checker behavior matches the document: `docs/policy/x.md` and
+    the M3 additions `src/brichan/project.py` and
+    `scripts/validate_task_dossiers.py` exit 3; `tests/unit/x.py` and
+    `README.md` exit 0; non-UTF-8 input and a bad argument exit 2.
+  - `scripts/check_contract_paths.py` follows the existing 19-line wrapper
+    pattern and file mode exactly.
+  - Full gate, both interpreters, with `codex` off `PATH` so the doctor check
+    matches CI: metrics 10 OK, unit 1061 OK, contract 153 OK, integration 227
+    run with the single sanctioned `test_repository_checkout_validates_clean`,
+    techstack-eval 56 OK, 55 receipts valid, `make dossiers` red only on
+    WFS-005, and memory-check, path-check (113 entries), readme-check,
+    phase5-preflight and package-check all pass. `sh -n bin/brichan` exits 0.
+    The techstack eval also runs 56 OK directly under Python 3.14.6, since its
+    recipe does not follow `PYTHON=`.
+  - Every mutation check ran on a copy of the tree outside the repository. No
+    tracked file was modified by this review other than this artifact.
+
+  ## Claim or decision
+
+  The implementation of `WFS-005-PLAN-001` version 3 is correct, faithful to the
+  accepted plan and design, and independently verified green on Python 3.10 and
+  3.14; both coordinator conditions are closed with guards that really fail when
+  removed. It is returned `CHANGES REQUIRED` for exactly one reason: the new
+  fail-closed presence filter that stops an unreadable `plan.md` from excusing
+  `report.md` has no committed regression test, which violates requirement R10
+  and the reviewer rule this change itself introduces. One unit test closes it.
+  Seven Low findings are recorded and none blocks.
+
+  ## Evidence
+
+  - Techstack verify returned `"status": "match"` for snapshot
+    `53d20d1a398f270216d666a5e045edac32b44fb21fcab03dafcae442669fdb25` before
+    any other work in this session, and all ten selected rule files
+    (`techstacks/README.md`, `general.md`, `policy/README.md`,
+    `policy/canonical.md`, `policy/packaged-resources.md`,
+    `policy/task-dossiers.md`, `python/README.md`, `python/runtime.md`,
+    `python/scripts.md`, `python/tests.md`) were read in full.
+  - Mutation evidence for M1 and L1-L4: on a full copy of the tree outside the
+    repository, each of seven new guards was removed one at a time and the six
+    dossier suites re-run; five removals changed no test result and two were
+    killed by their named tests. The harness was validated by a control mutation
+    (`FALLBACK_TASK_LEVEL` `"2"` to `"0"`) that killed five tests.
+  - Full-gate evidence: `PYTHONDONTWRITEBYTECODE=1 make -k check` and
+    `make -k check PYTHON=/opt/homebrew/bin/python3.14`, both with `codex` off
+    `PATH`, produced identical results — 10, 1061, 153 and 56 tests OK, 227
+    integration with only `test_repository_checkout_validates_clean` failing,
+    55 receipts valid, and `make dossiers` red only on WFS-005 — plus
+    `PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3.14 -m unittest
+    evals.techstack_context_v1.test_cases` at 56 OK under Python 3.14.6.
+  - Byte-unchanged evidence: `git diff --stat` over
+    `src/brichan/resources`, `PRODUCT.md`, `config`, `techstacks`, `evals`,
+    `Makefile`, `README_PYPI.md` and `packaging` is empty, so acceptance
+    criterion A5 and requirement R1 hold; `docs/workflows/task-dossier.md`'s
+    pinned needles survive, since the contract tier passes unchanged.
+  - Adversarial probe evidence: eleven scratch dossiers were built through
+    `tests/unit/test_task_dossier_validator.py`'s helpers and validated — level
+    2 with the reduced four (18 diagnostics), a level 0 waiver without a
+    rationale (1), a reduced dossier without its receipt (1), a level 0 dossier
+    with `plan` instead of `report` (0), a reduced dossier plus an extra
+    `design.md` (0), a thin-evidence reduced dossier (4), an unreadable
+    `plan.md` (43), and the index-only level downgrade (14).
+  - Spec basis: `plan.md` v3 (accepted, plan ID `WFS-005-PLAN-001`),
+    `design.md` v2 sections 1-8, `requirements.md` v2 R1-R13 and A1-A6,
+    `plan-review.md` v2 (`PASS`, findings M1 and M2 as the coordinator
+    conditions), and `client-follow-up-questions.md` v1 (checkout-only scope,
+    Claude reviewers, no migration, ship authorization not requested).
+
+  ## Uncertainty
+
+  - Whether M1 should block is the one judgment in this review a reasonable
+    reviewer could take the other way. The guard's regression cannot make an
+    invalid dossier valid, so a coordinator could classify it Low and land the
+    change with a follow-up. I block because requirement R10 is written without
+    an exception and because the reviewer rule this change introduces is
+    explicit that such a gap is a defect of at least medium severity; the
+    coordinator has the standing to overrule that reading, and the cost either
+    way is one test.
+  - Whether the contract-path membership should include the `src/brichan` and
+    `scripts` prefixes remains the user-reversible judgment the plan recorded.
+    I take no position; the implementation matches the accepted list exactly and
+    the list stays a one-line, one-tuple-entry, one-test change.
+  - I did not re-derive the stage 2 evidence base (three tasks, one run per arm)
+    that justifies the simplification itself. That was settled by the recorded
+    decision and the plan review; this review covers the implementation of the
+    accepted plan only, and the protocol's stop-and-rollback rule stays in force
+    and is restated in the workflow document.
+  - No other uncertainty remains.
+  EOF
+  wc -l projects/brida-workflow-simplification/handoffs/WFS-005/code-review.md)
+  ⎿       403 projects/brida-workflow-simplification/handoffs/WFS-005/code-review.md
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | grep "WFS-005" | sed
+  's|.*WFS-005/||; s|:.*||' | sort | uniq -c; echo "--- code-review.md diagnostics ---"; PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | grep "WFS-005/code-review.md")
+  ⎿    30 index.md
+        5 pr-desc.md
+        1 receipt.md
+     --- code-review.md diagnostics ---
+
+⏺ Bash(git status --short && echo "--- only code-review.md should be newly modified vs. the review start ---" && git diff
+  --stat -- projects/brida-workflow-simplification/handoffs/WFS-005/ 2>/dev/null; echo "(dossier is gitignored, so no diff
+  expected)")
+  ⎿   M .agents/skills/herdr-orchestration/SKILL.md
+      M .agents/skills/herdr-orchestration/references/task-dossier.md
+      M .codex/config.toml
+      M CHANGELOG.md
+      M docs/policy/operating-principles.md
+      M docs/policy/reviewer.md
+      M docs/workflows/task-dossier.md
+      M projects/brida-workflow-simplification/decisions.md
+      M projects/brida-workflow-simplification/tasks.md
+      M src/brichan/contracts/task_dossier/generate.py
+      M src/brichan/contracts/task_dossier/record.py
+      M src/brichan/contracts/task_dossier/scaffold.py
+      M src/brichan/contracts/task_dossier/schema.py
+      M src/brichan/contracts/task_dossier/summary.py
+      M src/brichan/contracts/task_dossier/validation.py
+      M tests/contract/test_task_dossier_contract.py
+      M tests/integration/test_task_dossier_workflow.py
+      M tests/unit/test_task_dossier_generator.py
+      M tests/unit/test_task_dossier_summary.py
+      M tests/unit/test_task_dossier_validator.py
+     ?? .brichan.bak-2026-08-26/
+     ?? .brichan.bak-2026-08-28/
+     ?? .brichan.bak-2026-09-18/
+     ?? .brichan/
+     ?? docs/workflows/task-dossier/templates/report.md
+     ?? evals/workflow-simplification/wfs-005/
+     ?? scripts/check_contract_paths.py
+     ?? src/brichan/contracts/task_dossier/contract_paths.py
+     ?? tests/unit/test_contract_paths.py
+     --- only code-review.md should be newly modified vs. the review start ---
+     (dossier is gitignored, so no diff expected)
+
+⏺ 1. Verdict and scores
+
+  CHANGES REQUIRED — one blocking Medium, which is a missing test rather than a broken behavior. The implementation itself is
+  faithful and verified.
+
+  ┌────────────────────────┬───────┐
+  │       Criterion        │ Score │
+  ├────────────────────────┼───────┤
+  │ Spec fidelity          │ 5/5   │
+  ├────────────────────────┼───────┤
+  │ Code review            │ 4/5   │
+  ├────────────────────────┼───────┤
+  │ Empirical verification │ 5/5   │
+  └────────────────────────┴───────┘
+
+  M1 (Medium, blocking). validation.py:116-122 adds the filter that makes an unreadable plan.md fail closed toward requiring
+  report.md — a rule stated normatively in docs/workflows/task-dossier.md:225, the required_artifacts docstring, and
+  design.md §3. Only the symlink arm is tested. I replaced the filter with an unconditional present.add(name) on a copy
+  outside the repo and re-ran all six dossier suites: the mutant survives, no test detects it. (Harness validated by a
+  control mutation of FALLBACK_TASK_LEVEL, which killed five tests.) This violates R10 / GENERAL-004 / TEST-003 and the
+  reviewer rule this change itself introduces. Fix = one unit test. I recorded the mitigating fact plainly: an unreadable
+  artifact always emits its own diagnostic, so no invalid dossier can become valid through this regression.
+
+  Seven Low findings, none blocking: four more new lines invisible to the suite (_validate_presence symlink skip, the
+  template-contiguity guard, record_artifacts ordering, the summary sort — each cosmetic or redundant); the checker answering
+  contract-path: no on empty stdin, so a failed git diff silently waives Level 0 review (design-specified, behind the named
+  trust boundary); the legacy plan-satisfies rule not being restricted to legacy dossiers, so a new Level 0/1 task can skip
+  report.md entirely (verified: 0 diagnostics — but this is the shape plan v3 deliberately adopted and the doc states it);
+  and implementation.md's TEST-003 claim "No survivor remained" being wrong — 5 of 7 guards I swept survive.
+
+  Also for the record: the report's "pre-existing gate red" (test_durable_artifacts_do_not_embed_home_paths) does not
+  reproduce — contract tier is 153 OK on both interpreters. That risk item can be closed.
+
+  2. File written
+
+  projects/brida-workflow-simplification/handoffs/WFS-005/code-review.md (403 lines) — the only file I touched. git status
+  --short is byte-identical to the review start. It validates with zero diagnostics (was 5 as a template).
+
+  3. Verification
+
+  Both coordinator conditions close correctly, with guards that really fail when removed. All six acceptance criteria hold,
+  each run rather than read:
+
+  - Existing dossiers unchanged: 40 diagnostics, all 40 on WFS-005's own pending artifacts (index 29, code-review 5, pr-desc
+    5, receipt 1). Zero on the other 16.
+  - No escape from Level 2: level 2 with the reduced four → 18 diagnostics; an index-only downgrade plus deleting eight
+    artifacts → 14 diagnostics from four independent rules at once.
+  - Partial adoption strengthened; src/brichan/resources + PRODUCT.md/config/techstacks/evals/Makefile/packaging
+    byte-unchanged; lifecycle stated once (repo-wide search finds no remaining normative duplicate).
+  - Full gate, codex off PATH, 3.10 and 3.14 identical: metrics 10, unit 1061, contract 153, techstack-eval 56 OK;
+    integration 227 with only the sanctioned test_repository_checkout_validates_clean; 55 receipts; make dossiers red only on
+    WFS-005; memory/path/readme/preflight/package checks pass. Eval 56 OK directly under 3.14.6. sh -n bin/brichan exits 0.
+
+  Every mutation ran on a copy outside the repository.
+
+  4. Uncertainties
+
+  Whether M1 should block is the one judgment a reasonable reviewer could take the other way — the guard is defense-in-depth,
+  not verdict-bearing. I block because R10 is written without an exception and the new rule is explicit about severity; the
+  coordinator can overrule that reading, and the cost either way is one test. The contract-path membership remains the
+  user-reversible judgment the plan recorded; I take no position. I did not re-derive the stage 2 evidence base behind the
+  simplification itself.
+
+  5.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=53d20d1a398f270216d666a5e045edac32b44fb21fcab03dafcae442669fdb25
+
+✻ Cooked for 22m 11s · done 12:00 PM
+                                                                                                              227677 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ add the missing unreadable-plan test and re-run make check
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 22% │ brida (feat/lifecycle-simplification*) │ ● high 💭
+  current ●●●●●●○○○○  60% ⟳ 12:10pm
+  weekly  ●●●●●●○○○○  67% ⟳ sep 30, 5:00am
+  fable   ●●●●○○○○○○  42% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

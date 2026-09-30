@@ -1,0 +1,400 @@
+     `projects/<project-slug>/`.
+
+     The index links and never restates. It may declare only
+     its projection
+     sections — `Artifact metadata`, `Task identity`,
+     `Artifact status`,
+     `Claim or decision`, `Evidence`, and `Uncertainty`. Any
+     other section is
+     rejected, including a receipt-owned one such as `Review
+     verdict` and a
+     project-memory-owned one such as `Current state`,
+     `Overview`, `Tasks`,
+     `Decisions`, or `References`. The index must not repeat a
+     receipt-owned field
+     such as `Verdict`, `Diff evidence`, or `Brida-owned panes
+     closed`, and must
+     carry no table other than the artifact status table.
+
+     ## Phase states
+
+     Each artifact declares one phase state:
+
+     - `pending`: not started.
+     - `active`: in progress.
+
+⏺ implementation.md isn't one of the standard artifacts, so
+  I'll write it as a plain report and then rerun the validator
+  to confirm it adds no diagnostic.
+
+⏺ Write(../brich
+       an-wfs-201a/projects/brida-workflow-simplification/hand
+       offs/WFS-A-201/implementation.md)
+  ⎿  Wrote 164 lines to
+     ../bri
+     chan-wfs-201a/projects/brida-workflow-simplification
+     /handoffs/WFS-A-201/implementation.md
+        1 # Implementation report
+        2
+        3 Implementation evidence for accepted plan `WF
+          S-A-201-PLAN-001` version 3.
+        4
+        5 ## Report metadata
+        6
+        7 - Task ID: `WFS-A-201`
+        8 - Plan ID: `WFS-A-201-PLAN-001`
+        9 - Plan version: `3`
+       10 - Attempt ID: `attempt-implement-1`
+       11 - Owner: `implementer`
+       12 - Authorship: `model`
+       13 - Effective model: `claude-opus-5-5`
+       14 - Date: `2026-09-25`
+       15 - Changes: uncommitted in the detached worktr
+          ee
+       16
+       17 ## Outcome
+       18
+       19 Done. The test is renamed from
+       20 `test_prose_rejects_control_and_markup_charac
+          ters` to
+       21 `test_prose_rejects_pipe_and_category_c_chara
+          cters`. The change is one
+       22 line and does not change behavior. Every plan
+           step is met, and the ratified
+       23 completion gate is red only for the four expe
+          cted-red components on both
+       24 interpreters. There are no deviations.
+       25
+       26 ## Changed files
+       27
+       28 | Path | Change |
+       29 |---|---|
+       30 | `tests/unit/test_techstack_markdown.py` | L
+          ine 565: the `def` is renamed. The comment, s
+          ubtests and helpers are byte-identical. |
+       31 | `projects/brida-workflow-simplification/han
+          doffs/WFS-A-201/implementation.md` | This rep
+          ort. It is untracked and gitignored dossier s
+          tate. |
+       32
+       33 `git diff --stat`: `tests/unit/test_techstack
+          _markdown.py | 2 +-`, 1 file
+       34 changed, 1 insertion(+), 1 deletion(-). `git
+          status --short`:
+       35 ` M tests/unit/test_techstack_markdown.py` on
+          ly.
+       36
+       37 ## Plan steps
+       38
+       39 ### Step 1 — Verify before work
+       40
+       41 `bin/brichan techstacks verify ... --snapshot
+          -json
+       42 projects/brida-workflow-simplification/handof
+          fs/WFS-A-201/snapshots/attempt-implement-1-ff
+          4586a03aa87fa0420e36268c968f75fd91b2e6eb34d40
+          39809b6a6cb4dcebf.snapshot.json
+       43 --as-of 2026-09-25` returned `"status": "matc
+          h"` with no differences. The
+       44 observed sha256 is
+       45 `ff4586a03aa87fa0420e36268c968f75fd91b2e6eb34
+          d4039809b6a6cb4dcebf`. This ran
+       46 before any other work. `brichan` is not on PA
+          TH, so the checkout
+       47 `bin/brichan` was used. I read all six select
+          ed rule files in full:
+       48 `techstacks/README.md`, `techstacks/general.m
+          d`,
+       49 `techstacks/policy/README.md`, `techstacks/po
+          licy/task-dossiers.md`,
+       50 `techstacks/python/README.md` and `techstacks
+          /python/tests.md`. I also read
+       51 `docs/policy/operating-principles.md`.
+       52
+       53 ### Step 2 — The edit
+       54
+       55 The edit follows `design.md` version 3 exactl
+          y:
+       56
+       57 ```
+       58 -    def test_prose_rejects_control_and_marku
+          p_characters(self):
+       59 +    def test_prose_rejects_pipe_and_category
+          _c_characters(self):
+       60 ```
+       61
+       62 The new name matches the assertions. The two
+          subtests reject U+007C
+       63 (`a|b`) and a Unicode category C character (U
+          +0085, `Cc`). No markup
+       64 character is asserted against. The leading co
+          mment already names exactly
+       65 these two rejections, so it is unchanged.
+       66
+       67 ### Step 3 — Neutrality verification
+       68
+       69 - `git diff -- tests/unit/test_techstack_mark
+          down.py`: one `def` line
+       70   removed and one added. Nothing else changed
+          .
+       71 - `git grep -n test_prose_rejects_control_and
+          _markup_characters`: the only
+       72   hit is `projects/brida-workflow-simplificat
+          ion/tasks.md:29`. That row is
+       73   permitted coordinator-owned residue under t
+          he restated criterion in
+       74   `client-follow-up-questions.md` version 2,
+          and it was not edited.
+       75 - `git grep -n test_prose_rejects_pipe_and_ca
+          tegory_c_characters`: the only
+       76   hit is `tests/unit/test_techstack_markdown.
+          py:565`.
+       77 - `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src p
+          ython3 -m unittest
+       78   tests.unit.test_techstack_markdown -v` (Pyt
+          hon 3.10.11): 47 tests, OK.
+       79   `test_prose_rejects_pipe_and_category_c_cha
+          racters
+       80   (LeafGrammarTest) ... ok`.
+       81
+       82 ### Step 4 — Gates and report
+       83
+       84 `PYTHONDONTWRITEBYTECODE=1 make check` on Pyt
+          hon 3.10.11 exits 2. Its
+       85 components ran as follows:
+       86
+       87 - The first unittest group ran 10 tests, OK.
+       88 - `test-unit` ran 1026 tests, OK.
+       89 - `test-contract` ran 148 tests with exactly
+          2 failures, both in
+       90   `tests/contract/test_repository_paths.py`:
+       91   - `test_current_path_and_link_contracts_pas
+          s`
+       92   - `test_every_non_ephemeral_root_file_is_cl
+          assified`
+       93
+       94   Both report `unclassified root files: .git`
+          . They are expected,
+       95   pre-existing and worktree-only, and they st
+          op `make check` as the plan
+       96   predicts.
+       97
+       98 Ratified layer-by-layer gate, with `PYTHONDON
+          TWRITEBYTECODE=1` throughout:
+       99
+      100 | Component | 3.10 shell interpreter | `PYTHO
+          N=/opt/homebrew/bin/python3.14` |
+      101 |---|---|---|
+      102 | `make test-unit` | 1026 OK | 1026 OK |
+      103 | `make test-contract` | 148, 2 failures (exp
+          ected: the two `.git` failures above) | same
+          2 failures (expected) |
+      104 | `make test-integration` | 222, 1 failure: `
+          test_repository_checkout_validates_clean` (ex
+          pected) | same 1 failure (expected) |
+      105 | `make techstack-eval` | 56 OK | 56 OK (the
+          recipe runs bare `python3`); direct `python3.
+          14 -m unittest evals.techstack_context_v1.tes
+          t_cases`: 56 OK |
+      106 | `make metrics` | exit 0 | exit 0 |
+      107 | `make receipts` | exit 0 | exit 0 |
+      108 | `make dossiers` | exit 2, 40 issues (expect
+          ed) | exit 2, 40 issues (expected) |
+      109 | `make memory-check` | exit 0 | exit 0 |
+      110 | `make path-check` | exit 2, `unclassified r
+          oot files: .git` (expected) | same (expected)
+           |
+      111 | `make readme-check` | exit 0 | exit 0 |
+      112 | `make phase5-preflight` | exit 0 | exit 0 |
+      113 | `make package-check` | exit 0 | exit 0 |
+      114 | `sh -n bin/brichan` | exit 0 | n/a (the int
+          erpreter doesn't matter) |
+      115
+      116 Every red cell is one of the four expected-re
+          d components that
+      117 `client-follow-up-questions.md` version 2 and
+           plan Step 4 name. Every other
+      118 component is green on both interpreters.
+      119
+      120 The dossier validator was run with `PYTHONDON
+          TWRITEBYTECODE=1 python3
+      121 scripts/validate_task_dossiers.py projects`.
+          It exits 1 with 40 diagnostics,
+      122 and every one is in this dossier: `index.md`
+          30, `code-review.md` 5 and
+      123 `pr-desc.md` 5. The five planner-owned artifa
+          cts (`requirements.md`,
+      124 `brief.md`, `options.md`, `design.md`, `plan.
+          md`) have no diagnostic, which
+      125 is the distribution the plan requires. No dia
+          gnostic is in any other
+      126 dossier.
+      127
+      128 The count is 40, against 38 when the plan was
+           written. The two extra
+      129 diagnostics are `index.md` status mismatches
+          for `client-follow-up-questions`
+      130 and `plan-review`: those artifacts now declar
+          e `passed`, but the still
+      131 unfilled coordinator `index.md` template show
+          s placeholders. This follows
+      132 the plan's instruction to compare the distrib
+          ution, not the absolute count.
+      133 Both are coordinator-owned and are not defect
+          s of this change. The
+      134 `test_repository_checkout_validates_clean` in
+          tegration failure reports the
+      135 same `index.md` diagnostics.
+      136
+      137 ## Acceptance criteria
+      138
+      139 - The name is accurate. The new name states e
+          xactly what the two assertions
+      140   check: rejection of U+007C and of Unicode c
+          ategory C characters.
+      141 - Behavior is neutral. The diff is the one `d
+          ef` line. No assertion,
+      142   subtest value, helper or comment changed.
+      143 - No old-name references remain in scope. `gi
+          t grep` finds the old name
+      144   only in coordinator-owned `projects/brida-w
+          orkflow-simplification/tasks.md:29`.
+      145 - The gate passes as ratified. `make check` f
+          ails only on the two known
+      146   worktree-only contract failures. The layer-
+          by-layer gate on 3.10 and 3.14
+      147   is red only for the four expected-red compo
+          nents.
+      148
+      149 ## Deviations
+      150
+      151 None.
+      152
+      153 ## Risks and follow-ups
+      154
+      155 - `tasks.md:29` still quotes the old name. It
+           is coordinator-owned
+      156   and was left untouched by decision.
+      157 - The sibling stale comment at
+      158   `tests/unit/test_techstack_markdown.py:347-
+          351` and the category-C
+      159   coverage gap (only `Cc` is exercised) remai
+          n. Both are out of scope and
+      160   already referred to the coordinator in plan
+           version 3.
+      161 - The `make dossiers` and integration redness
+           will clear only after the
+      162   coordinator fills `index.md`, `code-review.
+          md`, `pr-desc.md` and
+      163   `receipt.md`. This report is not a standard
+           dossier artifact, and the
+      164   validator raised no diagnostic for it.
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | grep -c
+  implementation; PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | tail -1;
+  PYTHONDONTWRITEBYTECODE=1 make memory-check path-check 2>&1
+  | tail -3; grep -nE "/Users|/home" projects/brida-workflow-s
+  implification/handoffs/WFS-A-201/implementation.md; git
+  status --short; git status --short --ignored
+  projects/brida-workflow-simplification/handoffs/WFS-A-201/im
+  plementation.md)
+  ⎿  0
+     Invalid task dossiers: 40 issue(s) across 8 dossier(s).
+     python3 scripts/check_repository_paths.py
+     unclassified root files: .git
+     make: *** [path-check] Error 1
+     100:| Component | 3.10 shell interpreter |
+     `PYTHON=/opt/homebrew/bin/python3.14` |
+      M tests/unit/test_techstack_markdown.py
+     !! projects/brida-workflow-simplification/handoffs/WFS-A-
+     201/
+
+⏺ 1. Outcome: The rename is done and uncommitted, with no
+     deviations from plan WFS-A-201-PLAN-001 v3. At
+     tests/unit/test_techstack_markdown.py:565,
+     test_prose_rejects_control_and_markup_characters is now
+     test_prose_rejects_pipe_and_category_c_characters. That
+     name matches the two subtests exactly: they reject U+007C
+     (a|b) and a category-C character (U+0085). The comment
+     above the test already names those two rejections, so I
+     left it unchanged.
+  2. Files/artifacts changed:
+     - tests/unit/test_techstack_markdown.py: one def line.
+     - projects/brida-workflow-simplification/handoffs/WFS-A-2
+       01/implementation.md: the report. It sits in the
+       gitignored dossier and contains no home paths.
+     - git status --short shows only  M
+       tests/unit/test_techstack_markdown.py. git diff --stat
+       shows 1 file changed, 1 insertion, 1 deletion.
+  3. Verification and evidence:
+     - Techstack verify: ran first, returned match with no
+       differences. I read all six selected rule files and
+       operating-principles.md.
+     - Rename checks:
+       - The diff is exactly the one def line.
+       - git grep finds the old name only at
+         projects/brida-workflow-simplification/tasks.md:29,
+         which is coordinator-owned and allowed to stay; I
+         didn't edit it.
+       - The new name appears only at line 565.
+       - The test file passes 47/47.
+     - PYTHONDONTWRITEBYTECODE=1 make check (3.10.11):
+       exits 2. It stops in test-contract with exactly the two
+       known worktree-only failures in
+       test_repository_paths.py (unclassified root files:
+       .git). test-unit passed 1026 tests.
+     - Ratified gate on 3.10 and on
+       PYTHON=/opt/homebrew/bin/python3.14: results were
+       identical on both. The only red items are the four
+       expected ones:
+       - the two contract failures;
+       - make path-check (the .git cause);
+       - make dossiers;
+       - test_repository_checkout_validates_clean.
+
+       Everything else passed:
+       - test-unit: 1026 tests.
+       - techstack-eval: 56 tests, and 56 again when run
+         directly under 3.14.
+       - metrics, receipts, memory-check, readme-check,
+         phase5-preflight, package-check and sh -n
+         bin/brichan.
+     - Dossier validator: 40 diagnostics, all in this
+       dossier's coordinator- and reviewer-owned files
+       (index.md 30, code-review.md 5, pr-desc.md 5). None are
+       in the five planner-owned artifacts or in
+       implementation.md.
+  4. Risks, assumptions and unresolved issues:
+     - The validator count is 40, against the plan's baseline
+       of 38. The two extras are index.md status mismatches:
+       client-follow-up-questions and plan-review now say
+       passed, but the unfilled index.md template still has
+       placeholders. Per the plan, I compared where the
+       diagnostics sit, not how many there are. They are
+       coordinator-owned and not caused by this change.
+     - make dossiers and the integration failure will stay red
+       until the coordinator fills index.md, code-review.md,
+       pr-desc.md and receipt.md.
+     - Left for coordinator follow-up, as the plan already
+       recommends:
+       - the stale comment at
+         tests/unit/test_techstack_markdown.py:347-351;
+       - the category-C subtest only covers Cc;
+       - tasks.md:29 still uses the old name.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=ff4586a03aa87fa0420e36268c968f75fd91b2e6eb34
+  d4039809b6a6cb4dcebf
+
+✻ Churned for 7m 16s · done 4:58 PM
+                                                89438 tokens
+──────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5.5 │ ✍️ 8% │ brichan-…
+  current ●●●●●●●●○○  85% ⟳ 7:40pm
+  weekly  ●●●●●○○○○○  50% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  31% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

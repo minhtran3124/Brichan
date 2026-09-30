@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Iterable
 
 
 ARTIFACTS = (
@@ -23,6 +24,24 @@ ARTIFACTS = (
     "design",
     "client-follow-up-questions",
     "plan",
+    "plan-review",
+    "code-review",
+    "pr-desc",
+)
+
+# Every artifact name the dossier tools recognize. `ARTIFACTS` stays the frozen
+# eleven; `report` is the implementer's worker report, which carries the plan at
+# levels 0 and 1. Pinned equal to `ARTIFACTS` minus `report` by a unit test.
+RECOGNIZED_ARTIFACTS = (
+    "index",
+    "request",
+    "requirements",
+    "brief",
+    "options",
+    "design",
+    "client-follow-up-questions",
+    "plan",
+    "report",
     "plan-review",
     "code-review",
     "pr-desc",
@@ -86,6 +105,9 @@ REVIEW_TARGET_FIELDS = ("Reviewed plan ID", "Reviewed plan version")
 REMOTE_ACTION_SECTION = "Remote action"
 REMOTE_ACTION_FIELDS = ("Remote action authorized",)
 
+# The worker report's own sections, in canonical order after the metadata.
+REPORT_SECTIONS = ("Plan", "Changes", "Verification", "Risks")
+
 TASK_LEVELS = {"0", "1", "2"}
 PHASE_STATES = {"pending", "active", "passed", "not-required", "blocked"}
 SETTLED_PHASE_STATES = {"passed", "not-required"}
@@ -97,9 +119,43 @@ PLAN_STATUSES = {"draft", "accepted", "superseded"}
 REVIEW_ROUTE_STRENGTHS = {"routine", "stronger"}
 SHIP_AUTHORIZATION_STATES = {"not-requested", "user-authorized"}
 
-# Level changes evidence depth, reviewer strength, and authorization gates.
-# It never changes which artifacts must exist.
+# Level changes evidence depth, reviewer strength, and authorization gates, and
+# selects the required artifact set in `LEVEL_REQUIRED_ARTIFACTS`.
 MINIMUM_EVIDENCE_ITEMS = {"0": 1, "1": 2, "2": 3}
+
+# The artifacts each level requires, stated normatively in
+# docs/workflows/task-dossier.md and pinned equal to it by a contract test.
+# Level 2 keeps the complete eleven.
+LEVEL_REQUIRED_ARTIFACTS = {
+    "0": ("index", "request", "report", "code-review"),
+    "1": ("index", "request", "report", "code-review"),
+    "2": ARTIFACTS,
+}
+
+# An unresolvable task level fails closed to the largest required set and the
+# deepest evidence floor, never the smallest.
+FALLBACK_TASK_LEVEL = "2"
+
+# Contract paths decide whether a Level 0 diff needs independent review. Stated
+# normatively in docs/workflows/task-dossier.md and pinned equal to it.
+CONTRACT_PATH_PREFIXES = (
+    "docs/policy/",
+    "docs/workflows/",
+    ".agents/",
+    "src/brichan/",
+    "scripts/",
+    "config/",
+    "bin/",
+    "packaging/",
+    "techstacks/",
+)
+CONTRACT_PATH_FILES = (
+    "Makefile",
+    "pyproject.toml",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "PRODUCT.md",
+)
 
 # Receipt and project memory stay canonical; the index links instead of copying.
 RECEIPT_OWNED_SECTIONS = (
@@ -180,6 +236,7 @@ ARTIFACT_TITLES = {
     "design": "Design",
     "client-follow-up-questions": "Client follow-up questions",
     "plan": "Plan",
+    "report": "Worker report",
     "plan-review": "Plan review",
     "code-review": "Code review",
     "pr-desc": "Pull request description",
@@ -195,6 +252,7 @@ ARTIFACT_OWNERS = {
     "design": "planner",
     "client-follow-up-questions": "coordinator",
     "plan": "planner",
+    "report": "implementer",
     "plan-review": "reviewer",
     "code-review": "reviewer",
     "pr-desc": "generator",
@@ -245,6 +303,28 @@ REMOTE_ACTION_PATTERNS = (
 )
 
 
+def resolve_task_level(declared: str) -> str:
+    """Return the level a tool applies, failing closed on an invalid value.
+
+    Every dossier tool resolves the level here, so none can fail open alone.
+    """
+    return declared if declared in TASK_LEVELS else FALLBACK_TASK_LEVEL
+
+
+def required_artifacts(level: str, present: Iterable[str]) -> tuple[str, ...]:
+    """Return the artifacts a dossier or record must carry, in lifecycle order.
+
+    At levels 0 and 1 a present ``plan`` carries the plan, so ``report`` is not
+    required: dossiers that predate the worker report stay valid unedited.
+    ``present`` must name only artifacts that are really present; a symlinked
+    or unreadable plan is not, so presence fails closed toward ``report``.
+    """
+    required = LEVEL_REQUIRED_ARTIFACTS[resolve_task_level(level)]
+    if "plan" in set(present):
+        return tuple(name for name in required if name != "report")
+    return required
+
+
 @dataclass(frozen=True)
 class Diagnostic:
     path: Path
@@ -276,12 +356,16 @@ __all__ = [
     "AUTHORSHIP_KINDS",
     "BODY_SECTIONS",
     "CANONICAL_MEMORY_FILES",
+    "CONTRACT_PATH_FILES",
+    "CONTRACT_PATH_PREFIXES",
     "Diagnostic",
+    "FALLBACK_TASK_LEVEL",
     "INDEX_IDENTITY_FIELDS",
     "INDEX_IDENTITY_SECTION",
     "INDEX_PROJECTION_SECTIONS",
     "INDEX_STATUS_HEADER",
     "INDEX_STATUS_SECTION",
+    "LEVEL_REQUIRED_ARTIFACTS",
     "MEMORY_OWNED_SECTIONS",
     "METADATA_FIELDS",
     "METADATA_SECTION",
@@ -295,12 +379,14 @@ __all__ = [
     "PLAN_STATUS_SECTION",
     "PROJECT_SLUG_PATTERN",
     "ParsedArtifact",
+    "RECOGNIZED_ARTIFACTS",
     "RECORD_SCHEMA_VERSION",
     "RECEIPT_OWNED_FIELD_LABELS",
     "RECEIPT_OWNED_SECTIONS",
     "REMOTE_ACTION_FIELDS",
     "REMOTE_ACTION_PATTERNS",
     "REMOTE_ACTION_SECTION",
+    "REPORT_SECTIONS",
     "REQUEST_PROVENANCE_FIELDS",
     "REQUEST_PROVENANCE_SECTION",
     "REVIEW_ARTIFACTS",
@@ -312,4 +398,6 @@ __all__ = [
     "SHIP_AUTHORIZATION_STATES",
     "TASK_ID_PATTERN",
     "TASK_LEVELS",
+    "required_artifacts",
+    "resolve_task_level",
 ]

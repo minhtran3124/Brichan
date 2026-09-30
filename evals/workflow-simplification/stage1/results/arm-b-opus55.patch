@@ -1,0 +1,426 @@
+diff --git a/evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py b/evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py
+index eca7371..8dda004 100644
+--- a/evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py
++++ b/evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py
+@@ -2,6 +2,74 @@
+ 
+ from __future__ import annotations
+ 
++import json
++
++_EVENTS = ("launched", "finished")
++_BLANK = object()
++
++
++def _decode(raw: bytes):
++    """Return ``(event, launch_id)``, ``_BLANK`` for a blank line, or None."""
++    try:
++        text = raw.decode("utf-8")
++    except UnicodeDecodeError:
++        return None
++    if not text.strip():
++        return _BLANK
++    try:
++        record = json.loads(text)
++    except (ValueError, RecursionError):
++        # ValueError covers JSONDecodeError; deeply nested input can
++        # exhaust the recursion limit instead of failing to parse.
++        return None
++    if not isinstance(record, dict):
++        return None
++    event = record.get("event")
++    launch_id = record.get("launch_id")
++    if not isinstance(event, str) or not isinstance(launch_id, str):
++        return None
++    if event not in _EVENTS:
++        return None
++    return event, launch_id
++
+ 
+ def summarize(data: bytes) -> dict:
+-    raise NotImplementedError
++    launched: list[str] = []  # first launched record per id, file order
++    launched_ids: set[str] = set()
++    finished_ids: list[str] = []  # first finished record per id, file order
++    finished_seen: set[str] = set()
++    undecodable = 0
++    duplicate_finished = 0
++    duplicate_launched = 0
++
++    # Split on LF only: a CR before LF stays in the line, where JSON treats
++    # it as whitespace. A missing final LF still yields the last line.
++    for raw in data.split(b"\n"):
++        decoded = _decode(raw)
++        if decoded is _BLANK:
++            continue
++        if decoded is None:
++            undecodable += 1
++            continue
++        event, launch_id = decoded
++        if event == "launched":
++            if launch_id in launched_ids:
++                duplicate_launched += 1
++            else:
++                launched_ids.add(launch_id)
++                launched.append(launch_id)
++        elif launch_id in finished_seen:
++            duplicate_finished += 1
++        else:
++            finished_seen.add(launch_id)
++            finished_ids.append(launch_id)
++
++    # Pairing needs the whole file: a finished record may precede its launch.
++    return {
++        "finished": [i for i in launched if i in finished_seen],
++        "unknown": [i for i in launched if i not in finished_seen],
++        "orphans": [i for i in finished_ids if i not in launched_ids],
++        "undecodable": undecodable,
++        "duplicate_finished": duplicate_finished,
++        "duplicate_launched": duplicate_launched,
++    }
+diff --git a/evals/workflow-simplification/stage1/t1-ledger-summary/test_rules.py b/evals/workflow-simplification/stage1/t1-ledger-summary/test_rules.py
+new file mode 100644
+index 0000000..79bb59d
+--- /dev/null
++++ b/evals/workflow-simplification/stage1/t1-ledger-summary/test_rules.py
+@@ -0,0 +1,109 @@
++import unittest
++
++from ledger_summary import summarize
++
++
++def _summary(**overrides):
++    result = {
++        "finished": [],
++        "unknown": [],
++        "orphans": [],
++        "undecodable": 0,
++        "duplicate_finished": 0,
++        "duplicate_launched": 0,
++    }
++    result.update(overrides)
++    return result
++
++
++class RulesTest(unittest.TestCase):
++    def test_blank_lines_are_not_counted(self):
++        data = b'\n   \n\t\r\n{"event": "launched", "launch_id": "a"}\n\n'
++        self.assertEqual(_summary(unknown=["a"]), summarize(data))
++
++    def test_empty_input(self):
++        self.assertEqual(_summary(), summarize(b""))
++
++    def test_undecodable_line_kinds(self):
++        lines = [
++            b"\xff\xfe",  # invalid UTF-8
++            b"{not json",
++            b'["launched", "a"]',  # not an object
++            b'{"event": "launched"}',  # missing launch_id
++            b'{"launch_id": "a"}',  # missing event
++            b'{"event": "launched", "launch_id": 7}',  # non-string id
++            b'{"event": null, "launch_id": "a"}',  # non-string event
++            b'{"event": "failed", "launch_id": "a"}',  # unknown event
++            b"[" * 100000,  # nesting deep enough to exhaust recursion
++        ]
++        self.assertEqual(
++            _summary(undecodable=len(lines)), summarize(b"\n".join(lines))
++        )
++
++    def test_pairs_by_launch_id_only(self):
++        data = (
++            b'{"event": "launched", "launch_id": "a", "worker": "w", "pane_id": "p"}\n'
++            b'{"event": "finished", "launch_id": "b", "worker": "w", "pane_id": "p"}\n'
++        )
++        self.assertEqual(_summary(unknown=["a"], orphans=["b"]), summarize(data))
++
++    def test_finished_before_launched_still_pairs(self):
++        data = (
++            b'{"event": "finished", "launch_id": "a"}\n'
++            b'{"event": "launched", "launch_id": "a"}\n'
++        )
++        self.assertEqual(_summary(finished=["a"]), summarize(data))
++
++    def test_outputs_follow_launched_record_order(self):
++        data = (
++            b'{"event": "launched", "launch_id": "c"}\n'
++            b'{"event": "launched", "launch_id": "a"}\n'
++            b'{"event": "launched", "launch_id": "b"}\n'
++            b'{"event": "launched", "launch_id": "d"}\n'
++            b'{"event": "finished", "launch_id": "b"}\n'
++            b'{"event": "finished", "launch_id": "c"}\n'
++        )
++        self.assertEqual(
++            _summary(finished=["c", "b"], unknown=["a", "d"]), summarize(data)
++        )
++
++    def test_duplicates_counted_once_per_extra_record(self):
++        data = (
++            b'{"event": "launched", "launch_id": "a"}\n'
++            b'{"event": "launched", "launch_id": "a"}\n'
++            b'{"event": "finished", "launch_id": "a", "status": "ok"}\n'
++            b'{"event": "finished", "launch_id": "a", "status": "failed"}\n'
++            b'{"event": "finished", "launch_id": "a"}\n'
++        )
++        self.assertEqual(
++            _summary(finished=["a"], duplicate_finished=2, duplicate_launched=1),
++            summarize(data),
++        )
++
++    def test_orphans_first_occurrence_order_no_repeats(self):
++        data = (
++            b'{"event": "finished", "launch_id": "y"}\n'
++            b'{"event": "finished", "launch_id": "x"}\n'
++            b'{"event": "finished", "launch_id": "y"}\n'
++        )
++        self.assertEqual(
++            _summary(orphans=["y", "x"], duplicate_finished=1), summarize(data)
++        )
++
++    def test_crlf_and_missing_final_newline(self):
++        data = (
++            b'{"event": "launched", "launch_id": "a"}\r\n'
++            b'{"event": "finished", "launch_id": "a"}\r'
++        )
++        self.assertEqual(_summary(finished=["a"]), summarize(data))
++
++    def test_undecodable_lines_do_not_affect_pairing(self):
++        data = (
++            b'{"event": "launched", "launch_id": "a"}\n'
++            b'{"event": "finished", "launch_id": "a"\n'  # truncated
++        )
++        self.assertEqual(_summary(unknown=["a"], undecodable=1), summarize(data))
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py b/evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py
+index aa87f63..8a553eb 100644
+--- a/evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py
++++ b/evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py
+@@ -9,7 +9,9 @@ _SEMVER = re.compile(
+     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+     r"(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)"
+     r"(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?"
+-    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
++    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?",
++    # ASCII: \d must not match non-ASCII digits such as "\u0661".
++    re.ASCII,
+ )
+ 
+ 
+@@ -19,7 +21,8 @@ def parse(version: str) -> tuple[tuple[int, int, int], tuple[str, ...]]:
+     Build metadata is dropped: it never affects precedence.
+     Raises ValueError for anything that is not a valid SemVer 2.0.0 string.
+     """
+-    match = _SEMVER.match(version)
++    # fullmatch, not match + "$": "$" also matches before a trailing "\n".
++    match = _SEMVER.fullmatch(version)
+     if not match:
+         raise ValueError(f"invalid semantic version: {version!r}")
+     core = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+@@ -40,7 +43,27 @@ def compare(a: str, b: str) -> int:
+         return 1
+     if not pre_b:
+         return -1
+-    return -1 if pre_a < pre_b else 1
++    return _compare_prerelease(pre_a, pre_b)
++
++
++def _compare_prerelease(pre_a: tuple[str, ...], pre_b: tuple[str, ...]) -> int:
++    """Compare two non-empty prerelease identifier tuples (spec item 11.4)."""
++    for ident_a, ident_b in zip(pre_a, pre_b):
++        if ident_a == ident_b:
++            continue
++        numeric_a = ident_a.isdigit()
++        numeric_b = ident_b.isdigit()
++        if numeric_a and numeric_b:
++            return -1 if int(ident_a) < int(ident_b) else 1
++        # Numeric identifiers have lower precedence than alphanumeric ones.
++        if numeric_a:
++            return -1
++        if numeric_b:
++            return 1
++        # Alphanumeric identifiers compare lexically in ASCII order.
++        return -1 if ident_a < ident_b else 1
++    # All shared identifiers are equal: the longer set has higher precedence.
++    return -1 if len(pre_a) < len(pre_b) else 1
+ 
+ 
+ def sort_versions(versions: list[str]) -> list[str]:
+diff --git a/evals/workflow-simplification/stage1/t2-prerelease-order/test_regression.py b/evals/workflow-simplification/stage1/t2-prerelease-order/test_regression.py
+new file mode 100644
+index 0000000..223998e
+--- /dev/null
++++ b/evals/workflow-simplification/stage1/t2-prerelease-order/test_regression.py
+@@ -0,0 +1,72 @@
++import itertools
++import unittest
++
++from semver_order import compare, sort_versions
++
++# Strictly ascending precedence, from SemVer 2.0.0 spec item 11.4 plus the
++# reported rc.2 / rc.10 case.
++SPEC_CHAIN = [
++    "1.0.0-alpha",
++    "1.0.0-alpha.1",
++    "1.0.0-alpha.beta",
++    "1.0.0-beta",
++    "1.0.0-beta.2",
++    "1.0.0-beta.11",
++    "1.0.0-rc.1",
++    "1.0.0-rc.2",
++    "1.0.0-rc.10",
++    "1.0.0",
++]
++
++
++class RegressionTest(unittest.TestCase):
++    def test_reported_example(self):
++        self.assertEqual(
++            ["1.0.0-rc.2", "1.0.0-rc.10", "1.0.0"],
++            sort_versions(["1.0.0-rc.10", "1.0.0-rc.2", "1.0.0"]),
++        )
++
++    def test_spec_chain_pairwise(self):
++        for (i, a), (j, b) in itertools.product(enumerate(SPEC_CHAIN), repeat=2):
++            with self.subTest(a=a, b=b):
++                self.assertEqual((i > j) - (i < j), compare(a, b))
++
++    def test_numeric_identifiers_compare_as_integers(self):
++        # Also beyond 64-bit range, which SemVer does not cap.
++        self.assertEqual(-1, compare("1.0.0-9", "1.0.0-10"))
++        self.assertEqual(
++            -1, compare("1.0.0-99999999999999999999", "1.0.0-100000000000000000000")
++        )
++
++    def test_numeric_below_alphanumeric_even_if_ascii_says_otherwise(self):
++        # "-" (0x2D) sorts before digits in ASCII, but "-" is alphanumeric.
++        self.assertEqual(-1, compare("1.0.0-1", "1.0.0--"))
++        self.assertEqual(-1, compare("1.0.0-999", "1.0.0-0a"))
++
++    def test_alphanumeric_identifiers_compare_in_ascii_order(self):
++        self.assertEqual(-1, compare("1.0.0-Z", "1.0.0-a"))
++        self.assertEqual(-1, compare("1.0.0-a1", "1.0.0-a10"))
++
++    def test_build_metadata_ignored_and_sort_stable(self):
++        self.assertEqual(0, compare("1.0.0-rc.1+b1", "1.0.0-rc.1+b2"))
++        self.assertEqual(
++            ["1.0.0+z", "1.0.0+a"], sort_versions(["1.0.0+z", "1.0.0+a"])
++        )
++
++    def test_invalid_versions_raise(self):
++        for bad in (
++            "1.0.0\n",  # "$" alone would accept a trailing newline
++            "1\N{ARABIC-INDIC DIGIT ONE}.0.0",  # non-ASCII digit in core
++            "1.0.0-\N{ARABIC-INDIC DIGIT ONE}a",  # ... and in a prerelease
++            "1.0.0-01",  # leading zero in numeric identifier
++            "1.0.0-",
++            "1.0.0-rc..1",
++            "01.0.0",
++            "1.0.0+",
++        ):
++            with self.subTest(bad=bad), self.assertRaises(ValueError):
++                compare(bad, "1.0.0")
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/evals/workflow-simplification/stage1/t3-path-guard/path_guard.py b/evals/workflow-simplification/stage1/t3-path-guard/path_guard.py
+index 7b01b65..d3211f5 100644
+--- a/evals/workflow-simplification/stage1/t3-path-guard/path_guard.py
++++ b/evals/workflow-simplification/stage1/t3-path-guard/path_guard.py
+@@ -8,17 +8,24 @@ Security invariants (must always hold):
+ - The value contains no backslash and no NUL character.
+ - The final component ends in ``.jsonl``.
+ 
+-Current strictness (not a security invariant):
++These are checked against the value as supplied, before any normalization,
++so normalization can never turn a rejected value into an accepted one.
+ 
+-- The value must already be normalized: no empty component (``//`` or a
+-  trailing ``/``) and no ``.`` component.
++Normalization (not a security invariant):
++
++- Redundant ``.`` components and repeated ``/`` separators are accepted and
++  removed; the returned path joins the remaining components with a single
++  ``/``. For example ``ledger/./workers.jsonl`` and ``ledger//workers.jsonl``
++  both return ``ledger/workers.jsonl``.
++- The final component as supplied must itself end in ``.jsonl``, so a
++  trailing ``/`` or ``/.`` (which names a directory) is still rejected.
+ """
+ 
+ from __future__ import annotations
+ 
+ 
+ def validate_ledger_path(value: str) -> str:
+-    """Return the validated path, or raise ValueError."""
++    """Return the normalized path, or raise ValueError."""
+     if not value:
+         raise ValueError("empty path")
+     if "\\" in value or "\x00" in value:
+@@ -27,12 +34,12 @@ def validate_ledger_path(value: str) -> str:
+         raise ValueError("absolute path")
+     parts = value.split("/")
+     for part in parts:
+-        if part in ("", "."):
+-            raise ValueError("path is not normalized")
+         if part == "..":
+             raise ValueError("parent component")
+         if part.lower() == ".brichan":
+             raise ValueError(".brichan component")
+     if not parts[-1].endswith(".jsonl"):
+         raise ValueError("path must end in .jsonl")
+-    return value
++    # The final part ends in ".jsonl", so it is neither "" nor "." and
++    # survives normalization as the final component.
++    return "/".join(part for part in parts if part not in ("", "."))
+diff --git a/evals/workflow-simplification/stage1/t3-path-guard/test_normalize.py b/evals/workflow-simplification/stage1/t3-path-guard/test_normalize.py
+new file mode 100644
+index 0000000..2b7ff34
+--- /dev/null
++++ b/evals/workflow-simplification/stage1/t3-path-guard/test_normalize.py
+@@ -0,0 +1,44 @@
++import unittest
++
++from path_guard import validate_ledger_path
++
++
++class NormalizeTest(unittest.TestCase):
++    def test_redundant_segments_are_normalized(self):
++        cases = {
++            "ledger/./workers.jsonl": "ledger/workers.jsonl",
++            "ledger//workers.jsonl": "ledger/workers.jsonl",
++            "./ledger/.//./workers.jsonl": "ledger/workers.jsonl",
++            "./workers.jsonl": "workers.jsonl",
++            "a/b/c.jsonl": "a/b/c.jsonl",
++        }
++        for value, expected in cases.items():
++            with self.subTest(value=value):
++                self.assertEqual(expected, validate_ledger_path(value))
++
++    def test_security_invariants_still_reject(self):
++        for value in (
++            "",
++            "/ledger/workers.jsonl",
++            "//ledger/workers.jsonl",  # absolute even though "//" is now allowed
++            "ledger/../workers.jsonl",
++            "ledger/./../workers.jsonl",
++            "./../workers.jsonl",
++            "ledger/.brichan/workers.jsonl",
++            "ledger/./.BriChan//workers.jsonl",
++            "ledger\\workers.jsonl",
++            "ledger/\x00workers.jsonl",
++            "ledger/workers.json",
++            "ledger/workers.jsonl/",  # final component is a directory
++            "ledger/workers.jsonl//",
++            "ledger/workers.jsonl/.",
++            ".",
++            "./",
++            "//",
++        ):
++            with self.subTest(value=value), self.assertRaises(ValueError):
++                validate_ledger_path(value)
++
++
++if __name__ == "__main__":
++    unittest.main()

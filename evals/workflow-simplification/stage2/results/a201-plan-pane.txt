@@ -1,0 +1,33 @@
+  - The Techstack snapshot verification from this session
+    (status: match) still covers this work; scope paths were
+    not changed by the coordinator's decision, so no
+    re-verification was required.
+
+  4. Risks, assumptions, and unresolved issues
+
+  - No unresolved planner issues remain. Plan acceptance is
+    now solely the coordinator's lifecycle step
+    (index/receipt/plan-review are pending as expected).
+  - Assumption: the versions/v1/ archive is the correct
+    preservation mechanism, based on DOSSIER-003's wording and
+    the TDW-009 precedent (the only versions directory in the
+    repo); the dossier validator raises no diagnostic against
+    it.
+  - Note for the coordinator: at acceptance, index.md's
+    accepted-plan identity should record WFS-A-201-PLAN-001
+    version 2.
+
+  5. Techstack verification acknowledgement: yes;
+     snapshot_sha256=0270a2dc4984d6dfb37918fba7d0860c0273f9753
+     7a477c79991ad779dca142e
+
+✻ Churned for 2m 48s · done 12:09 PM
+                                               157882 tokens
+──────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────
+  👤 <user> │ Fable 5 │ ✍️ 15% │ brichan-…
+  current ●●●●●●●●○○  82% ⟳ 2:40pm
+  weekly  ●●●○○○○○○○  37% ⟳ sep 30, 5:00am
+  fable   ●●○○○○○○○○  23% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

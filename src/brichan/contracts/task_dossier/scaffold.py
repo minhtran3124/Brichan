@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Dry-run-first scaffolding for the complete task dossier.
+"""Dry-run-first scaffolding for a task dossier's level artifact set.
 
 Scaffolding writes nothing without an explicit apply flag, never overwrites an
-existing artifact, and never fills evidence. A scaffolded dossier is expected to
-fail validation until a human or a recorded session supplies real evidence.
+existing artifact, and never fills evidence. It creates exactly the artifacts
+the task level requires, and the index status table lists exactly those. A
+scaffolded dossier is expected to fail validation until a human or a recorded
+session supplies real evidence.
 """
 
 from __future__ import annotations
@@ -17,14 +19,20 @@ from pathlib import Path
 from typing import Sequence
 
 from .schema import (
-    ARTIFACTS,
+    LEVEL_REQUIRED_ARTIFACTS,
     PROJECT_SLUG_PATTERN,
+    RECOGNIZED_ARTIFACTS,
     TASK_ID_PATTERN,
     TASK_LEVELS,
 )
 
 
 TEMPLATE_RELATIVE_ROOT = Path("docs/workflows/task-dossier/templates")
+
+# One index status row, in the exact placeholder form the index template uses.
+STATUS_ROW = (
+    "| `{name}` | `<required or not-required>` | `<phase state>` | `{name}.md` |"
+)
 
 
 @dataclass(frozen=True)
@@ -45,7 +53,7 @@ def template_root(repository_root: Path | None = None) -> Path:
 
 
 def template_path(artifact: str, repository_root: Path | None = None) -> Path:
-    if artifact not in ARTIFACTS:
+    if artifact not in RECOGNIZED_ARTIFACTS:
         raise ValueError(f"unknown task-dossier artifact: {artifact}")
     return template_root(repository_root) / f"{artifact}.md"
 
@@ -60,12 +68,50 @@ def template_text(artifact: str, repository_root: Path | None = None) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def level_artifacts(level: str) -> tuple[str, ...]:
+    """Return the artifacts a scaffold creates for a validated level."""
+    if level not in TASK_LEVELS:
+        raise ValueError(f"task level must be one of {sorted(TASK_LEVELS)}")
+    return LEVEL_REQUIRED_ARTIFACTS[level]
+
+
+def _status_rows(text: str, artifacts: Sequence[str]) -> str:
+    """Replace the template's status rows with one row per scaffolded artifact.
+
+    At level 2 the generated rows are the template's own eleven, so the output
+    is byte-identical to the template.
+    """
+    lines = text.split("\n")
+    rows = [
+        position
+        for position, line in enumerate(lines)
+        if line.startswith("| `")
+    ]
+    if not rows or rows != list(range(rows[0], rows[-1] + 1)):
+        raise ValueError("the index template has no contiguous artifact status rows")
+    generated = [STATUS_ROW.format(name=name) for name in artifacts]
+    return "\n".join(lines[: rows[0]] + generated + lines[rows[-1] + 1 :])
+
+
 def _render(text: str, task_id: str, level: str, project: str) -> str:
     return (
         text.replace("<TASK-000>", task_id)
         .replace("<0, 1, or 2>", level)
         .replace("<project-slug>", project)
     )
+
+
+def _render_artifact(
+    artifact: str,
+    task_id: str,
+    level: str,
+    project: str,
+    repository_root: Path | None,
+) -> str:
+    text = template_text(artifact, repository_root)
+    if artifact == "index":
+        text = _status_rows(text, level_artifacts(level))
+    return _render(text, task_id, level, project)
 
 
 def dossier_path(projects_root: Path, project: str, task_id: str) -> Path:
@@ -112,13 +158,12 @@ def plan_scaffold(
         raise ValueError(
             f"task ID must be stable and branch-independent, found {task_id!r}"
         )
-    if level not in TASK_LEVELS:
-        raise ValueError(f"task level must be one of {sorted(TASK_LEVELS)}")
+    artifacts = level_artifacts(level)
     if dossier.is_symlink():
         raise ValueError(f"dossier directory must not be a symlink: {dossier}")
 
     actions: list[ScaffoldAction] = []
-    for artifact in ARTIFACTS:
+    for artifact in artifacts:
         target = dossier / f"{artifact}.md"
         # is_symlink() is checked first and separately: a dangling symlink is
         # invisible to exists(), so a plain existence check would classify it
@@ -196,8 +241,8 @@ def apply_scaffold(
             actions.append(action)
             continue
         artifact = action.path.stem
-        rendered = _render(
-            template_text(artifact, repository_root), task_id, level, project
+        rendered = _render_artifact(
+            artifact, task_id, level, project, repository_root
         )
         if _create_exclusively(action.path, rendered):
             actions.append(action)
@@ -219,7 +264,10 @@ def apply_scaffold(
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Scaffold the complete standard task dossier (dry run by default)."
+        description=(
+            "Scaffold the task level's standard dossier artifacts (dry run by "
+            "default)."
+        )
     )
     parser.add_argument("task_id", help="stable branch-independent task ID")
     parser.add_argument("--level", required=True, choices=sorted(TASK_LEVELS))

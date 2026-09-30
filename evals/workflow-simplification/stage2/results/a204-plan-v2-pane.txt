@@ -1,0 +1,400 @@
+          -, while `make dossiers` exits `2`; the packa
+          -ged `commands.md` has headings only at lines
+          - 1 and 65; `worker_launch.py:422-442` and `w
+          -orker_ledger.py:670-742` carry the parser fa
+          -cts the steps transcribe; `src/brichan/resou
+          -rces/dogfood_v1/` contains zero occurrences
+          -of `--ledger-file` today.
+      187 +- Re-measured in this session on 2026-09-25
+          +after the version 2 artifacts were written:
+          +`scripts/validate_task_dossiers.py projects`
+          + exits `1` with 39 issues, every one owned (
+          +path before the first colon) by WFS-A-204 `i
+          +ndex.md`, `code-review.md`, `pr-desc.md`, or
+          + `plan-review.md`, and none by a planner art
+          +ifact, while `make dossiers` exits `2`; the
+          +packaged `commands.md` has headings only at
+          +lines 1 and 65; `worker_launch.py:422-442` a
+          +nd `worker_ledger.py:670-742` carry the pars
+          +er facts the steps transcribe; `src/brichan/
+          +resources/dogfood_v1/` contains zero occurre
+          +nces of `--ledger-file` today.
+      188
+      189  ## Uncertainty
+      190
+
+⏺ Now the verification runs. First, checking what make check
+  includes so I can interpret where it stops.
+
+⏺ Bash(cat Makefile)
+  ⎿  .PHONY: help release-preview test test-unit test-contract
+     test-integration techstack-eval metrics receipts
+     dossiers memory-check path-check readme-check
+     phase5-preflight package-check contract-check check
+
+     PYTHON ?= python3
+
+     help:
+        @echo "Brichan repository commands:"
+        @echo "  make test           Run all Python test layer
+        @echo "  make test-unit      Run importable-core unit
+     tests"
+        @echo "  make test-contract  Run repository and
+     durable-contract tests"
+        @echo "  make test-integration Run stable-wrapper
+     integration tests"
+        @echo "  make techstack-eval Run the frozen techstack
+     context evaluation"
+        @echo "  make metrics        Validate and summarize th
+     metrics ledger"
+        @echo "  make receipts       Validate canonical handof
+     receipts"
+        @echo "  make dossiers       Validate checkout-mode ta
+     dossiers"
+        @echo "  make memory-check   Validate durable
+     project-memory consistency"
+        @echo "  make path-check     Validate repository paths
+     and local Markdown links"
+        @echo "  make readme-check   Rebuild and validate the
+     PyPI long description"
+        @echo "  make phase5-preflight Report
+     compatibility-pointer retirement eligibility"
+        @echo "  make package-check  Compile and import the
+     source package"
+        @echo "  make contract-check Check launcher syntax and
+     repository contracts"
+        @echo "  make check          Run the complete local
+     validation"
+        @echo "  make release-preview Verify and build a PyPI
+     release without uploading"
+
+     test:
+        PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest
+     metrics/test_validate_metrics.py -v
+        $(MAKE) test-unit
+        $(MAKE) test-contract
+        $(MAKE) test-integration
+
+     test-unit:
+        PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discov
+     -s tests/unit -t . -v
+
+     test-contract:
+        PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discov
+     -s tests/contract -t . -v
+
+     test-integration:
+        PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discov
+     -s tests/integration -t . -v
+
+     techstack-eval:
+        PYTHONDONTWRITEBYTECODE=1 python3 -m unittest
+     evals.techstack_context_v1.test_cases -v
+
+     metrics:
+        $(PYTHON) metrics/validate_metrics.py metrics/runs.jso
+        $(PYTHON) metrics/validate_metrics.py metrics/runs.jso
+     --summary
+
+     receipts:
+        $(PYTHON) scripts/validate_handoff_receipts.py project
+
+     dossiers:
+        $(PYTHON) scripts/validate_task_dossiers.py projects
+
+     memory-check:
+        $(PYTHON) scripts/check_project_memory.py
+
+     path-check:
+        $(PYTHON) scripts/check_repository_paths.py
+
+     readme-check:
+        $(PYTHON) scripts/build_pypi_readme.py --check
+
+     release-preview:
+        $(PYTHON) scripts/release_pypi.py
+
+     phase5-preflight:
+        $(PYTHON) scripts/check_compatibility_retirement.py
+
+     package-check:
+        PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c
+     "import brichan.cli.provider_commands"
+        PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c
+     "import brichan.orchestration; import sys; assert not
+     any(name == 'brichan.cli' or
+     name.startswith('brichan.cli.') for name in sys.modules)"
+        PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src $(PYTHON) -c
+     "import brichan; from brichan.contracts.receipts import
+     validation; from brichan.orchestration import
+     worker_launch"
+
+     contract-check: path-check test-contract
+        sh -n bin/brichan
+
+     check: test techstack-eval metrics receipts dossiers
+     memory-check path-check readme-check phase5-preflight
+     package-check
+        sh -n bin/brichan
+
+
+
+
+
+
+⏺ make check aborts at the first failing target, so per the
+  ratified gate I'll run each target individually on the 3.10
+  shell interpreter and record every exit code.
+
+⏺ Bash(export PYTHONDONTWRITEBYTECODE=1 && for t in test-unit
+  test-contract test-integration techstack-eval metrics
+  receipts dossiers memory-check path-check readme-check
+  phase5-preflight package-check; do out=$(make $t 2>&1);
+  code=$?; fails=$(echo "$out" | grep -E "^(FAILED|OK)" | tail
+  -1); echo "== $t exit=$code ${fails}"; if [ $code -ne 0 ];
+  then echo "$out" | grep -E "^(FAIL|ERROR):" | head -5; fi;
+  done; sh -n bin/brichan; echo "sh -n exit: $?")
+  ⎿  == test-unit exit=0 OK
+     == test-contract exit=2 FAILED (failures=2, skipped=1)
+     FAIL: test_current_path_and_link_contracts_pass (tests.co
+     ntract.test_repository_paths.RepositoryPathContractTest)
+     FAIL: test_every_non_ephemeral_root_file_is_classified
+     (tests.contract.test_repository_paths.RepositoryPathContr
+     actTest)
+     == test-integration exit=2 FAILED (failures=1)
+     FAIL: test_repository_checkout_validates_clean
+     (tests.integration.test_task_dossier_workflow.TaskDossier
+     WorkflowIntegrationTest)
+     == techstack-eval exit=0 OK
+     == metrics exit=0
+     == receipts exit=0
+     == dossiers exit=2
+     == memory-check exit=0
+     == path-check exit=2
+     == readme-check exit=0
+     == phase5-preflight exit=0
+     == package-check exit=0
+     sh -n exit: 0
+  ⎿  (timeout 10m)
+
+⏺ All results match the ratified expected-red list exactly.
+  Completing the gate: the metrics unittest layer and the same
+  targets under Python 3.14.
+
+⏺ Bash(export PYTHONDONTWRITEBYTECODE=1 && python3 -m unittest
+  metrics/test_validate_metrics.py 2>&1 | tail -1; echo
+  "metrics-unittest exit: $?"; for t in test-unit
+  test-contract test-integration techstack-eval metrics
+  receipts dossiers memory-check path-check readme-check
+  phase5-preflight package-check; do out=$(make
+  PYTHON=/opt/homebrew/bin/python3.14 $t 2>&1); code=$?;
+  fails=$(echo "$out" | grep -E "^(FAILED|OK)" | tail -1);
+  echo "== 3.14 $t exit=$code ${fails}"; if [ $code -ne 0 ];
+  then echo "$out" | grep -E "^(FAIL|ERROR):" | head -4; fi;
+  done)
+  ⎿  OK
+     metrics-unittest exit: 0
+     == 3.14 test-unit exit=0 OK
+     == 3.14 test-contract exit=2 FAILED (failures=2,
+     skipped=1)
+     FAIL: test_current_path_and_link_contracts_pass
+     (tests.contract.test_repository_paths.RepositoryPathContr
+     actTest.test_current_path_and_link_contracts_pass)
+     FAIL: test_every_non_ephemeral_root_file_is_classified
+     (tests.contract.test_repository_paths.RepositoryPathContr
+     actTest.test_every_non_ephemeral_root_file_is_classified)
+     == 3.14 test-integration exit=2 FAILED (failures=1)
+     FAIL: test_repository_checkout_validates_clean (tests.int
+     egration.test_task_dossier_workflow.TaskDossierWorkflowIn
+     tegrationTest.test_repository_checkout_validates_clean)
+     == 3.14 techstack-eval exit=0 OK
+     == 3.14 metrics exit=0
+     == 3.14 receipts exit=0
+     == 3.14 dossiers exit=2
+     == 3.14 memory-check exit=0
+     == 3.14 path-check exit=2
+     == 3.14 readme-check exit=0
+     == 3.14 phase5-preflight exit=0
+     == 3.14 package-check exit=0
+  ⎿  (timeout 10m)
+
+⏺ Both interpreters match the ratified gate exactly. Final
+  hygiene checks: no home paths in the artifacts, and the
+  working tree state.
+
+⏺ Bash(grep -rn "/Users\|/home" projects/brida-workflow-simpli
+  fication/handoffs/WFS-A-204/requirements.md projects/brida-w
+  orkflow-simplification/handoffs/WFS-A-204/brief.md projects/
+  brida-workflow-simplification/handoffs/WFS-A-204/options.md
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/de
+  sign.md projects/brida-workflow-simplification/handoffs/WFS-
+  A-204/plan.md; echo "home-path grep exit: $?"; git status
+  --short; git status --short --ignored=matching
+  projects/brida-workflow-simplification/handoffs/WFS-A-204/ |
+  head -25)
+  ⎿  projects/brida-workflow-simplification/handoffs/WFS-A-204
+     /brief.md:79:3.10 shell interpreter and
+     `PYTHON=/opt/homebrew/bin/python3.14`, green except
+     projects/brida-workflow-simplification/handoffs/WFS-A-204
+     /requirements.md:48:| `R12` | The coordinator-ratified
+     completion gate (`client-follow-up-questions.md` version
+     2, 2026-09-25) passes: `make test-unit`, `make
+     test-contract`, `make test-integration`, then
+     `techstack-eval`, `metrics`, `receipts`, `dossiers`,
+     `memory-check`, `path-check`, `readme-check`,
+     `phase5-preflight`, `package-check` individually, on the
+     3.10 shell interpreter and again with
+     `PYTHON=/opt/homebrew/bin/python3.14`. Expected red, not
+     to be fixed: the two
+     `tests/contract/test_repository_paths.py` failures and
+     `make path-check` (all `unclassified root files: .git`,
+     detached-worktree cause); and, while this dossier is in
+     flight, `make dossiers` (make exit `2`, script exit `1`)
+     and `tests/integration/test_task_dossier_workflow.py`
+     `test_repository_checkout_validates_clean`, where every
+     dossier diagnostic is owned by a pending coordinator- or
+     reviewer-owned WFS-A-204 artifact (ownership is the
+     artifact path before the first colon of the diagnostic,
+     not any artifact the diagnostic text mentions). Any other
+     failure is a defect to diagnose. |
+     projects/brida-workflow-simplification/handoffs/WFS-A-204
+     /plan.md:111:   `PYTHON=/opt/homebrew/bin/python3.14`.
+     Expected red, not to be fixed:
+     home-path grep exit: 0
+     !! projects/brida-workflow-simplification/handoffs/WFS-A-
+     204/
+
+⏺ All verification is complete. The only /home grep hits are
+  /opt/homebrew/bin/python3.14 — the interpreter path the
+  coordinator's own ratified-gate artifact already records,
+  not a personal home path. The tracked tree is clean (dossier
+  directories are gitignored by design), so everything is
+  left uncommitted as required.
+
+  ---
+
+  1. Outcome
+
+  Plan WFS-A-204-PLAN-001 version 2 (status draft) is
+  complete. All three plan-review version 1 findings are
+  closed, all four test gaps are addressed (gaps 1–3 adopted,
+  gap 4 recorded as a known limitation), and the coordinator's
+  ratified completion gate from client-follow-up-questions.md
+  version 2 is incorporated:
+
+  - M1 (medium): the ## Worker ledger section now goes
+    immediately before ## Recover a swallowed Enter, after the
+    observation safeguards, so no existing safeguard is
+    nested under it. I chose the review's move-the-section
+    variant over adding a heading to the observation block
+    (smaller diff, existing packaged text stays
+    byte-identical); the rationale is recorded in options.md
+    and the placement is pinned by a new contract assertion
+    (new requirement R13) so the fix is durable.
+  - L1 (low): the dossier-baseline rule is restated in
+    ownership terms — a diagnostic belongs to the artifact
+    path before its first colon — and the "across N
+    dossier(s)" figure is noted as the scanned count.
+  - L2 (low): the baseline now records make dossiers exit 2
+    (GNU make recipe failure) over script exit 1; re-measured
+    in this session.
+  - Test gaps 1–2: the near-tautological third assertion is
+    replaced by an exactly-once occurrence count of
+    --ledger-file over the packaged tree, which no affirmative
+    phrasing can pass (R8 strengthened).
+
+  2. Files/artifacts changed
+
+  All five planner artifacts revised to version 2, each
+  recording route plan, model claude-fable-5, effort high,
+  session 6b5e7d82-9bdc-4a2e-824c-fb3b11060427:
+
+  - projects/brida-workflow-simplification/handoffs/WFS-A-204/
+    requirements.md — R8, R10, R12 revised; R13 (placement)
+    added
+  - .../brief.md — placement constraint added; success signal
+    states the ratified gate
+  - .../options.md — new placement sub-decision; Option A no
+    longer claims literal checkout ordering
+  - .../design.md — placement, four-assertion negative test,
+    line cites aligned to review-verified ranges
+  - .../plan.md — findings-closure table, step 2/3 placement
+    and test spec, step 6 rewritten to the ratified gate, new
+    snapshot pointer
+
+  Version 1 of all five is preserved byte-for-byte at
+  .../versions/v1/ (SHA-256s captured; existing archived files
+  untouched per DOSSIER-003). No file outside the dossier
+  changed; git status --short on tracked files is clean and
+  everything is uncommitted.
+
+  3. Verification and evidence
+
+  - Techstack verify ran before any other work and returned
+    status: match, observed digest equal to the packet's; all
+    eight required selected rule files were read.
+  - Source re-verification in this session:
+    worker_launch.py:422-442 (--task help text verbatim;
+    --ledger-file only under if checkout_root is not None),
+    worker_ledger.py:670-742 (installed finish parser with
+    --project, refusals, exits), packaged commands.md headings
+    only at lines 1 and 65, zero current occurrences of
+    --ledger-file in the packaged tree (so the exactly-once
+    post-edit assertion is well-defined).
+  - Dossier validator: PYTHONDONTWRITEBYTECODE=1 python3
+    scripts/validate_task_dossiers.py projects exits 1 with 39
+    issues across 8 scanned dossiers; zero diagnostics for my
+    five artifacts. Expected pending-artifact diagnostics:
+    index.md owns 28 (template placeholders, comparison rows,
+    missing receipt.md), code-review.md 5 and pr-desc.md 5
+    (template placeholders), and plan-review.md 1 ("review
+    must reference the exact accepted plan version '2', found
+    '1'" — appeared when I bumped the plan to version 2 and
+    clears when the reviewer reviews it). make dossiers exits
+    2.
+  - Ratified completion gate: all twelve targets plus the
+    metrics unittest and sh -n bin/brichan ran individually on
+    the 3.10 shell interpreter and with
+    PYTHON=/opt/homebrew/bin/python3.14. Both interpreters
+    match the ratified expected-red list exactly:
+    test-contract 2 failures (test_repository_paths, .git
+    cause), test-integration 1 failure
+    (test_repository_checkout_validates_clean), dossiers and
+    path-check red; everything else green.
+  - Scope: planning discovered no path outside the Techstack
+    scope paths — both implementation files fall inside the
+    declared scope.
+
+  4. Risks, assumptions, and unresolved issues
+
+  - The M1 variant choice (move the section rather than add an
+    observation heading) was a planner call; the review
+    verified both variants pass every contract, so reversing
+    it costs nothing if the coordinator prefers the other.
+  - The dossier issue count (39) will move as the coordinator
+    and reviewer fill their artifacts; the plan makes the
+    ownership rule, not the count, the acceptance test.
+  - Installed legacy launches remain undocumented in the
+    packaged file (deliberate, recorded in design.md; the
+    review accepts it and no acceptance criterion requires
+    it).
+  - The WLG-001 source dossier is absent from this worktree;
+    provenance rests on its redacted restatement in
+    request.md, as already recorded.
+
+  5. Acknowledgement
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=28f8a7c798bf2d9d981665425e0979bdbc6ef14ad540
+  d43fd13e21cd5c483f90
+
+✻ Crunched for 13m 15s · done 4:39 PM
+                                               160874 tokens
+──────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────
+  👤 <user> │ Fable 5 │ ✍️ 15% │ brichan-…
+  current ●●●●●●○○○○  62% ⟳ 7:40pm
+  weekly  ●●●●○○○○○○  47% ⟳ sep 30, 5:00am
+  fable   ●●○○○○○○○○  29% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

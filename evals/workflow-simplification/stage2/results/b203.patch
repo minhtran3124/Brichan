@@ -1,0 +1,119 @@
+diff --git a/src/brichan/techstacks/model.py b/src/brichan/techstacks/model.py
+index 4d393d8..4c3fae2 100644
+--- a/src/brichan/techstacks/model.py
++++ b/src/brichan/techstacks/model.py
+@@ -587,13 +587,28 @@ def diagnostic_detail(
+     line: int | None = None,
+     rule: str | None = None,
+ ) -> str:
+-    """Return the literal registry detail for one diagnostic code."""
++    """Return the literal registry detail for one diagnostic code.
+ 
++    Only ``FILESYSTEM_ERROR`` takes ``errno_value`` and only ``INVALID_LEAF``
++    takes ``line`` and ``rule``; a non-``None`` slot the code does not render
++    is a caller error, never silently dropped.
++    """
++
++    spec = DIAGNOSTIC_SPECS[code]
++    taken = {"FILESYSTEM_ERROR": ("errno_value",), "INVALID_LEAF": ("line", "rule")}
++    supplied = (("errno_value", errno_value), ("line", line), ("rule", rule))
++    unsupported = [
++        name
++        for name, value in supplied
++        if value is not None and name not in taken.get(code, ())
++    ]
++    if unsupported:
++        raise ValueError(f"{code} must not carry {' or '.join(unsupported)}")
+     if code == "FILESYSTEM_ERROR":
+         return filesystem_error_detail(errno_value)
+     if code == "INVALID_LEAF":
+         return invalid_leaf_detail(line, rule)
+-    return DIAGNOSTIC_SPECS[code].detail
++    return spec.detail
+ 
+ 
+ # ---------------------------------------------------------------------------
+diff --git a/src/brichan/techstacks/resolver.py b/src/brichan/techstacks/resolver.py
+index 6656ca1..8df6f11 100644
+--- a/src/brichan/techstacks/resolver.py
++++ b/src/brichan/techstacks/resolver.py
+@@ -269,8 +269,14 @@ class _Resolver:
+         ``UNSUPPORTED_SAFE_OPEN`` and ``RESOURCE_LIMIT`` are class ``G`` and
+         therefore carry no path, even though the observation that produced them
+         named one.
++
++        Every failed observation may carry an errno, but only
++        ``FILESYSTEM_ERROR`` renders one; every other code has a fixed detail
++        and ``diagnostic_detail`` refuses an errno it would not render.
+         """
+ 
++        if code != "FILESYSTEM_ERROR":
++            errno_value = None
+         if DIAGNOSTIC_SPECS[code].fields == "G":
+             self.findings.add(code, errno_value=errno_value)
+             return
+diff --git a/tests/unit/test_techstack_model.py b/tests/unit/test_techstack_model.py
+index 9af99e2..77d18a9 100644
+--- a/tests/unit/test_techstack_model.py
++++ b/tests/unit/test_techstack_model.py
+@@ -656,6 +656,27 @@ class DiagnosticRegistryTest(unittest.TestCase):
+             self.assertEqual("P", spec.fields)
+             self.assertFalse(spec.waivable)
+ 
++    def test_an_errno_on_a_code_that_renders_none_is_a_caller_error(self):
++        for code, slots in (
++            ("UNREADABLE_FILE", {}),
++            ("INVALID_LEAF", {"line": 1, "rule": "LINE_SHAPE"}),
++        ):
++            with self.subTest(code=code):
++                with self.assertRaisesRegex(ValueError, f"^{code} must not carry errno_value$"):
++                    model.diagnostic_detail(code, errno_value=13, **slots)
++
++    def test_a_leaf_slot_on_a_code_other_than_invalid_leaf_is_a_caller_error(self):
++        for code, slots in (
++            ("UNREADABLE_FILE", {"line": 1}),
++            ("UNREADABLE_FILE", {"rule": "LINE_SHAPE"}),
++            ("FILESYSTEM_ERROR", {"errno_value": 13, "line": 0, "rule": "LINE_SHAPE"}),
++        ):
++            with self.subTest(code=code, slots=slots):
++                with self.assertRaisesRegex(ValueError, f"^{code} must not carry "):
++                    model.diagnostic_detail(code, **slots)
++                with self.assertRaises(ValueError):
++                    model.diagnostic(code, path="techstacks/general.md", **slots)
++
+ 
+ class OverflowSentinelTest(unittest.TestCase):
+     def test_a_129th_diagnostic_replaces_the_entire_array(self):
+diff --git a/tests/unit/test_techstack_resolver.py b/tests/unit/test_techstack_resolver.py
+index bd544e0..ca95015 100644
+--- a/tests/unit/test_techstack_resolver.py
++++ b/tests/unit/test_techstack_resolver.py
+@@ -679,6 +679,28 @@ class ReachabilityTest(ProjectMixin, unittest.TestCase):
+         self.assertEqual(("MISSING_RULE_FILE",), self.codes(resolution))
+         self.assertEqual("techstacks/general.md", resolution.diagnostics[0].path)
+ 
++    @unittest.skipIf(os.geteuid() == 0, "root bypasses file permissions")
++    def test_an_unreadable_selected_rule_file_blocks_without_its_errno(self):
++        self.write(
++            "techstacks/README.md",
++            map_source([("general", "techstacks/general.md", (".",))]),
++        )
++        leaf = self.write(
++            "techstacks/general.md",
++            leaf_source("general", [("GENERAL-001", "Keep project context bounded.")]),
++        )
++        os.chmod(leaf, 0o000)
++        self.addCleanup(os.chmod, leaf, 0o644)
++        resolution = self.resolve()
++        self.assertEqual("blocked", resolution.status)
++        self.assertEqual(
++            (model.diagnostic("UNREADABLE_FILE", path="techstacks/general.md"),),
++            resolution.diagnostics,
++        )
++        self.assertEqual(
++            "a required file could not be read", resolution.diagnostics[0].detail
++        )
++
+ 
+ class AuthorityTest(ProjectMixin, unittest.TestCase):
+     """The retained version-3 authority cases, independent of author order."""

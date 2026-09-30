@@ -1,0 +1,32 @@
+    separate path-check target; make dossiers and one integration test (test_repository_checkout_validates_clean) fail solely
+    on the in-flight dossier's pending coordinator/reviewer artifacts. Everything else passes: metrics tests, test-unit, the
+    other 146 contract tests, the other 221 integration tests, techstack-eval, metrics, receipts, memory-check, readme-check,
+    phase5-preflight, package-check, sh -n bin/brichan.
+
+  4. Risks, assumptions, and unresolved issues
+
+  - Planning discovered no path outside the Techstack scope paths; both implementation files fall inside the declared scope.
+  - The make check acceptance criterion needed refinement beyond the packet's two named failures: the same .git-file cause
+    also fails path-check, and the in-flight dossier fails make dossiers plus one integration test until the coordinator and
+    reviewer complete their artifacts. The plan pins this exact measured baseline instead of an unachievable "only two
+    failures" reading.
+  - Editing an immutable packaged resource changes the hash init embeds in new manifests; release-process handled (a version
+    bump makes older installs INCOMPATIBLE before the resource-hash comparison), recorded as a known consequence, not an
+    action.
+  - projects/brida-worker-ledger/handoffs/WLG-001/code-review.md is not present in this worktree (local, gitignored), so
+    provenance relies on its redacted restatement in request.md; the packaged gap itself was verified directly. No
+    escalation-worthy ambiguity was found.
+
+  5. Techstack verification acknowledgement: yes;
+  snapshot_sha256=5fbec657f553ce2eee42580e59998288cd75c247f087a42702d9d37f33eac80c
+
+✻ Cogitated for 19m 5s · done 12:17 PM
+                                                                                                               197197 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Fable 5 │ ✍️ 19% │ brichan-wfs-204a │ ● high 💭
+  current ●●●●●●●●●○  92% ⟳ 2:40pm
+  weekly  ●●●○○○○○○○  38% ⟳ sep 30, 5:00am
+  fable   ●●○○○○○○○○  25% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

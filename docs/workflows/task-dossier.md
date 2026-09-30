@@ -4,10 +4,11 @@ This is the canonical checkout-mode task-dossier contract. It applies to work
 tracked in this repository checkout. It does not change the installed `.brichan`
 schema, the packaged resources, or the model routing manifest.
 
-Every tracked task owns one dossier directory holding the same eleven standard
-artifacts plus its canonical handoff receipt. The task level changes required
-evidence depth, reviewer strength, and authorization gates. It never changes
-which artifacts exist. Document presence is not correctness evidence.
+Every tracked task owns one dossier directory holding its level's artifact set
+plus its canonical handoff receipt. The task level changes required
+evidence depth, reviewer strength, and authorization gates, and it selects the
+lifecycle and the artifact set, as defined once in [Levels](#levels) below.
+Document presence is not correctness evidence.
 
 ## Location and identity
 
@@ -46,13 +47,15 @@ explicit opt-in with `git add -f`; no workflow may force-add one implicitly.
 | `design.md` | Planner | Versioned or superseded, never silently rewritten |
 | `client-follow-up-questions.md` | Coordinator | Versioned |
 | `plan.md` | Planner, coordinator acceptance | Versioned; accepted version immutable |
+| `report.md` | Implementer | Worker report; its `Plan` is written before implementing |
 | `plan-review.md` | Independent reviewer | Immutable findings for the reviewed version |
 | `code-review.md` | Independent reviewer | Immutable findings for the reviewed version |
 | `pr-desc.md` | Coordinator generator | Regenerable output |
 | `receipt.md` | Coordinator | Canonical; mutates only per the receipt lifecycle |
 
-Templates for all eleven artifacts are in
-[`task-dossier/templates/`](task-dossier/templates/index.md).
+Templates for every artifact are in
+[`task-dossier/templates/`](task-dossier/templates/index.md). Which artifacts a
+task must carry depends on its level.
 
 ## Authority
 
@@ -114,13 +117,16 @@ Every artifact records:
 
 A self-reported confidence score is not proof.
 
-`plan-review.md` evaluates requirements, options, design, and plan for every
-task and names the exact reviewed plan version. `code-review.md` evaluates the
+At level 2, `plan-review.md` evaluates requirements, options, design, and plan
+and names the exact reviewed plan version. `code-review.md` evaluates the
 implementation or records, with evidence, why no implementation review applies.
 Reviewers do not back-write planning artifacts: `requirements.md`, `design.md`,
-and `plan.md` are never reviewer-owned. Neither the reviewing session nor the
+`plan.md`, and `report.md` are never reviewer-owned. Neither the reviewing session nor the
 authoring session of a review artifact may be the session that authored the
-plan.
+plan, and neither the reviewing nor the authoring session of `code-review.md`
+may be the session that authored `report.md`. A dossier without `plan.md` has
+no plan to review, so its review targets (`Reviewed plan ID`,
+`Reviewed plan version`) and the index's accepted-plan fields stay null.
 
 ## Techstack pointers
 
@@ -146,13 +152,20 @@ sufficient. The normative rules are in
 
 ## Levels
 
-All three levels produce the complete dossier. They differ in depth:
+This section is the single normative statement of each level's lifecycle and
+artifact set; every other document references it. It applies in checkout mode
+only: installed-project mode keeps its unconditional plan, implement, and
+review mandate.
 
-| Level | Minimum evidence items per passed artifact | Reviewer strength | Ship |
-|---|---|---|---|
-| 0 | 1 | Routine review route | Not requested |
-| 1 | 2 | Routine review route | Not requested |
-| 2 | 3 | Documented stronger one-off override | Requires recorded user authorization |
+| Level | Minimum evidence items per passed artifact | Reviewer strength | Ship | Required artifacts |
+|---|---|---|---|---|
+| 0 | 1 | Routine review route | Not requested | `index`, `request`, `report`, `code-review` |
+| 1 | 2 | Routine review route | Not requested | `index`, `request`, `report`, `code-review` |
+| 2 | 3 | Documented stronger one-off override | Requires recorded user authorization | `index`, `request`, `requirements`, `brief`, `options`, `design`, `client-follow-up-questions`, `plan`, `plan-review`, `code-review`, `pr-desc` |
+
+The required set must be present; any other artifact from the standard table
+may also be present and then validates under its normal rules. The index status
+table lists exactly the required and present artifacts, no more and no fewer.
 
 Raise to level 1 when explicit planning or delegation is requested, work spans
 sessions or is expected to resume, multiple credible options exist, architecture
@@ -162,6 +175,90 @@ Raise to level 2 when reviewer policy makes review mandatory, security, privacy,
 destructive, production, or public-contract risk exists, multiple writers are
 used, a worker replacement or recovery lifecycle is needed, or the user accepts a
 meaningful reliability, compatibility, cost, or permission trade-off.
+
+The level is self-declared, so the index's `Evidence` section records the level
+determination: the level-raising trigger that fixed the level, or a recorded
+statement that no level-raising trigger applies. A reviewer checks that claim
+([reviewer policy](../policy/reviewer.md)). An index whose level cannot be
+resolved fails closed: every tool applies the level 2 artifact set and evidence
+floor.
+
+### Lifecycles by level
+
+Level 0 — one `implement`-route worker.
+
+1. The coordinator records `request.md` and the dossier identity.
+2. The worker writes a short plan in the `Plan` section of `report.md` before
+   implementing, implements, and completes `report.md` (`Changes`,
+   `Verification`, `Risks`) and its receipt evidence. The completion gate is
+   `make check` plus the coordinator's acceptance-criteria check.
+3. Independent code review is required if and only if the diff touches a
+   [contract path](#contract-paths). When no review applies, `code-review.md`
+   records applicability `not-required`, with the contract-path decision and
+   the diff's changed-path list as evidence.
+4. Ship authorization is `not-requested`; review route strength is `routine`.
+
+Level 1 — one worker that plans and implements, then mandatory review.
+
+1. As level 0 steps 1 and 2. The plan still lives in `report.md`: there is no
+   separate plan artifact, no plan acceptance, and no plan review.
+2. A fresh independent code review is mandatory: `code-review.md`
+   applicability is always `required`, and its reviewing and authoring
+   sessions must differ from `report.md`'s authoring session.
+3. Ship authorization is `not-requested`; review route strength is `routine`.
+
+Level 2 — the full lifecycle: plan, plan review, implement, and code review,
+with the complete eleven-artifact dossier, the documented stronger one-off
+review override, and the ship-authorization gate. Code review is mandatory at
+levels 1 and 2; only level 0 may record it `not-required`.
+
+`report.md` holds the standard `Artifact metadata`, then the four report
+sections `Plan`, `Changes`, `Verification`, and `Risks`, then the standard body
+sections. A passed report carries a concrete statement in each report section.
+The validator checks content, not time order: that the plan was written before
+implementing is the worker's obligation and the reviewer's check, not a tooling
+guarantee.
+
+A dossier written before the worker report existed carries `plan.md` and no
+`report.md`. At levels 0 and 1 a present `plan.md` carries the plan, so
+`report.md` is then not required and the plan validates under its normal rules
+(plan ID, acceptance, and review targets). A symlinked or unreadable `plan.md`
+is not present, so `report.md` is required. No existing dossier is migrated.
+
+This adoption keeps the evaluation protocol's stop-and-rollback rule: an
+escaped defect that the removed ceremony would have caught returns that level
+to the full lifecycle and supersedes the decision.
+
+## Contract paths
+
+A diff touches a contract path if and only if at least one changed
+repository-relative path equals an exact file below or starts with a directory
+prefix below. The changed paths are the output of
+`git diff --name-only --no-renames <dispatch-base>` in the worker's worktree,
+so an add, a modify, a delete, and both sides of a rename all count.
+
+- Directory prefixes: `docs/policy/`, `docs/workflows/`, `.agents/`, `src/brichan/`, `scripts/`, `config/`, `bin/`, `packaging/`, `techstacks/`
+- Exact files: `Makefile`, `pyproject.toml`, `AGENTS.md`, `CLAUDE.md`, `PRODUCT.md`
+
+The checker makes the decision a command. Run it under `set -o pipefail` so a
+failing `git diff` fails the pipeline instead of being hidden by it:
+
+```bash
+set -o pipefail
+git diff --name-only --no-renames <dispatch-base> \
+    | python3 scripts/check_contract_paths.py
+```
+
+Exit `0` prints `contract-path: no`; exit `3` prints `contract-path: yes` and
+each matching path; exit `2` means an invalid invocation, input that is not
+UTF-8 path names, or empty input. Empty or whitespace-only input is refused,
+never read as `contract-path: no`, because a failed `git diff` prints nothing.
+The checker reads names only: it never runs Git and opens no repository file.
+
+**Trust boundary, stated rather than implied.** The level 0 review decision is
+the coordinator's, made with that command and recorded with its output in
+`code-review.md`'s evidence. The validator sees files, not diffs: no gate ties
+the review decision to the checker's exit code mechanically.
 
 ## Routing neutrality
 
@@ -208,7 +305,10 @@ python3 scripts/validate_task_dossiers.py projects --require-complete
 make dossiers
 ```
 
-Scaffolding writes nothing without `--apply` and never overwrites an existing
+Scaffolding creates exactly the level's required artifacts, and the scaffolded
+index status table lists exactly those; a scaffolded dossier, once filled,
+satisfies the validator at every level. Scaffolding writes nothing without
+`--apply` and never overwrites an existing
 artifact. It rejects a project slug that is not a lowercase hyphenated name, a
 dossier path that would leave the projects root, and any existing artifact
 symlink — including a dangling one — before it writes anything.
@@ -223,8 +323,9 @@ The validator is read-only: it diagnoses invalid or ambiguous state and never
 repairs it.
 
 `--require-complete` additionally requires every artifact to be `passed` or
-`not-required`, the plan to be `accepted`, `plan-review.md` to be applicable to
-every task, and every applicable review to carry a `PASS` verdict. A review
+`not-required`, the plan to be `accepted` whenever `plan.md` is present,
+`plan-review.md` to be applicable to every level 2 task, and every applicable
+review to carry a `PASS` verdict. A review
 recorded as `passed` while its verdict is `CHANGES REQUIRED` is not a complete
 task.
 
@@ -232,7 +333,9 @@ task.
 
 Hand-authoring stays first-class and nothing is migrated. When the repetitive
 half of a dossier is not where the judgment is, one structured JSON record can
-render all eleven artifacts instead:
+render the dossier instead. The record carries at least its level's required
+artifacts and only artifacts from the standard table, and the generator renders
+exactly the artifacts the record carries:
 
 ```bash
 python3 scripts/generate_task_dossier.py TDW-005 --level 1 --project example \
@@ -280,8 +383,8 @@ python3 scripts/summarize_task_dossier.py projects
 python3 scripts/summarize_task_dossier.py projects --task TDW-005 --json
 ```
 
-The summary is read-only and deterministic. It reports per-artifact
-applicability and phase state, evidence depth against the rule that actually
+The summary is read-only and deterministic. It reports, for each artifact the
+level requires or the dossier carries, applicability and phase state, evidence depth against the rule that actually
 applies, effective model provenance read from the artifacts, plan and review
 identity with disagreements flagged, authority-link health, review
 independence, and any unreadable artifact.
@@ -298,7 +401,8 @@ matching no dossier or more than one. Exit `1` means the scope was evaluated
 and the validator produced a diagnostic.
 
 Review independence is reported as two separate arms per review, each
-`independent`, `not-independent`, or `unknown`. Every rendered form carries the
+`independent`, `not-independent`, or `unknown`; when `report.md` is present,
+`code-review.md` is also reported against the report's author. Every rendered form carries the
 same caveat: identifier inequality is a deterministic consistency signal, not
 proof that two independent sessions existed.
 

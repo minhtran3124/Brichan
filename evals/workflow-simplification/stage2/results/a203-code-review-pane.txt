@@ -1,0 +1,21 @@
+  4. Uncertainties
+
+  - No evidence here shows make check green as a single command — the detached worktree's .git file makes that impossible regardless of this change. The ratified substitute is complete with respect to the recipe and was run in full.
+  - plan.md version 3 contradicts itself: the field reads Plan status: accepted while the section below argues draft is correct. That tension (DOSSIER-004) directly causes two of the index.md validator issues. Coordinator-owned; flagged, not touched.
+  - Writing this artifact moved the validator from 40 to 36 issues; the two remaining code-review rows are index.md template-state mismatches, coordinator-owned.
+  - Acceptance criterion 3's literal wording ("production callers are unaffected") is met in substance, not letter — _add_located was edited. Decided before implementation and flagged honestly by the implementer; recorded as a residual risk.
+
+  5.
+
+  Techstack verification acknowledgement: yes; snapshot_sha256=6f02061b8e9cc61a0db8e65763ca32ded935b2383d33c2037da4814ff92cf160
+
+✻ Brewed for 22m 32s · done 9:32 PM
+                                                                                                                                                                                                                                               166709 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ close out the review and report back to the coordinator
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 16% │ brichan-wfs-203a │ ● high 💭
+  current ●●●○○○○○○○  39% ⟳ 12:40am
+  weekly  ●●●●●○○○○○  57% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  35% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

@@ -1,0 +1,21 @@
+  4. Uncertainties
+
+  - Whether H1's remedy is a revised plan version or an implementer-side instruction is the coordinator's call. No finding implies a design revision.
+  - For the coordinator: receipt.md does not exist for this task, which the validator reports against index.md's canonical receipt path. Outside my scope.
+  - This review ran on claude-opus-5 under the claude runtime; config/model-routing.json gives the review route codex/gpt-5.6-sol. Independence and strength hold (fresh session, different model family than the planner's claude-fable-5); I recorded the
+    divergence in the artifact.
+
+  5.
+
+  Techstack verification acknowledgement: yes; snapshot_sha256=6a89e610b00a331b84767f79a2f3605a1d260a36bac05a5cf3ded449659e456f
+
+✻ Sautéed for 20m 17s · done 4:24 PM
+                                                                                                                                                                                                                                               170023 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Fix H1 and M1-M4 in a revised plan version 2
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 16% │ brichan-wfs-203a │ ● high 💭
+  current ●●●○○○○○○○  37% ⟳ 7:40pm
+  weekly  ●●●●○○○○○○  44% ⟳ sep 30, 5:00am
+  fable   ●●○○○○○○○○  25% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

@@ -21,7 +21,7 @@
     },
     "implement": {
       "runtime": "claude",
-      "model": "claude-opus-5",
+      "model": "claude-opus-5-5",
       "effort": "medium"
     },
     "review": {

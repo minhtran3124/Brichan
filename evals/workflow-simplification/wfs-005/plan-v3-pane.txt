@@ -1,0 +1,400 @@
+      67 +## Techstack scope acknowledgement (attempt-plan-3)
+      68 +
+      69 +- Snapshot pointer: `projects/brida-workflow-simplification/handoffs/WFS-005/snapshots/attempt-plan-3-07d0a9
+         +aa66386b05d94d37a06d4f414b7c83be1bbeee24f5c9647ce2a61079f6.snapshot.json`
+      70 +- Snapshot SHA-256: `07d0a9aa66386b05d94d37a06d4f414b7c83be1bbeee24f5c9647ce2a61079f6`,
+      71    verified `match` on 2026-09-26 before this version was written.
+      72  - Final scope paths (all files this plan touches are inside them):
+      73    `.agents/skills/herdr-orchestration`, `CHANGELOG.md`, `docs/policy`,
+     ...
+      77  - Acknowledged Context IDs: `root`, `general`, `policy`, `policy-canonical`,
+      78    `policy-dossiers`, `policy-packaged`, `python`, `python-runtime`,
+      79    `python-scripts`, `python-tests`.
+      52 -- Selected rule files, each reread in full after the re-resolution:
+      80 +- Selected rule files, each read in full under this attempt:
+      81    `techstacks/README.md`, `techstacks/general.md`,
+      82    `techstacks/policy/README.md`, `techstacks/policy/canonical.md`,
+      83    `techstacks/policy/packaged-resources.md`,
+     ...
+       92  rejection test calls the production path and fails with the guard removed).
+       93  Design section 7 numbers the tests; steps below name which they land.
+       94
+       67 -- S1 — Schema and template. Add `report` to `ARTIFACTS`, `ARTIFACT_TITLES`,
+       68 -  `ARTIFACT_OWNERS`; add `REPORT_SECTIONS`, `LEVEL_REQUIRED_ARTIFACTS`,
+       69 -  `CONTRACT_PATH_PREFIXES`, `CONTRACT_PATH_FILES` to
+       70 -  `src/brichan/contracts/task_dossier/schema.py`; create
+       71 -  `docs/workflows/task-dossier/templates/report.md`. Extend the template
+       72 -  contract test to the twelve recognized artifacts. Lands tests 17 (pins,
+       73 -  code side) and the template half of 12.
+       95 +- S1 — Schema and template. Add `RECOGNIZED_ARTIFACTS`,
+       96 +  `LEVEL_REQUIRED_ARTIFACTS`, `REPORT_SECTIONS`, `CONTRACT_PATH_PREFIXES`,
+       97 +  `CONTRACT_PATH_FILES`, and the `report` entries of `ARTIFACT_TITLES` and
+       98 +  `ARTIFACT_OWNERS` to `src/brichan/contracts/task_dossier/schema.py`,
+       99 +  leaving `ARTIFACTS` byte-unchanged and correcting the stale
+      100 +  level-never-changes-presence comment (L1); create
+      101 +  `docs/workflows/task-dossier/templates/report.md`. Re-key the three
+      102 +  template/constant contract assertions to `RECOGNIZED_ARTIFACTS` and land
+      103 +  the tuple pin. The index template is not touched. Lands test 18 (code
+      104 +  side) and the template halves of tests 12 and 18.
+      105  - S2 — Validator. Implement design section 4's `validation.py` changes:
+       75 -  level-aware required-set loading, report structure and passed-phase
+       76 -  concreteness, Level 1/2 mandatory code-review applicability, report-based
+       77 -  review independence, null review targets without a plan, status-table
+       78 -  required-union-present rule, completion narrowing. Lands tests 1-11
+       79 -  (validator side), including the legacy-fixture no-migration guard (8) and
+       80 -  the partial-adoption guard (9).
+       81 -- S3 — Scaffold. Level-keyed iteration in `scaffold.py`; integration-test
+       82 -  updates for level 0/1/2 scaffolding. Lands test 12.
+       83 -- S4 — Record and generator. Monotone key rule, conditional cross-checks,
+       84 -  report-aware independence, null review targets, record-keyed rendering and
+       85 -  status table in `record.py` and `generate.py`. The frozen eleven-artifact
+       86 -  Level 1 fixture is not edited. Lands tests 13-14.
+      106 +  recognized-set loading, effective required set with the legacy
+      107 +  `plan`-satisfies rule, fail-closed `"2"` level fallback, report structure
+      108 +  and passed-phase concreteness, Level 1/2 mandatory code-review
+      109 +  applicability, report-based review independence, null review targets
+      110 +  without a plan, status-table required-union-present rule, completion
+      111 +  narrowing. Lands tests 1-11 and 19, including both legacy no-migration
+      112 +  guards (8a in the unit suite, 8b in the contract suite) and the
+      113 +  partial-adoption guard (9).
+      114 +- S3 — Scaffold. Level-keyed iteration plus generated status rows in
+      115 +  `scaffold.py`; integration-test updates for level 0/1/2 scaffolding and
+      116 +  the scaffold-fill-validate round trip at every level. Lands tests 12-13.
+      117 +- S4 — Record and generator. Effective-required key rule against
+      118 +  `RECOGNIZED_ARTIFACTS`, conditional cross-checks, report-aware
+      119 +  independence, null review targets, record-keyed rendering and status table
+      120 +  in `record.py` and `generate.py`. The frozen eleven-artifact Level 0
+      121 +  fixture is not edited and must keep loading. Lands tests 14-15.
+      122  - S5 — Summary. Roster and unreadable-row changes in `summary.py`. Lands
+       88 -  test 15.
+      123 +  test 16.
+      124  - S6 — Contract-path checker. New
+      125    `src/brichan/contracts/task_dossier/contract_paths.py` and
+      126    `scripts/check_contract_paths.py` wrapper (19-line pattern); new
+       92 -  `tests/unit/test_contract_paths.py`. Lands test 16.
+      127 +  `tests/unit/test_contract_paths.py`. Lands test 17.
+      128  - S7 — Documents. Rewrite `docs/workflows/task-dossier.md` per design
+       94 -  sections 1-3 (preserving the pinned needles named in design section 6);
+       95 -  update `docs/policy/operating-principles.md` section 2 to reference the
+       96 -  workflow document; add the reviewer rule and amended return item to
+      129 +  sections 1-4 (preserving the pinned needles named in design section 6,
+      130 +  adding the legacy rule, the level-determination evidence obligation, and
+      131 +  the named contract-path trust boundary); update
+      132 +  `docs/policy/operating-principles.md` section 2 to reference the workflow
+      133 +  document; add the reviewer rule, amended return item, and the
+      134 +  level-mis-declaration and contract-path sentences to
+      135    `docs/policy/reviewer.md`; update
+      136    `.agents/skills/herdr-orchestration/references/task-dossier.md` and
+       99 -  `SKILL.md` wording without touching any parity marker or packet label.
+      137 +  `SKILL.md` wording without editing any parity marker or packet label.
+      138    Update `tests/contract/test_task_dossier_contract.py` needles and add the
+      101 -  document-side pins and the reviewer-rule needle. Lands tests 17-18 (doc
+      102 -  side).
+      139 +  document-side pins and the reviewer-rule needle, then run `make
+      140 +  test-contract` (the parity guard, L4). Lands tests 18 (doc side) and 20.
+      141  - S8 — Records. Add the `CHANGELOG.md` Unreleased entry (Changed): the
+      104 -  level-keyed dossier contract and the reviewer rule. In scope as of
+      105 -  Snapshot attempt `attempt-plan-2`; the version 1 escalation is resolved.
+      142 +  level-keyed dossier contract and the reviewer rule. In scope since
+      143 +  Snapshot attempt `attempt-plan-2`, unchanged in `attempt-plan-3`.
+      144  - S9 — End-to-end and full verification (below), then the worker report,
+      145    diff, and evidence for the completion gate.
+      146
+     ...
+      155      does not follow `PYTHON=` (SCRIPT-003 note in the Makefile docs).
+      156  - `PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py
+      157    projects` must report no diagnostic for any pre-existing dossier
+      120 -  (acceptance A3). While WFS-005 itself is in flight, `make dossiers` and
+      158 +  (acceptance A3). This run is a check; the committed regression guards for
+      159 +  the same guarantee are tests 8a and 8b (TEST-004: the `projects/` dossiers
+      160 +  are gitignored and never the sole owner of a gate assertion). While
+      161 +  WFS-005 itself is in flight, `make dossiers` and
+      162    `tests/integration/test_task_dossier_workflow.py`
+      163    `test_repository_checkout_validates_clean` may be red only because of
+      164    WFS-005's own pending coordinator or reviewer artifacts; any other red is
+      165    a defect in the change.
+      166  - `git diff --stat` over the implementation shows nothing under
+      126 -  `src/brichan/resources/`, `PRODUCT.md`, `config/`, or `techstacks/`
+      127 -  (acceptance A5; installed mode and packaged resources byte-unchanged).
+      167 +  `src/brichan/resources/`, `PRODUCT.md`, `config/`, `techstacks/`,
+      168 +  `evals/`, or `projects/` outside this task's dossier (acceptance A5;
+      169 +  installed mode and packaged resources byte-unchanged; C2's no-edit
+      170 +  guarantee for other tasks' artifacts and the eval fixtures).
+      171  - `git status` confirms the unrelated `.codex/config.toml` modification and
+      172    the untracked `.brichan` backup directories are untouched.
+      173  - No commit, push, or other remote action: the implementation stays in the
+     ...
+      179  - Doc-needle breakage: `test_task_dossier_contract.py` pins exact strings
+      180    including a line wrap; design section 6 names each, and S7 runs that test
+      181    file before the full gate.
+      139 -- Parity regression: the `.agents/` edits are word-level and avoid every
+      140 -  `PARITY_MARKERS` phrase; `make test-contract` in S7 is the guard.
+      141 -- Legacy breakage: test 8 validates an unmodified existing-dossier fixture;
+      142 -  additionally S2 ends with the projects-root validator run over the real
+      143 -  `projects/` tree.
+      182 +- Parity regression: the `.agents/` edits are word-level; because
+      183 +  `PARITY_MARKERS` contains bare generic words, the guard is `make
+      184 +  test-contract` in S7 over the whole concatenated trees, not any
+      185 +  word-avoidance claim (L4).
+      186 +- Legacy breakage: tests 8a and 8b validate committed full-dossier shapes at
+      187 +  both reduced levels; additionally S2 ends with the projects-root validator
+      188 +  run over the real `projects/` tree as a check.
+      189 +- Scaffold/validator drift: the two now share the level-keyed sets and the
+      190 +  round trip (test 13) fails if their status-table or required-set rules
+      191 +  ever disagree (H1's class of defect).
+      192  - Concurrent dossier state: WFS-005's own dossier is in flight during
+      193    implementation, so completion-gate reds must be checked against the
+      194    expected-red list above rather than silenced.
+     ...
+      200  ## Claim or decision
+      201
+      202  Implementation proceeds in nine steps, tests landing with each change, gated
+      155 -by `make check` on Python 3.10 and 3.14. The version 1 escalation is
+      156 -resolved: `CHANGELOG.md` is inside the re-resolved attempt-plan-2 Snapshot
+      157 -scope, so no path this plan touches is outside the declared scope and
+      158 -nothing blocks acceptance of this plan version on scope grounds.
+      203 +by `make check` on Python 3.10 and 3.14. Every blocking finding (C1, C2, C3,
+      204 +H1) is resolved with the plan review's preferred shapes; M1-M4 are adopted
+      205 +as recommended and L1-L4 are corrected or dissolved, per the closure table.
+      206 +No path this plan touches is outside the declared attempt-plan-3 scope —
+      207 +in particular, nothing under `projects/brida-task-dossier-workflow`,
+      208 +`evals/`, or the index template changes — and no escalation is open.
+      209
+      210  ## Evidence
+      211
+      162 -- The attempt-plan-2 verify command returned `match` with digest
+      163 -  `912216e4b4070c6b23aa2a5a78cb73c38d15be3a73a93886d9056d2d716cbbfd` on
+      164 -  2026-09-26, and its resolved scope paths include `CHANGELOG.md`; all ten
+      165 -  selected rule files were reread after the re-resolution as required.
+      166 -- `versions/v1/plan.md` holds the byte-frozen version 1 (identical SHA-256
+      167 -  to the pre-archive `plan.md` v1, verified at archive time), preserving the
+      168 -  escalation record per the dossier contract.
+      169 -- `design.md` v1 sections 4, 6, and 7 enumerate every touched function,
+      170 -  file, and test this plan sequences; the design was grounded in a full read
+      171 -  of the six contract-package modules on 2026-09-26.
+      172 -- `Makefile` targets `check`, `dossiers`, and the test tiers were read to
+      173 -  confirm the verification commands and the SCRIPT-003 eval note.
+      212 +- The attempt-plan-3 verify command returned `match` with digest
+      213 +  `07d0a9aa66386b05d94d37a06d4f414b7c83be1bbeee24f5c9647ce2a61079f6` on
+      214 +  2026-09-26 before any artifact was revised, and all ten selected rule
+      215 +  files were read in full under this attempt.
+      216 +- `versions/v2/plan-review.md` (identical to the live `plan-review.md`,
+      217 +  reviewed plan version 2, verdict `CHANGES REQUIRED`) states findings
+      218 +  C1-C3, H1, M1-M4, and L1-L4 with the recommended shapes this version
+      219 +  adopts; the coordinator's plan-version-3 packet names those shapes as
+      220 +  preferred.
+      221 +- `versions/v2/` holds the byte-frozen superseded planning artifacts
+      222 +  (SHA-256 of each archived file verified identical to its pre-revision
+      223 +  live copy at archive time on 2026-09-26), and `versions/v1/plan.md`
+      224 +  remains the frozen version 1 escalation record (DOSSIER-003).
+      225 +- The claims the closure table rests on were re-verified against the tree by
+      226 +  this session on 2026-09-26: the six Level 0/1 dossiers and their `plan.md`
+      227 +  and `required` reviews; the fixture load site
+      228 +  (`tests/unit/test_task_dossier_generator.py:76-82`, `level="0"`); the four
+      229 +  `ARTIFACTS`-pinned assertions and the three to re-key in
+      230 +  `tests/contract/test_task_dossier_contract.py`; the clean validator run
+      231 +  over `evals/task-dossier-pilots/concise/projects` (exit 0, "Validated 2
+      232 +  task dossier(s)"); and `_resolve_level`'s current `"0"` fallback
+      233 +  (`src/brichan/contracts/task_dossier/validation.py:1035-1048`).
+      234 +- `design.md` v2 sections 4, 6, and 7 enumerate every touched function,
+      235 +  file, and test this plan sequences; `Makefile` targets `check`,
+      236 +  `dossiers`, and the test tiers were previously read to confirm the
+      237 +  verification commands and the SCRIPT-003 eval note, and the plan review
+      238 +  independently verified both.
+      239
+      240  ## Uncertainty
+      241
+      177 -- The contract-path list membership question recorded in `design.md`'s
+      178 -  Uncertainty section remains open for plan review; it does not block the
+      179 -  step sequence, which treats the list as one literal to fill. The version 1
+      180 -  scope escalation is resolved and no scope uncertainty remains.
+      242 +- The contract-path membership adopts the review's M3 recommendation; the
+      243 +  user may prefer the narrower list, and swapping membership is a one-line
+      244 +  document change, one tuple entry, and one pinned test (recorded in
+      245 +  `design.md` Uncertainty as the remaining open judgment).
+      246 +- Level self-declaration (M2) remains a documented, reviewer-checked
+      247 +  exposure; no mechanical closure exists and none is claimed.
+      248 +- No scope uncertainty remains: the version 1 escalation stays resolved and
+      249 +  version 3 touches no path outside the declared scope.
+
+⏺ All five artifacts are revised. Running the required dossier validation.
+
+⏺ Bash(cd ../brida && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3
+  scripts/validate_task_dossiers.py projects 2>&1 | tee <scratch>
+  per-brida/8ec2b29b-17ed-4727-a3c1-5724cadd447d/scratchpad/validator-out.txt | sed -n '1,80p'; echo "exit=${PIPESTATUS[0]}")
+  ⎿  ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact metadata.Artifact version: must be a positive integer
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact metadata.Origin: must record a concrete immutable origin marker
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact metadata.Phase state: must be one of ['active', 'blocked', 'not-required', 'passed', 'pending'], found
+     '<pending, active, passed, not-required, or blocked>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact metadata.Applicability: must be one of ['not-required', 'required'], found '<required or not-required>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact metadata.Authorship: must be one of ['human', 'model'], found '<model or human>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/code-revi
+     ew.md: Artifact metadata.Artifact version: must be a positive integer
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/code-revi
+     ew.md: Artifact metadata.Origin: must record a concrete immutable origin marker
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/code-revi
+     ew.md: Artifact metadata.Phase state: must be one of ['active', 'blocked', 'not-required', 'passed', 'pending'], found
+     '<pending, active, passed, not-required, or blocked>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/code-revi
+     ew.md: Artifact metadata.Applicability: must be one of ['not-required', 'required'], found '<required or not-required>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/code-revi
+     ew.md: Artifact metadata.Authorship: must be one of ['human', 'model'], found '<model or human>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/pr-desc.m
+     d: Artifact metadata.Artifact version: must be a positive integer
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/pr-desc.m
+     d: Artifact metadata.Origin: must record a concrete immutable origin marker
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/pr-desc.m
+     d: Artifact metadata.Phase state: must be one of ['active', 'blocked', 'not-required', 'passed', 'pending'], found
+     '<pending, active, passed, not-required, or blocked>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/pr-desc.m
+     d: Artifact metadata.Applicability: must be one of ['not-required', 'required'], found '<required or not-required>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/pr-desc.m
+     d: Artifact metadata.Authorship: must be one of ['human', 'model'], found '<model or human>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Task identity.Canonical receipt path: canonical receipt does not exist:
+     projects/brida-workflow-simplification/handoffs/WFS-005/receipt.md
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Task identity.Review route strength: must be one of ['routine', 'stronger'], found '<routine or stronger>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Task identity.Review route strength: level 2 requires a documented stronger reviewer
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Task identity.Ship authorization: must be one of ['not-requested', 'user-authorized'], found '<not-requested or
+     user-authorized>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.index.Phase state: index says '<phase state>' but index.md says '<pending, active, passed,
+     not-required, or blocked>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.request.Applicability: index says '<required or not-required>' but request.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.request.Phase state: index says '<phase state>' but request.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.requirements.Applicability: index says '<required or not-required>' but requirements.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.requirements.Phase state: index says '<phase state>' but requirements.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.brief.Applicability: index says '<required or not-required>' but brief.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.brief.Phase state: index says '<phase state>' but brief.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.options.Applicability: index says '<required or not-required>' but options.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.options.Phase state: index says '<phase state>' but options.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.design.Applicability: index says '<required or not-required>' but design.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.design.Phase state: index says '<phase state>' but design.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.client-follow-up-questions.Applicability: index says '<required or not-required>' but
+     client-follow-up-questions.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.client-follow-up-questions.Phase state: index says '<phase state>' but client-follow-up-questions.md
+     says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.plan.Applicability: index says '<required or not-required>' but plan.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.plan.Phase state: index says '<phase state>' but plan.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.plan-review.Applicability: index says '<required or not-required>' but plan-review.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.plan-review.Phase state: index says '<phase state>' but plan-review.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.code-review.Phase state: index says '<phase state>' but code-review.md says '<pending, active, passed,
+     not-required, or blocked>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/index.md:
+     Artifact status.pr-desc.Phase state: index says '<phase state>' but pr-desc.md says '<pending, active, passed,
+     not-required, or blocked>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-005/plan-revi
+     ew.md: Review target.Reviewed plan version: review must reference the exact accepted plan version '3', found '2'
+     Invalid task dossiers: 39 issue(s) across 17 dossier(s).
+     exit=
+
+⏺ Bash(cd <scratch>
+  /scratchpad && grep -c "WFS-005" validator-out.txt; grep -v "WFS-005" validator-out.txt; echo "--- per-file counts:"; grep
+  -o "WFS-005/[a-z-]*\.md" validator-out.txt | sort | uniq -c)
+  ⎿  39
+     Invalid task dossiers: 39 issue(s) across 17 dossier(s).
+     --- per-file counts:
+        5 WFS-005/code-review.md
+       28 WFS-005/index.md
+        1 WFS-005/plan-review.md
+        5 WFS-005/pr-desc.md
+        1 WFS-005/receipt.md
+  ⎿  Shell cwd was reset to ../brida
+
+⏺ All verification complete. Final report for the coordinator:
+
+  ---
+
+  1. Outcome
+
+  Plan version 3 is written and closes every finding in the plan review (verdict CHANGES REQUIRED on version 2). All four
+  blocking findings take the reviewer's preferred shapes: C1 uses shape (a) — at Levels 0/1 the worker report is required
+  only when the dossier has no plan.md, so all six existing Level 0/1 dossiers satisfy their level through plan with zero
+  edits; C2 keeps ARTIFACTS frozen at eleven and adds a separate literal RECOGNIZED_ARTIFACTS tuple that the validator,
+  scaffold, generator, summary, and partial-adoption scan iterate, so all four ARTIFACTS-pinned assertions, the index
+  template, the TDW-009 frozen artifact, and the evals/ fixtures keep their exact meaning; C3 is resolved by the same
+  effective-required key rule (the frozen fixture is correctly identified as Level 0 and loads unedited); H1 is resolved by
+  leaving the index template untouched and having the scaffold generate status rows for exactly what it scaffolds per level,
+  pinned by a new scaffold-fill-validate round-trip test. M1 (fail-closed level fallback to "2"), M2 (recorded
+  level-determination evidence plus a reviewer finding for mis-declaration), M3 (src/brichan/ and scripts/ prefixes adopted),
+  and M4 (committed legacy-shape guards: the two committed concise sample dossiers at Level 0 and Level 1, plus the
+  build_dossier full-eleven shape at both levels) are all adopted as recommended; L1–L4 are corrected or dissolved. plan.md
+  carries the full findings-closure table.
+
+  2. Files/artifacts changed
+
+  Exactly the five planner artifacts in projects/brida-workflow-simplification/handoffs/WFS-005/: requirements.md (v2),
+  brief.md (v2), options.md (v2 — two new decisions: registry representation, scaffold status-row sourcing; Decision 2
+  reframed around legacy applicability), design.md (v2), plan.md (v3, plan ID WFS-005-PLAN-001, status draft). The superseded
+  copies are archived byte-frozen at versions/v2/ (requirements, brief, options, design, plan — SHA-256 of each archive
+  verified identical to its pre-revision live copy). Each artifact records route plan, model claude-fable-5, effort high,
+  session plan-session-8ec2b29b. Nothing else was touched; .codex/config.toml and the .brichan* directories are as found.
+
+  3. Verification and evidence
+
+  - Techstack verify ran first and returned match; all ten selected rule files were read in full.
+  - Every closure claim was re-verified against the tree before writing: the six Level 0/1 dossiers all carry plan.md and
+    required reviews (and all eleven Level 2 dossiers too); the generator fixture loads at level="0"
+    (tests/unit/test_task_dossier_generator.py:76-82); the four ARTIFACTS-pinned assertions and the three that must re-key
+    were located in tests/contract/test_task_dossier_contract.py; the validator over
+    evals/task-dossier-pilots/concise/projects exits 0 today ("Validated 2 task dossier(s)"), grounding the new legacy-guard
+    test; _resolve_level falls back to "0" today (validation.py:1035-1048); the scaffold's _render has no status-table
+    awareness today (scaffold.py:63-68).
+  - PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects: 39 diagnostics, none anchored on the five
+    revised artifacts and none on any other dossier. All 39 are WFS-005's own expected in-flight state: 28 on the
+    still-templated coordinator index.md (including the missing coordinator-owned receipt.md), 5 on templated code-review.md,
+    5 on templated pr-desc.md, and 1 on plan-review.md (Reviewed plan version: expected '3', found '2' — the version-3
+    review is pending).
+
+  4. Risks, assumptions, and unresolved issues
+
+  - Contract-path membership adopts the review's M3 recommendation (src/brichan/, scripts/); the review itself calls this a
+    judgment, and the user may prefer the narrower list — it stays a one-line document change, one tuple entry, one pinned
+    test.
+  - Level self-declaration (M2) remains the largest standing exposure; the mitigation is documentary (recorded
+    level-determination evidence + reviewer finding), not mechanical, and is recorded as such.
+  - The plan-in-report-before-implementation discipline stays reviewer-enforced, now stated as a named trust boundary in the
+    workflow document.
+  - No escalation: version 3 touches no path outside the declared attempt-plan-3 scope; the fix for C2's out-of-scope repairs
+    was to dissolve them (nothing under projects/brida-task-dossier-workflow or evals/ changes).
+  - Assumption: plan-session-8ec2b29b is an acceptable session identifier for this worker session; the coordinator's receipt
+    should record the same identity.
+
+  5. Techstack verification acknowledgement: yes;
+  snapshot_sha256=07d0a9aa66386b05d94d37a06d4f414b7c83be1bbeee24f5c9647ce2a61079f6
+
+✻ Churned for 14m 26s · done 10:57 AM
+                                                                                                              225627 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Dispatch the plan review of version 3
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Fable 5 │ ✍️ 22% │ brida (feat/lifecycle-simplification*) │ ● high 💭
+  current ●●●●○○○○○○  47% ⟳ 12:10pm
+  weekly  ●●●●●●○○○○  65% ⟳ sep 30, 5:00am
+  fable   ●●●●○○○○○○  42% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

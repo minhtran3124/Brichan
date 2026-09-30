@@ -1,0 +1,33 @@
+       index.md (27, template metadata + cross-checks + missing receipt.md), plan-review.md (5), code-review.md (5),
+       pr-desc.md (5).
+     - Baseline PYTHONDONTWRITEBYTECODE=1 make check: unit suite green; contract layer fails with exactly the two known
+       worktree-only tests/contract/test_repository_paths.py failures (unclassified root files: .git), which I report and did
+       not fix. I also ran the remaining layers individually: make test-integration fails one test,
+       test_repository_checkout_validates_clean in tests/integration/test_task_dossier_workflow.py, and make dossiers fails —
+       I diagnosed both as caused by this task's own in-progress dossier (the templated coordinator/reviewer artifacts above),
+       not by the worktree or by anything I authored; they persist until those artifacts leave template state.
+     - Byte-identity baseline recorded for the implementer: 122 representative valid diagnostic_detail calls, sha256
+       57b96aa6d240374df464cd4b01d9f5f74cfd123240c3577b5eba1bc73d5167c0, computed at commit 6fe3977.
+  4. Risks, assumptions, and unresolved issues.
+     - Open question (recorded in plan.md): the implementation's make check gate cannot go fully green while index.md,
+       plan-review.md, code-review.md, and pr-desc.md remain templates — the coordinator must either bring them to a
+       validating state before the implementer's final gate or accept the carve-out written into requirements R7. Not a design
+       blocker.
+     - The request premise correction above changes the design (resolver call-site fix required) but not the objective; no
+       frozen contract is touched, so no escalation beyond recording it prominently.
+     - Assumption: exact ValueError message wording is a reviewed proposal; review may adjust wording without a design
+       revision as long as the refusal classes and exception class stand.
+     - No path outside the declared Techstack scope paths was discovered.
+  5. Techstack verification acknowledgement: yes;
+     snapshot_sha256=0aac87619568852fedf8ba257cde51531e6b078a3af247bc550f8764600caae6
+
+✻ Worked for 14m 3s · done 12:12 PM
+                                                                                                               176820 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Fable 5 │ ✍️ 17% │ brichan-wfs-203a │ ● high 💭
+  current ●●●●●●●●○○  87% ⟳ 2:40pm
+  weekly  ●●●○○○○○○○  37% ⟳ sep 30, 5:00am
+  fable   ●●○○○○○○○○  24% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

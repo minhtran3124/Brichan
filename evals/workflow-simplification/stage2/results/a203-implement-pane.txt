@@ -1,0 +1,32 @@
+    - metrics, receipts, memory-check, readme-check, phase5-preflight, package-check: all exit 0.
+    - sh -n bin/brichan: exit 0.
+  - Expected red only:
+    - The two test_repository_paths.py failures and make path-check, all unclassified root files: .git (detached worktree).
+    - make dossiers and test_repository_checkout_validates_clean.
+  - Dossier issue count: the validator reports 40 issues, where plan review projected 38. The extra two are both in index.md, whose Accepted plan ID/version fields are
+    still template placeholders. The validator checks these now that plan.md says accepted. All 40 name index.md, code-review.md, pr-desc.md, or the missing receipt.md,
+    all owned by the coordinator or reviewer. My report added none.
+  - Call sites: the only callers are model.py:2259 (Diagnostic.__post_init__) and model.py:2349 (diagnostic). Of the paths into them, only resolver.py:280,282
+    (_add_located, now fixed) and resolver.py:349-350 (_parse, now pinned by the markdown test) pass detail arguments.
+
+  4. Risks, assumptions and open issues.
+  - Production caller edited: _add_located is a production caller and it did change. Its output is identical, and reverting it breaks resolution, so the change is
+    required. It still departs from the literal "production callers unaffected" wording; plan review already records this as a residual risk.
+  - Third return line differs: it goes through a local variable (detail = …; return detail), exactly as design.md writes it. Plan-review L1 points out this wording
+    mismatch; the digest proves the output is unchanged.
+  - No single make check run: it stops at test-contract in this worktree, so I ran the ratified per-target gate instead.
+  - Pre-existing warning: Python 3.14 prints a SyntaxWarning from tests/unit/test_handoff_receipt_validator.py:733. It is outside my scope and doesn't fail anything.
+  - Changelog: CHANGELOG.md is untouched; whether it needs an entry is your call.
+
+  Techstack verification acknowledgement: yes; snapshot_sha256=cd04ee8e02d5dba6360f97084f76c5ad5b18acd09788c67b0dabea8fed25c50c
+
+✻ Brewed for 9m 56s · done 9:09 PM
+                                                                                                                                                          148726 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5.5 │ ✍️ 14% │ brichan-wfs-203a │ ◑ medium 💭
+  current ●●●○○○○○○○  34% ⟳ 12:40am
+  weekly  ●●●●●○○○○○  57% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  35% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

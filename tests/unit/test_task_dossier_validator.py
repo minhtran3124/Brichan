@@ -9,7 +9,13 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from brichan.contracts.task_dossier import validation as task_dossier
-from brichan.contracts.task_dossier.schema import ARTIFACTS
+from brichan.contracts.task_dossier.schema import (
+    ARTIFACTS,
+    LEVEL_REQUIRED_ARTIFACTS,
+    MINIMUM_EVIDENCE_ITEMS,
+    RECOGNIZED_ARTIFACTS,
+    REPORT_SECTIONS,
+)
 
 
 OWNERS = {
@@ -21,12 +27,14 @@ OWNERS = {
     "design": "planner",
     "client-follow-up-questions": "coordinator",
     "plan": "planner",
+    "report": "implementer",
     "plan-review": "reviewer",
     "code-review": "reviewer",
     "pr-desc": "generator",
 }
 
 AUTHORING_SESSIONS = {
+    "report": "session-implementer",
     "plan-review": "session-plan-reviewer",
     "code-review": "session-code-reviewer",
 }
@@ -116,6 +124,13 @@ def _extra(artifact, overrides):
             {"Remote action authorized": "no"},
         ),
     }
+    if artifact == "report":
+        bodies = overrides.get("report:sections", {})
+        return "".join(
+            f"## {section}\n\n"
+            f"{bodies.get(section, f'- The worker report {section.lower()} entry.')}\n\n"
+            for section in REPORT_SECTIONS
+        )
     if artifact not in sections:
         return ""
     heading, values = sections[artifact]
@@ -125,9 +140,9 @@ def _extra(artifact, overrides):
     return f"## {heading}\n\n{fields}\n\n"
 
 
-def _status_table(overrides):
+def _status_table(overrides, artifacts):
     rows = ["| Artifact | Applicability | Phase state | Path |", "| --- | --- | --- | --- |"]
-    for artifact in ARTIFACTS:
+    for artifact in artifacts:
         artifact_overrides = overrides.get(artifact, {})
         applicability = artifact_overrides.get("Applicability", "required")
         phase = artifact_overrides.get("Phase state", "passed")
@@ -137,8 +152,20 @@ def _status_table(overrides):
     return "## Artifact status\n\n" + "\n".join(rows) + "\n\n"
 
 
-def build_dossier(root, *, overrides=None, evidence_items=2, receipt=True, memory=True):
-    """Write a complete, valid level-1 dossier that tests then perturb."""
+def build_dossier(
+    root,
+    *,
+    overrides=None,
+    evidence_items=2,
+    receipt=True,
+    memory=True,
+    artifacts=ARTIFACTS,
+):
+    """Write a valid dossier that tests then perturb.
+
+    The default is the complete eleven-artifact level-1 shape every dossier
+    written before the worker report carries; ``artifacts`` narrows it.
+    """
     overrides = overrides or {}
     dossier = root / "example" / "handoffs" / "TASK-001"
     dossier.mkdir(parents=True, exist_ok=True)
@@ -146,12 +173,12 @@ def build_dossier(root, *, overrides=None, evidence_items=2, receipt=True, memor
         (root / "example" / "current-state.md").write_text(
             "# current state\n", encoding="utf-8"
         )
-    for artifact in ARTIFACTS:
+    for artifact in artifacts:
         text = f"# {artifact}\n\n## Artifact metadata\n\n"
         text += _metadata(artifact, overrides) + "\n\n"
         text += _extra(artifact, overrides)
         if artifact == "index":
-            text += _status_table(overrides)
+            text += _status_table(overrides, artifacts)
         text += _body(evidence_items)
         (dossier / f"{artifact}.md").write_text(text, encoding="utf-8")
     if receipt:
@@ -159,7 +186,57 @@ def build_dossier(root, *, overrides=None, evidence_items=2, receipt=True, memor
     return dossier
 
 
-class TaskDossierValidatorTest(unittest.TestCase):
+def merge_overrides(*layers):
+    merged = {}
+    for layer in layers:
+        for key, values in layer.items():
+            merged[key] = {**merged.get(key, {}), **values}
+    return merged
+
+
+def level_overrides(level):
+    """Overrides that declare ``level`` consistently across every artifact."""
+    overrides = {name: {"Task level": level} for name in RECOGNIZED_ARTIFACTS}
+    overrides["index:extra"] = {
+        "Task level": level,
+        "Review route strength": "stronger" if level == "2" else "routine",
+        "Review route override": (
+            "one-off stronger review route" if level == "2" else "null"
+        ),
+    }
+    return overrides
+
+
+def build_reduced_dossier(root, level, *, overrides=None, **kwargs):
+    """Write a valid reduced level-0/1 dossier: no plan, a worker report."""
+    unplanned = {
+        "index:extra": {"Accepted plan ID": "null", "Accepted plan version": "null"},
+        "code-review:extra": {
+            "Reviewed plan ID": "null",
+            "Reviewed plan version": "null",
+        },
+    }
+    kwargs.setdefault("evidence_items", MINIMUM_EVIDENCE_ITEMS[level])
+    kwargs.setdefault("artifacts", LEVEL_REQUIRED_ARTIFACTS[level])
+    return build_dossier(
+        root,
+        overrides=merge_overrides(level_overrides(level), unplanned, overrides or {}),
+        **kwargs,
+    )
+
+
+WAIVED_CODE_REVIEW = {
+    "code-review": {
+        "Phase state": "not-required",
+        "Applicability": "not-required",
+        "Applicability rationale": "diff touches no contract path",
+        "Reviewing session": "null",
+        "Review verdict": "null",
+    }
+}
+
+
+class DossierValidatorBase(unittest.TestCase):
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary_directory.cleanup)
@@ -184,15 +261,22 @@ class TaskDossierValidatorTest(unittest.TestCase):
         )
         return diagnostics
 
+
+class TaskDossierValidatorTest(DossierValidatorBase):
     def test_complete_level_1_dossier_is_valid(self):
         dossier = build_dossier(self.projects)
         self.assert_valid(dossier)
         self.assert_valid(dossier, require_complete=True)
 
-    def test_every_standard_artifact_is_required(self):
+    def test_level_2_requires_every_standard_artifact(self):
         for artifact in ARTIFACTS:
             with self.subTest(artifact=artifact):
-                dossier = build_dossier(self.projects)
+                dossier = build_dossier(
+                    self.projects,
+                    evidence_items=3,
+                    overrides=level_overrides("2"),
+                )
+                self.assert_valid(dossier)
                 (dossier / f"{artifact}.md").unlink()
                 self.assert_reports(dossier, f"required task-dossier artifact {artifact}.md")
 
@@ -380,38 +464,28 @@ class TaskDossierValidatorTest(unittest.TestCase):
         )
         self.assert_reports(dossier, "level 2 requires a documented stronger reviewer")
 
-    def test_levels_share_artifact_presence_but_differ_in_evidence_depth(self):
-        for level, items in (("0", 1), ("1", 2), ("2", 3)):
+    def test_full_legacy_dossier_stays_valid_at_every_level(self):
+        """The eleven-artifact shape every existing dossier carries (no report).
+
+        A dossier that carries plan.md satisfies levels 0 and 1 without a
+        worker report, and its status table lists exactly its eleven rows.
+        """
+        for level, items in MINIMUM_EVIDENCE_ITEMS.items():
             with self.subTest(level=level):
-                overrides = {artifact: {"Task level": level} for artifact in ARTIFACTS}
-                extra = {
-                    "index:extra": {
-                        "Task level": level,
-                        "Review route strength": (
-                            "stronger" if level == "2" else "routine"
-                        ),
-                        "Review route override": (
-                            "one-off stronger review route" if level == "2" else "null"
-                        ),
-                    }
-                }
                 enough = build_dossier(
                     self.projects,
                     evidence_items=items,
-                    overrides={**overrides, **extra},
+                    overrides=level_overrides(level),
                 )
+                self.assertFalse((enough / "report.md").exists())
                 self.assert_valid(enough)
-                self.assertEqual(
-                    len(ARTIFACTS),
-                    len(list(enough.glob("*.md"))) - 1,
-                    "every level owns the same artifact set",
-                )
+                self.assert_valid(enough, require_complete=True)
 
                 if items > 1:
                     too_thin = build_dossier(
                         self.projects,
                         evidence_items=items - 1,
-                        overrides={**overrides, **extra},
+                        overrides=level_overrides(level),
                     )
                     self.assert_reports(too_thin, f"level {level} requires at least")
 
@@ -530,22 +604,30 @@ class TaskDossierValidatorTest(unittest.TestCase):
             dossier, "require an accepted plan", require_complete=True
         )
 
-    def test_require_complete_rejects_a_not_required_plan_review(self):
+    def test_require_complete_rejects_a_not_required_plan_review_at_level_2(self):
+        waived = {
+            "plan-review": {
+                "Phase state": "not-required",
+                "Applicability": "not-required",
+                "Applicability rationale": "skipped",
+            }
+        }
         dossier = build_dossier(
             self.projects,
-            overrides={
-                "plan-review": {
-                    "Phase state": "not-required",
-                    "Applicability": "not-required",
-                    "Applicability rationale": "skipped",
-                }
-            },
+            evidence_items=3,
+            overrides=merge_overrides(level_overrides("2"), waived),
         )
         self.assert_reports(
             dossier,
-            "plan review applies to every task",
+            "plan review applies to every level 2 task",
             require_complete=True,
         )
+
+        # Levels 0 and 1 have no plan review, so a present one may be waived.
+        dossier = build_dossier(
+            self.projects, overrides=merge_overrides(level_overrides("1"), waived)
+        )
+        self.assert_valid(dossier, require_complete=True)
 
     def test_require_complete_rejects_a_changes_required_review(self):
         for artifact in ("plan-review", "code-review"):
@@ -559,18 +641,11 @@ class TaskDossierValidatorTest(unittest.TestCase):
                     dossier, "require a PASS verdict", require_complete=True
                 )
 
-    def test_code_review_may_be_not_required_with_evidence(self):
+    def test_level_0_code_review_may_be_not_required_with_evidence(self):
         dossier = build_dossier(
             self.projects,
-            overrides={
-                "code-review": {
-                    "Phase state": "not-required",
-                    "Applicability": "not-required",
-                    "Applicability rationale": "documentation-only change",
-                    "Reviewing session": "null",
-                    "Review verdict": "null",
-                }
-            },
+            evidence_items=1,
+            overrides=merge_overrides(level_overrides("0"), WAIVED_CODE_REVIEW),
         )
         self.assert_valid(dossier)
         self.assert_valid(dossier, require_complete=True)
@@ -969,6 +1044,236 @@ class TaskDossierValidatorTest(unittest.TestCase):
         with contextlib.redirect_stderr(stderr):
             code = task_dossier.main([str(self.projects / "absent")])
         self.assertEqual(2, code)
+
+
+class ReducedDossierValidatorTest(DossierValidatorBase):
+    """Levels 0 and 1: a worker report carries the plan; no plan artifacts."""
+
+    def test_reduced_level_0_dossier_with_a_waived_code_review_is_valid(self):
+        dossier = build_reduced_dossier(
+            self.projects, "0", overrides=WAIVED_CODE_REVIEW
+        )
+        self.assertEqual(
+            sorted(
+                ["index.md", "request.md", "report.md", "code-review.md", "receipt.md"]
+            ),
+            sorted(path.name for path in dossier.glob("*.md")),
+        )
+        self.assert_valid(dossier)
+        self.assert_valid(dossier, require_complete=True)
+
+    def test_reduced_level_1_dossier_with_an_independent_review_is_valid(self):
+        dossier = build_reduced_dossier(self.projects, "1")
+        self.assert_valid(dossier)
+        self.assert_valid(dossier, require_complete=True)
+
+    def test_reduced_dossier_without_a_report_is_rejected(self):
+        for level in ("0", "1"):
+            with self.subTest(level=level):
+                dossier = build_reduced_dossier(self.projects, level)
+                (dossier / "report.md").unlink()
+                self.assert_reports(
+                    dossier, "required task-dossier artifact report.md is missing"
+                )
+
+    def test_a_symlinked_plan_does_not_excuse_the_report(self):
+        dossier = build_dossier(self.projects)
+        self.assert_valid(dossier)
+        plan = dossier / "plan.md"
+        plan.unlink()
+        plan.symlink_to(dossier / "design.md")
+        self.assert_reports(
+            dossier, "required task-dossier artifact report.md is missing"
+        )
+
+    def test_an_unreadable_plan_does_not_excuse_the_report(self):
+        dossier = build_dossier(self.projects)
+        self.assert_valid(dossier)
+        (dossier / "plan.md").write_bytes(b"\xff\xfe not utf-8\n")
+        diagnostics = self.assert_reports(
+            dossier, "required task-dossier artifact report.md is missing"
+        )
+        self.assertIn(
+            "plan.md: file: cannot read artifact", self.messages(diagnostics)
+        )
+
+    def test_a_symlinked_required_artifact_is_not_also_reported_missing(self):
+        dossier = build_reduced_dossier(self.projects, "1")
+        report = dossier / "report.md"
+        report.unlink()
+        report.symlink_to(dossier / "request.md")
+        diagnostics = self.assert_reports(dossier, "must not be symlinks")
+        self.assertNotIn("report.md is missing", self.messages(diagnostics))
+
+    def test_an_unreadable_plan_is_absent_for_every_review_target_rule(self):
+        dossier = build_dossier(self.projects)
+        self.assert_valid(dossier)
+        (dossier / "plan.md").write_bytes(b"\xff\xfe not utf-8\n")
+        diagnostics = self.assert_reports(
+            dossier, "required task-dossier artifact report.md is missing"
+        )
+        messages = self.messages(diagnostics)
+        for review in ("plan-review", "code-review"):
+            self.assertIn(
+                f"{review}.md: Review target.Reviewed plan ID: a dossier without "
+                "plan.md has no plan to review",
+                messages,
+            )
+        self.assertNotIn("Reviewed plan ID: expected ''", messages)
+
+    def test_an_unknown_level_gets_the_deepest_evidence_floor(self):
+        dossier = build_reduced_dossier(self.projects, "1")
+        diagnostics = []
+        artifact = task_dossier.parse_artifact(
+            dossier / "request.md", "request", diagnostics
+        )
+        self.assertEqual([], diagnostics)
+        task_dossier._validate_state(artifact, "bogus", diagnostics)
+        self.assertIn(
+            f"requires at least {MINIMUM_EVIDENCE_ITEMS['2']} concrete evidence "
+            "item(s), found 2",
+            self.messages(diagnostics),
+        )
+
+    def test_levels_1_and_2_may_not_waive_code_review(self):
+        dossier = build_reduced_dossier(
+            self.projects, "1", overrides=WAIVED_CODE_REVIEW
+        )
+        self.assert_reports(dossier, "level 1 requires an independent code review")
+
+        dossier = build_dossier(
+            self.projects,
+            evidence_items=3,
+            overrides=merge_overrides(level_overrides("2"), WAIVED_CODE_REVIEW),
+        )
+        self.assert_reports(dossier, "level 2 requires an independent code review")
+
+    def test_a_passed_report_requires_concrete_report_sections(self):
+        for section in ("Plan", "Verification"):
+            with self.subTest(section=section):
+                dossier = build_reduced_dossier(
+                    self.projects,
+                    "1",
+                    overrides={
+                        "report:sections": {section: "- `<placeholder>`"}
+                    },
+                )
+                diagnostics = self.assert_reports(
+                    dossier, "a passed worker report requires a concrete statement"
+                )
+                self.assertIn(
+                    f"report.md: {section}:", self.messages(diagnostics)
+                )
+
+    def test_the_report_sections_are_structurally_required(self):
+        dossier = build_reduced_dossier(self.projects, "1")
+        report = dossier / "report.md"
+        text = report.read_text(encoding="utf-8")
+        report.write_text(
+            text.replace("## Changes\n", "## Notes\n"), encoding="utf-8"
+        )
+        self.assert_reports(dossier, "section.Changes: expected exactly one section")
+
+    def test_code_review_must_be_independent_of_the_report_author(self):
+        for label in ("Reviewing session", "Authoring session"):
+            with self.subTest(label=label):
+                dossier = build_reduced_dossier(
+                    self.projects,
+                    "1",
+                    overrides={"code-review": {label: "session-implementer"}},
+                )
+                self.assert_reports(
+                    dossier,
+                    f"{label}: code-review requires a session independent of "
+                    "the report author",
+                )
+
+    def test_reviewer_must_not_author_the_report(self):
+        dossier = build_reduced_dossier(
+            self.projects, "1", overrides={"report": {"Owner": "reviewer"}}
+        )
+        self.assert_reports(dossier, "must not back-write planning artifacts")
+
+    def test_review_targets_stay_null_without_a_plan(self):
+        dossier = build_reduced_dossier(
+            self.projects,
+            "1",
+            overrides={"code-review:extra": {"Reviewed plan ID": "PLAN-1"}},
+        )
+        self.assert_reports(
+            dossier, "Review target.Reviewed plan ID: a dossier without plan.md"
+        )
+
+    def test_status_table_lists_exactly_required_and_present_artifacts(self):
+        dossier = build_reduced_dossier(self.projects, "1")
+        index = dossier / "index.md"
+        original = index.read_text(encoding="utf-8")
+        report_row = "| `report` | `required` | `passed` | `report.md` |\n"
+        self.assertIn(report_row, original)
+
+        index.write_text(original.replace(report_row, ""), encoding="utf-8")
+        self.assert_reports(
+            dossier, "Artifact status.report: every required or present artifact"
+        )
+
+        index.write_text(
+            original.replace(
+                report_row,
+                report_row + "| `design` | `required` | `passed` | `design.md` |\n",
+            ),
+            encoding="utf-8",
+        )
+        self.assert_reports(
+            dossier,
+            "Artifact status.design: design.md is neither required at this "
+            "level nor present",
+        )
+
+    def test_require_complete_rejects_a_changes_required_reduced_review(self):
+        dossier = build_reduced_dossier(
+            self.projects,
+            "1",
+            overrides={"code-review": {"Review verdict": "CHANGES REQUIRED"}},
+        )
+        self.assert_valid(dossier)
+        self.assert_reports(dossier, "require a PASS verdict", require_complete=True)
+
+    def test_an_invalid_level_fails_closed_to_level_2(self):
+        dossier = build_reduced_dossier(
+            self.projects,
+            "1",
+            overrides={
+                name: {"Task level": "two"} for name in RECOGNIZED_ARTIFACTS
+            },
+        )
+        diagnostics = self.assert_reports(dossier, "found 'two'")
+        joined = self.messages(diagnostics)
+        for name in ARTIFACTS:
+            if name in LEVEL_REQUIRED_ARTIFACTS["1"]:
+                continue
+            self.assertIn(f"required task-dossier artifact {name}.md", joined)
+        self.assertIn("level 2 requires at least 3", joined)
+
+    def test_a_missing_index_fails_closed_to_level_2(self):
+        dossier = build_reduced_dossier(self.projects, "0")
+        (dossier / "index.md").unlink()
+        joined = self.messages(self.validate(dossier))
+        for name in ARTIFACTS:
+            if name == "request" or name == "code-review":
+                continue
+            self.assertIn(f"required task-dossier artifact {name}.md", joined)
+
+    def test_a_report_alone_without_an_index_is_partial_adoption(self):
+        source = build_reduced_dossier(self.projects, "1")
+        partial = self.projects / "example" / "handoffs" / "TASK-904"
+        partial.mkdir(parents=True)
+        (partial / "report.md").write_text(
+            (source / "report.md").read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        self.assertEqual(
+            {partial: ["report"]},
+            task_dossier.discover_partial_dossiers(self.projects),
+        )
 
 
 if __name__ == "__main__":

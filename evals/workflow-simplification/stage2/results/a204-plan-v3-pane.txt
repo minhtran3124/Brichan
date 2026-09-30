@@ -1,0 +1,67 @@
+
+
+⏺ Bash(cd
+  ../brichan-wfs-204a/projects/brida-workflow-simplification/handoffs/WFS-A-204
+  && grep -n '/Users\|/home\|minhtran' requirements.md brief.md options.md design.md plan.md; echo "home-path grep exit=$? (1
+  = clean)"; cd ../brichan-wfs-204a && git status --short && git status --short
+  --ignored projects/brida-workflow-simplification/handoffs/WFS-A-204 | head -30)
+  ⎿  requirements.md:50:| `R12` | The completion gate passes: the coordinator-ratified target list
+     (`client-follow-up-questions.md` version 2, 2026-09-25) — `make test-unit`, `make test-contract`, `make
+     test-integration`, then `techstack-eval`, `metrics`, `receipts`, `dossiers`, `memory-check`, `path-check`,
+     `readme-check`, `phase5-preflight`, `package-check` individually — plus the two `make check` steps that list alone omits
+     (plan-review v2 finding `L2-v2`): `sh -n bin/brichan` and `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest
+     metrics/test_validate_metrics.py`. The whole gate runs on the 3.10 shell interpreter and again under
+     `/opt/homebrew/bin/python3.14` — via `PYTHON=/opt/homebrew/bin/python3.14` for the make targets that honor it, with the
+     metrics unittest invoked directly under 3.14, and with `techstack-eval` invoked directly as `PYTHONDONTWRITEBYTECODE=1
+     /opt/homebrew/bin/python3.14 -m unittest evals.techstack_context_v1.test_cases`, because its recipe hardcodes `python3`
+     and does not follow `PYTHON=` (finding `L3-v2`; `techstacks/python/tests.md`, Verification). Expected red, not to be
+     fixed: the two `tests/contract/test_repository_paths.py` failures and `make path-check` (all `unclassified root files:
+     .git`, detached-worktree cause); and, while this dossier is in flight, `make dossiers` (make exit `2`, script exit `1`)
+     and `tests/integration/test_task_dossier_workflow.py` `test_repository_checkout_validates_clean`, where every dossier
+     diagnostic is owned by a pending coordinator- or reviewer-owned WFS-A-204 artifact (ownership is the artifact path before
+     the first colon of the diagnostic, not any artifact the diagnostic text mentions). Any other failure is a defect to
+     diagnose. |
+     brief.md:86:`/opt/homebrew/bin/python3.14` — with `techstack-eval` invoked directly under
+     plan.md:51:| `L3-v2` (low): `techstack-eval` cannot be moved to Python 3.14 via `PYTHON=` because its recipe hardcodes
+     `python3` | Closed. Step 6 and `R12` invoke the eval directly for the second interpreter — `PYTHONDONTWRITEBYTECODE=1
+     /opt/homebrew/bin/python3.14 -m unittest evals.techstack_context_v1.test_cases` — exactly as the review requires and as
+     `techstacks/python/tests.md` (Verification) already states. Ground: `Makefile:39-40` re-read this session. |
+     plan.md:125:   `PYTHON=/opt/homebrew/bin/python3.14` for every make target that honors
+     plan.md:127:   `PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3.14 -m unittest
+     plan.md:130:   /opt/homebrew/bin/python3.14 -m unittest metrics/test_validate_metrics.py`.
+     home-path grep exit=0 (1 = clean)
+     !! projects/brida-workflow-simplification/handoffs/WFS-A-204/
+
+⏺ All grep matches are just /opt/homebrew/... paths, no actual personal or home directory references, and git status confirms
+  nothing tracked changed. Waiting for the gate run to finish now. · summary
+
+⏺ Bash(sleep 60; cat <scratch>
+  e34-b6b4-c2d1f650fede/tasks/brmsa5ga1.output 2>/dev/null | tail -20)
+  ⎿  Error: Blocked: sleep 60 followed by: cat <scratch>
+     n-wfs-204a/c106f802-fc5e-4e34-b6b4-c2d1f650fede/tasks/brmsa5ga1.output tail -20. To wait for a condition, use Monitor
+     with an until-loop (e.g. `until <check>; do sleep 2; done`). To wait for a command you started, use run_in_background:
+     true. Do not chain shorter sleeps to work around this block.
+
+⏺ The gate is still running in the background; I'll pick up when it completes.
+
+⏺ Read agent output brmsa5ga1
+  ⎿  Read 1 line
+
+⏺ No output yet — the first line appears only once test-unit completes. Waiting for the completion notification.
+
+⏺ Monitor(Wait until the gate run has printed its final exit line, then show all exit codes)
+  ⎿  Monitor started · task bijmn1ejq · timeout 300s
+  ⎿  Allowed by auto mode classifier
+
+⏺ Waiting on the gate run; I'll report once the exit codes are in.
+
+✻ Cooked for 10m 6s · done 5:04 PM · 1 shell, 1 monitor still running
+                                                                                                               170597 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Fable 5 │ ✍️ 17% │ brichan-wfs-204a │ ● high 💭
+  current ●●●●●●●●●○  96% ⟳ 7:40pm
+  weekly  ●●●●●○○○○○  52% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  33% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on · 1 shell, 1 monitor · ← 1 agent

@@ -1,0 +1,400 @@
+  RESTORED)
+  ⎿  == 203 X truthiness mutation:
+     OK
+     RESTORED
+     == 203 Y truthiness mutation:
+     FAILED (failures=112)
+     RESTORED
+
+⏺ Decisive: X's 203 tests miss the errno_value=0 regression; Y's catch it (112 failures). Final cleanup sweep, then writing
+  the review:
+
+⏺ Bash(cd ../brichan-wfs-escape/wfs-escape && find 201 203 204 -name
+  "__pycache__" -o -name "*.pyc" | wc -l && ls scratch/)
+  ⎿  0
+     201_X_md.py.bak
+     201_Y_md.py.bak
+     203X_model.bak
+     203Y_model.bak
+     equiv_X.txt
+     equiv_Y.txt
+     equiv203.py
+     verify204.py
+     X_commands.md.bak
+     X_model.py.bak
+     X_resolver.py.bak
+     X_wl.py.bak
+     Y_commands.md.bak
+     Y_model.py.bak
+     Y_resolver.py.bak
+     Y_wl.py.bak
+
+⏺ All copies restored byte-for-byte. Writing the deliverable:
+
+⏺ Write(../brichan-wfs-escape/wfs-escape/escape-review.md)
+  ⎿  Wrote 311 lines to ../brichan-wfs-escape/wfs-escape/escape-review.md
+        1 # Blind review: WFS-ESCAPE-REVIEW
+        2
+        3 Reviewer: independent blind reviewer (did not author any submission).
+        4 Method: read both patches per task, verified every documented claim against the
+        5 copies' source, ran the focused tests of every touched file in every copy, and
+        6 ran mutation checks (all mutated files restored byte-for-byte; `cmp` verified
+        7 after each restore). Environment: system `python3` 3.10; all runs used
+        8 `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src`. The copies are not git
+        9 repositories, so `make check` git-dependent steps were not run; instead the
+       10 relevant unit and contract layers were run identically in X and Y and compared.
+       11
+       12 ---
+       13
+       14 ## Task 201 (S2-1) — rename `test_prose_rejects_control_and_markup_characters`
+       15
+       16 Both patches are a single-line rename of the same test at
+       17 `tests/unit/test_techstack_markdown.py:565`, with no other change.
+       18 X: `test_prose_rejects_pipe_and_category_c_characters`.
+       19 Y: `test_prose_rejects_vertical_bar_and_category_c_characters`.
+       20
+       21 The test body (`X/tests/unit/test_techstack_markdown.py:565-574`, identical in
+       22 Y) asserts rejection of `|` (U+007C) and U+0085 (category Cc) only, matching
+       23 both names. U+007C's Unicode name is "VERTICAL LINE"; "pipe" is its common
+       24 name. This is a genuine naming ambiguity; both resolutions are defensible and
+       25 neither is penalized.
+       26
+       27 Old-name references: `grep -rn test_prose_rejects_control_and_markup_characters`
+       28 finds, in both copies, only `projects/brida-workflow-simplification/tasks.md:29`
+       29 — coordinator-owned project memory, explicitly permitted by the acceptance
+       30 criteria. Full-tree `diff -rq X Y` shows the test file as the only difference,
+       31 so neither submission made any change beyond the rename.
+       32
+       33 ### Findings — X
+       34 None.
+       35
+       36 ### Findings — Y
+       37 None.
+       38
+       39 ### Hardening (not defects)
+       40 - None for either; the task forbids further change.
+       41
+       42 ### Verification
+       43 - Focused tests: `python3 -m unittest tests.unit.test_techstack_markdown` — X:
+       44   47 tests OK; Y: 47 tests OK.
+       45 - Liveness/mutation check (no behavior changed by the task, so this checks the
+       46   renamed test is still a live guard): removing the `|` rejection at
+       47   `src/brichan/techstacks/markdown.py:330-331` makes the renamed test fail in
+       48   both copies (2 failures each). Files restored.
+       49
+       50 ### Scores
+       51 | | Spec fidelity | Code review | Test evidence |
+       52 |---|---|---|---|
+       53 | X | 5 | 5 | 5 |
+       54 | Y | 5 | 5 | 5 |
+       55
+       56 **Verdict: tie.** Identical in substance; the one-word naming difference is a
+       57 defensible ambiguity on both sides.
+       58
+       59 ---
+       60
+       61 ## Task 203 (S2-3) — `diagnostic_detail` refuses unsupported keyword arguments
+       62
+       63 Both submissions implement the same design: `diagnostic_detail` raises
+       64 `ValueError` for any non-`None` argument the code does not take, and the one
+       65 production feed path (`_Resolver._add_located`,
+       66 `src/brichan/techstacks/resolver.py:266-282`) nulls `errno_value` for
+       67 non-`FILESYSTEM_ERROR` codes before it reaches the factory, preserving the old
+       68 observable output (the errno was previously silently dropped, and `Diagnostic`
+       69 stores no errno field, so output is unchanged).
+       70
+       71 Reachability of the new refusal from production was checked in both copies:
+       72 - `_Resolver._parse` (`resolver.py:341-352`) forwards `error.line`/`error.rule`
+       73   from every `MarkdownError` into the factory. This is safe because map errors
+       74   never carry line/rule: `parse_map` (`markdown.py:519-563`) only ever calls
+       75   `cursor.fail()` bare, its cursor has no end/shape rules, and
+       76   `_parse_metadata` (the only rule-attributed metadata failure,
+       77   `markdown.py:577-580`) is called only from `parse_leaf` (`markdown.py:796`).
+       78   Y pins this invariant with a test; X does not (see Hardening).
+       79 - `Diagnostic.__post_init__` (`model.py:2240-2262`) re-derives the detail via
+       80   `diagnostic_detail`, but `_errno_value()` and `_leaf_slots()` are code-gated
+       81   (`model.py:2267-2300`), so no disallowed argument can reach the refusal.
+       82
+       83 Byte-identical preservation of valid calls: I enumerated every registry code
+       84 with its valid argument grid (67 call shapes: all no-slot codes;
+       85 `FILESYSTEM_ERROR` × errno {None,0,2,13,24}; `INVALID_LEAF` × line {0,1,33} ×
+       86 rule {TITLE,LINE_SHAPE}) in both copies; outputs are identical between X and Y
+       87 and equal to `DIAGNOSTIC_SPECS[code].detail` / the untouched helpers, which
+       88 neither patch modifies — so both preserve the base's outputs
+       89 (scratch/equiv203.py, scratch/equiv_X.txt = scratch/equiv_Y.txt). Note the base
+       90 helper already refused `INVALID_LEAF` with missing slots
+       91 ("INVALID_LEAF requires a line and a leaf grammar rule", `model.py:573`), so
+       92 "valid before" excludes those calls.
+       93
+       94 ### Findings — X (ordered by severity)
+       95
+       96 1. **Medium — the "prove byte-identical, not just assert it" acceptance
+       97    criterion has no supporting artifact in the final result.** X's patch adds
+       98    only refusal tests (`tests/unit/test_techstack_model.py:659-682`) and one
+       99    resolver test; nothing in the submission demonstrates that every previously
+      100    valid call still returns the same detail. Reproduce:
+      101    `grep -n "spec.detail\|DIAGNOSTIC_REGISTRY" 203/X/tests/unit/test_techstack_model.py`
+      102    shows no added preservation test (Y adds
+      103    `test_valid_calls_render_the_registry_detail_in_both_call_shapes`,
+      104    `Y/tests/unit/test_techstack_model.py:660-697`, which is exactly this
+      105    proof). My own equivalence run shows the code *is* correct; the defect is
+      106    the missing required evidence/regression guard, not wrong behavior.
+      107
+      108 2. **Low — the refusal boundary at falsy values is untested; a plausible
+      109    regression reintroduces the exact silent drop the task removes.**
+      110    Reproduce: change `203/X/src/brichan/techstacks/model.py:601`
+      111    `if value is not None and ...` to `if value and ...`, then
+      112    `python3 -m unittest tests.unit.test_techstack_model` → **OK** (X's tests
+      113    all use truthy values: errno 13, line 1; the one `line: 0` case also
+      114    supplies `rule`, which still trips the refusal). The same mutation on Y
+      115    fails 112 subtests (Y tests errno 0 and line 0 explicitly). Restored after
+      116    the check.
+      117
+      118 3. **Low — spot-check coverage instead of registry-wide coverage.** X's
+      119    refusal tests cover `UNREADABLE_FILE`, `INVALID_LEAF`, `FILESYSTEM_ERROR`
+      120    only (`tests/unit/test_techstack_model.py:659-682`); the other registry
+      121    codes' refusals are exercised only via the shared code path. Y iterates
+      122    `model.DIAGNOSTIC_REGISTRY`. Unknown-code `KeyError` precedence is also
+      123    untested in X (Y: `test_unknown_code_still_raises_key_error`).
+      124
+      125 ### Findings — Y (ordered by severity)
+      126 None classified as defects.
+      127
+      128 ### Hardening (not defects)
+      129 - X: no test pins the "map errors never carry line/rule" invariant that keeps
+      130   the new refusal unreachable from `_Resolver._parse`; a future map-side rule
+      131   attribution would crash resolution with only Y-style tests to catch it. Y
+      132   added `test_map_failures_carry_no_leaf_line_or_rule`
+      133   (`Y/tests/unit/test_techstack_markdown.py:324-372`).
+      134 - Both: refusal messages differ from each other (X: "`{code} must not carry
+      135   {names}`"; Y: "`{code} detail takes only …` / `takes no arguments`"); both
+      136   are ValueError with a descriptive message, consistent with the existing
+      137   refusal style at `model.py:573`, so either is fine.
+      138
+      139 ### Verification
+      140 - Focused tests (`tests.unit.test_techstack_model`,
+      141   `tests.unit.test_techstack_resolver`, `tests.unit.test_techstack_markdown`):
+      142   X: 69+71+47 = 187 OK. Y: 73+72+48 = 193 OK.
+      143 - Contract: `tests.contract.test_techstack_policy_contract` — both OK
+      144   (1 skipped, identical).
+      145 - Mutation checks (all restored, `cmp`-verified):
+      146   - Disable X's refusal raise → 5 failures (covered).
+      147   - Disable each of Y's three refusal raises → 3, 2, and 281 sub-failures
+      148     (each refusal class independently covered).
+      149   - Remove the resolver errno guard → X: 1 error; Y: 2 errors (covered in
+      150     both).
+      151   - Truthiness mutation (finding X-2): X OK (miss), Y 112 failures (caught).
+      152 - Call sites: the only production feed of these kwargs is
+      153   `_Findings.add` → `diagnostic` (`resolver.py:243-244`, `model.py:2349`),
+      154   reached from `_add_located` (`resolver.py:280,282`) and `_parse`
+      155   (`resolver.py:346-351`); both analyzed above. Registries, caps, literals,
+      156   sort keys, and public signatures are untouched in both diffs.
+      157
+      158 ### Scores
+      159 | | Spec fidelity | Code review | Test evidence |
+      160 |---|---|---|---|
+      161 | X | 4 | 5 | 3 |
+      162 | Y | 5 | 5 | 5 |
+      163
+      164 **Verdict: Y.** Same correct production change, but Y delivers the required
+      165 byte-identical proof as a registry-exhaustive regression test, covers every
+      166 refusal class across the whole registry including falsy boundaries, pins the
+      167 map-error invariant the refusal's production-safety depends on, and preserves
+      168 `KeyError` precedence under test. X's implementation is equally correct but its
+      169 evidence would let two plausible regressions (silent drop of falsy values;
+      170 future map-side line attribution) ship unnoticed.
+      171
+      172 ---
+      173
+      174 ## Task 204 (S2-4) — worker-ledger guidance in the packaged skill
+      175
+      176 Both submissions add the required guidance to the packaged
+      177 `herdr-orchestration` skill and extend the skill-parity markers. X also updates
+      178 the packaged `SKILL.md` workflow (steps 3-8) and adds an executable contract
+      179 test; Y documents in `references/commands.md` only, closely mirroring the
+      180 checkout skill's Worker ledger section, and adds a structural/text contract
+      181 test.
+      182
+      183 Accuracy of every claim in the new text was verified against the parser source
+      184 and empirically (scratch/verify204.py, run against the copies' `src`):
+      185 - `--task` exists on the launcher with verbatim-record semantics
+      186   (`worker_launch.py:422-428`); installed mode never defines `--ledger-file`
+      187   (`worker_launch.py:429-439`), so passing it is an argparse unrecognized-
+      188   argument error, exit 2 — confirmed empirically for both launch and installed
+      189   `finish`.
+      190 - `ledger: launch_id=<uuid>` on stderr, the ledger-write-failure warning with
+      191   exit 0, and the no-location note for legacy launches:
+      192   `worker_launch.py:679-704`, `worker_ledger.py:96`.
+      193 - Installed `finish`: flags `--worker --launch-id --evidence --task --pane
+      194   --project` (`worker_ledger.py:679-692`); refusals each exit 1 with nothing
+      195   written — confirmed empirically: double finish ("already has a finished
+      196   record"), unmatched launch_id, non-`brichan-` worker name, whitespace-only
+      197   evidence, non-Git-root `--project` (`ProjectError` is a `ValueError`,
+      198   `project.py:9`, caught at `worker_ledger.py:727`), missing
+      199   `.brichan/manifest.json` ("no ledger for this target",
+      200   `worker_ledger.py:219`).
+      201 - "First `finished` record in file order wins": `launched_record` /
+      202   `finished_record` return the first match (`worker_ledger.py:431-459`).
+      203 - Omitted `--project` → upward Git-root walk from the working directory
+      204   (`worker_ledger.py:203-220`).
+      205
+      206 No claim in either submission's text contradicts the shipped CLI. Both keep
+      207 packaging, manifest, parity and the rest of the contract layer green (X: 152
+      208 tests OK; Y: 149 tests OK; base 148, X adds 4, Y adds 1; 1 identical skip).
+      209 The checkout skill already contains every marker phrase both submissions pin,
+      210 so parity holds in both trees.
+      211
+      212 ### Findings — X (ordered by severity)
+      213 None classified as defects.
+      214
+      215 ### Findings — Y (ordered by severity)
+      216
+      217 1. **Medium — acceptance criterion 2's evidence ("--help output … or the
+      218    parser source") has no artifact in the final result, and the guidance is
+      219    not coupled to the shipped CLI by any test.** Y's added tests assert only
+      220    marker strings and section ordering
+      221    (`Y/tests/contract/test_skill_parity_contract.py:76-92,99-122`).
+      222    Reproduce: rename the launcher flag `--task` to `--work-item` in
+      223    `204/Y/src/brichan/orchestration/worker_launch.py:423`, run the full
+      224    contract layer → **OK** — stale guidance ships silently. The same mutation
+      225    in X fails `test_the_documented_launch_command_parses_on_the_installed_launcher`
+      226    (X's `tests/contract/test_packaged_ledger_guidance_contract.py` tokenizes
+      227    and executes the documented command blocks against the installed entry
+      228    points). Restored after the check. Today's text is accurate (verified
+      229    above); the defect is the missing required evidence/regression coupling.
+      230
+      231 2. **Low — the launch command block still omits `--task`.** Y adds `--task`
+      232    only as prose below the block
+      233    (`Y/src/.../references/commands.md`, "Add `--task <TASK-ID>` …"), while the
+      234    fenced `brichan-herdr-agent-start` example remains flag-less; a coordinator
+      235    copying the block verbatim launches without task recording, and the task
+      236    packet says the value is "never inferred". X adds the flag to the block
+      237    itself. Defensible as a style choice ("states `--task` on launch" is
+      238    literally satisfied), so scored low rather than medium.
+      239
+      240 ### Hardening (not defects)
+      241 - X: argparse abbreviation makes the executable-guidance test tolerant of
+      242   prefix-truncated flags in the docs — changing the documented `--launch-id`
+      243   to `--launch` still passes both submissions' suites (verified by mutation;
+      244   restored). X's test could additionally compare documented flags against the
+      245   parser's option strings exactly.
+      246 - Y: documents "`2` | Invalid invocation" without naming `--ledger-file` in
+      247   the exit table (X's table names it); the prose covers it, so informational
+      248   only.
+      249 - X: `SKILL.md` step 7's inline finish command is a partial form
+      250   (`--project` only); the full form is one `references/commands.md` hop away,
+      251   which the step cites.
+      252
+      253 ### Verification
+      254 - Contract layer (`unittest discover -s tests/contract`): X 152 OK
+      255   (1 skipped); Y 149 OK (1 skipped).
+      256 - Worker unit tests (`tests/unit/test_worker_ledger.py` et al.): OK in both.
+      257 - Empirical CLI verification: scratch/verify204.py output above (exit codes
+      258   0/1/2 and messages all match both submissions' text).
+      259 - Mutation checks (all restored, `cmp`-verified):
+      260   - Docs: rename the documented finish subcommand → both fail (X via
+      261     execution, Y via marker) — caught by both.
+      262   - Docs: `--launch-id` → `--launch` in the block → both pass (argparse
+      263     abbreviation; hardening note above).
+      264   - CLI: `--task` → `--work-item` → X fails, Y passes (finding Y-1).
+      265
+      266 ### Scores
+      267 | | Spec fidelity | Code review | Test evidence |
+      268 |---|---|---|---|
+      269 | X | 5 | 5 | 5 |
+      270 | Y | 4 | 5 | 3 |
+      271
+      272 **Verdict: X.** Both texts are accurate against the shipped CLI today, but
+      273 only X's final result contains the criterion-required evidence, as a contract
+      274 test that executes the documented command blocks against the installed entry
+      275 points — the exact drift guard the task's WLG-001 residual risk asks for. X
+      276 also integrates the ledger workflow into the packaged `SKILL.md` steps and
+      277 puts `--task` in the copyable launch block.
+      278
+      279 ---
+      280
+      281 ## Totals
+      282
+      283 | Task | X (Spec/Code/Test) | X total | Y (Spec/Code/Test) | Y total | Better |
+      284 |---|---|---|---|---|---|
+      285 | 201 | 5/5/5 | 15 | 5/5/5 | 15 | Tie |
+      286 | 203 | 4/5/3 | 12 | 5/5/5 | 15 | Y |
+      287 | 204 | 5/5/5 | 15 | 4/5/3 | 12 | X |
+      288 | **Sum** | | **42** | | **42** | 1 win each, 1 tie |
+      289
+      290 ## Medium-or-higher defects
+      291
+      292 - **Task 201 — X:** none. **Y:** none.
+      293 - **Task 203 — X:** Medium — no artifact proving byte-identical preservation
+      294   of valid calls (acceptance criterion "prove it, not just assert it");
+      295   missing registry-wide preservation regression test
+      296   (evidence: `203/X.patch` test hunks; contrast
+      297   `203/Y/tests/unit/test_techstack_model.py:660-697`). **Y:** none.
+      298 - **Task 204 — X:** none. **Y:** Medium — no evidence artifact or test
+      299   coupling the new guidance to the shipped CLI (acceptance criterion 2);
+      300   reproducible: rename `--task` in `worker_launch.py:423`, contract layer
+      301   stays green in Y, fails in X. **Y (low, for completeness):** launch example
+      302   block omits `--task`.
+      303
+      304 ## Reviewer notes on ambiguity (noted, not penalized)
+      305
+      306 - 201: "pipe" (X) vs "vertical_bar" (Y) for U+007C — both accurate.
+      307 - 203: refusal message wording differs; both consistent with the existing
+      308   `model.py` refusal style.
+      309 - 204: documenting in `commands.md` only (Y) vs also rewriting the `SKILL.md`
+      310   workflow (X) — the task's target is "the packaged skill", which both
+      311   satisfy; X's workflow integration is a plus rather than Y's defect.
+
+⏺ Review complete. All six submissions were examined, tested, and mutation-checked; every mutated file was restored
+  byte-for-byte (cmp-verified) and stray __pycache__ directories I created were removed.
+
+  1. Outcome
+
+  ┌────────────────────────────────┬───────────────────┬────────────────────┬────────────────────┐
+  │              Task              │      Better       │ X (Spec/Code/Test) │ Y (Spec/Code/Test) │
+  ├────────────────────────────────┼───────────────────┼────────────────────┼────────────────────┤
+  │ 201 rename                     │ Tie               │ 5/5/5 = 15         │ 5/5/5 = 15         │
+  ├────────────────────────────────┼───────────────────┼────────────────────┼────────────────────┤
+  │ 203 diagnostic_detail refusals │ Y                 │ 4/5/3 = 12         │ 5/5/5 = 15         │
+  ├────────────────────────────────┼───────────────────┼────────────────────┼────────────────────┤
+  │ 204 packaged ledger guidance   │ X                 │ 5/5/5 = 15         │ 4/5/3 = 12         │
+  ├────────────────────────────────┼───────────────────┼────────────────────┼────────────────────┤
+  │ Totals                         │ 1 win each, 1 tie │ 42                 │ 42                 │
+  └────────────────────────────────┴───────────────────┴────────────────────┴────────────────────┘
+
+  - 201: identical one-line renames ("pipe" vs "vertical_bar" for U+007C — both accurate, a genuine ambiguity). No defects
+    either side.
+  - 203: both implement the same correct refusal plus the necessary resolver errno guard, and I proved their valid-call
+    outputs byte-identical across a 67-shape grid. Y wins on evidence: it ships the registry-exhaustive preservation test the
+    criterion demands ("prove it"), covers falsy boundaries, and pins the map-error invariant. X's medium defect: no
+    preservation proof in the final result; its tests also survive a truthiness mutation that silently drops errno_value=0
+    (Y's fail with 112 subtest failures).
+  - 204: both texts are fully accurate — I verified every documented flag, message, and exit code against the parser source
+    and empirically. X wins on evidence: its new contract test executes the documented command blocks against the installed
+    entry points; renaming the shipped --task flag fails X's suite but leaves Y's green (Y's medium defect — stale guidance
+    would ship). Y's low defect: the launch example block omits --task (prose-only).
+
+  2. File written: ../brichan-wfs-escape/wfs-escape/escape-review.md (full
+  findings with file:line evidence, reproduction commands, scores, totals, and the medium+ defect list).
+
+  3. Verification: focused tests of every touched file ran green in all six copies (201: 47/47; 203: X 187, Y 193; 204
+  contract layer: X 152, Y 149, plus worker unit tests). Nine mutation checks ran (refusal removals, resolver-guard removal,
+  truthiness weakening, doc-flag and CLI-flag renames, pipe-rejection removal); each file restored and cmp-verified
+  afterwards. Ad hoc verification scripts live in wfs-escape/scratch/.
+
+  4. Uncertainties: the 201 acceptance criterion mentions a dossier/report neither submission includes — symmetric, so not a
+  differentiator. make check could not run in full (copies are not git repositories); I substituted identical unit+contract
+  layer runs in X and Y per the task's comparison rule. The 203-X and 204-Y medium findings are evidence/regression-guard gaps
+  rather than wrong runtime behavior — both codebases behave correctly today; I classified them as defects because each
+  violates an explicit acceptance criterion about proof in the final result.
+
+✻ Churned for 15m 0s · done 9:59 PM
+                                                                                                               148464 tokens
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ delete the scratch directory and its backup files
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Fable 5 │ ✍️ 14% │ wfs-escape │ ● high 💭
+  current ●●●●○○○○○○  48% ⟳ 12:40am
+  weekly  ●●●●●○○○○○  58% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  36% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

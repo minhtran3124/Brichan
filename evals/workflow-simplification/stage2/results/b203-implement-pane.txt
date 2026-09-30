@@ -1,0 +1,33 @@
+         phase5-preflight, package-check and sh -n bin/brichan
+         all exit 0.
+       - path-check exits 2 with the same .git message.
+     - Git: git status --short shows  M on exactly the four
+       source and test files. git diff --stat shows 4 files,
+       +66/−2.
+  4. Risks and assumptions:
+     - "Supplied" means non-None. An explicit errno_value=None
+       is still accepted. Telling it apart from an omitted
+       argument would mean changing the frozen signature.
+     - path-check is a third worktree-only failure that the
+       packet didn't list. It runs the same classification
+       script as the two known contract failures and has the
+       same .git cause. I've reported it and left it unfixed.
+     - The resolver regression test is skipped when running as
+       root. A CI runner running as root would not exercise
+       it.
+     - Calls that previously dropped an argument silently now
+       raise. That is the intended change.
+  5. Techstack verification acknowledgement: yes;
+     snapshot_sha256=b9695daf4ff6755275ef00e3def38f972192b25ae
+     3afc003c1f776aa260aebd8
+
+✻ Cogitated for 6m 32s · done 12:11 PM
+                                               133799 tokens
+──────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5.5 │ ✍️ 13% │ brichan…
+  current ●●●●●●●●○○  86% ⟳ 2:40pm
+  weekly  ●●●○○○○○○○  37% ⟳ sep 30, 5:00am
+  fable   ●●○○○○○○○○  24% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

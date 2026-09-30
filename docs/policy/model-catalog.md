@@ -55,6 +55,12 @@ the installed catalog describes it as enabling automatic task delegation.
 | `fable` | `claude-fable-5` | `low` | Complex planning, architectural reasoning, coordination, final review |
 | `opus` | `claude-opus-5` | `high` | Complex implementation, difficult debugging |
 | `sonnet` | `claude-sonnet-5` | `medium` | Repository scanning, summaries, routine implementation |
+| — | `claude-opus-5-5` | `medium` | Implementation and debugging; see note below |
+
+`claude-opus-5-5` completed a live `claude -p` probe on 2026-09-25 (Claude
+Code `2.1.282`, `claude.ai` authentication) and ran as a Herdr worker at
+`medium` effort in `evals/workflow-simplification/stage1/results/results.md`.
+No alias was verified for it; use the canonical ID.
 
 Claude is routable. Brichan pins canonical IDs in its routing files so a future
 Claude alias update cannot silently change the model. Re-check

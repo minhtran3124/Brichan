@@ -1,0 +1,400 @@
+     the `claude-opus-5-5` entry it now supplies cites a probe on 2026-09-25 and
+     a Claude Code version of `2.1.282`. The entry itself is dated and specific,
+     so the acceptance criterion is met; the stale header is a pre-existing nit
+     in a file this diff does not touch, and it slightly weakens the file as an
+     at-a-glance authority.
+  5. **I did not re-probe the model live.** Starting a real worker is out of
+     scope, so the model's availability rests on the catalog's 2026-09-25 probe
+     and the stage 1 worker run, not on an observation from this session.
+     Authentication can lapse, and the catalog itself says to re-check before a
+     session that depends on it.
+
+  ## Claim or decision
+
+  `PASS`. The uncommitted change to `config/model-routing.json` is exactly the
+  one-line routing change WFS-007 specifies, all four acceptance criteria hold on
+  both interpreters, and nothing else in the manifest, in
+  `src/brichan/resources`, or in the packaged installed-mode defaults changes.
+  Two Low findings are recorded and neither blocks: L1 is a one-line evidence
+  correction in `report.md`, and L2 is the level determination the coordinator
+  still has to record in `index.md`, whose declared level 0 I independently
+  confirmed correct.
+
+  ## Evidence
+
+  - Diff scope, measured two ways: `git diff --stat -- config/model-routing.json`
+    reports `1 file changed, 1 insertion(+), 1 deletion(-)`, and a structural
+    comparison of `git show HEAD:config/model-routing.json` against the working
+    copy, both parsed as JSON and flattened, reports `keys added: none`,
+    `keys removed: none`, and one changed value,
+    `.routes.implement.model: 'claude-opus-5' -> 'claude-opus-5-5'`.
+  - Resolved route, not file text:
+    `bin/brichan-herdr-agent-start brichan-wfs007-probe --cwd <repository root>
+    --route implement --dry-run` prints
+    `claude --permission-mode auto --model claude-opus-5-5 --effort medium --disallowed-tools=Task`,
+    and the `--json` form reports
+    `"resolved": {"effort": "medium", "model": "claude-opus-5-5", "runtime": "claude"}`.
+    Acceptance criterion 1 holds: runtime `claude`, model `claude-opus-5-5`,
+    effort `medium`.
+  - Catalog verification: `docs/policy/model-catalog.md` lists
+    `| — | claude-opus-5-5 | medium | Implementation and debugging |` and records
+    a live `claude -p` probe on 2026-09-25 under Claude Code `2.1.282` with
+    `claude.ai` authentication, plus a Herdr worker run at `medium` in
+    `evals/workflow-simplification/stage1/results/results.md`. It also states
+    that no alias was verified and the canonical ID must be used, which the diff
+    does. Acceptance criterion 2 holds, and the routed effort matches the
+    verified effort.
+  - Packaged resources untouched: `git status --porcelain -- src/brichan/resources/`
+    is empty and `git diff HEAD --stat -- src/brichan/` is empty.
+    `src/brichan/resources/dogfood_v1/config/model-routing.json` still routes
+    `implement` to `{"runtime": "codex", "model": "gpt-5.6-terra", "effort":
+    "medium"}`. Acceptance criterion 3 holds.
+  - Checkout-only scope is structural, not just intended: `pyproject.toml`
+    declares `[tool.setuptools.package-data]` as
+    `"brichan.resources.dogfood_v1" = ["**/*"]`, so `config/model-routing.json`
+    is not packaged and the change cannot reach an installed project.
+    `make package-check` passes on both interpreters.
+  - Review applicability: with `set -o pipefail`,
+    `git diff --name-only --no-renames | python3 scripts/check_contract_paths.py`
+    exits 3 and prints `contract-path: yes` and `config/model-routing.json`. The
+    directory prefix `config/` matches, so independent code review is required at
+    level 0 and this artifact's applicability is `required`.
+  - `PYTHONDONTWRITEBYTECODE=1 make check` on Python 3.10.11: unit 1069 tests OK,
+    contract 153 tests OK, metrics 10 tests OK, integration 228 tests with one
+    failure, `test_task_dossier_workflow.TaskDossierWorkflowIntegrationTest.test_repository_checkout_validates_clean`.
+    Because `check` runs `test` first, the later targets did not run under it, so
+    I ran each one individually: `techstack-eval`, `metrics`, `receipts`,
+    `memory-check`, `path-check`, `readme-check`, `phase5-preflight`, and
+    `package-check` all exit 0; only `dossiers` fails.
+  - `PYTHONDONTWRITEBYTECODE=1 make check PYTHON=/opt/homebrew/bin/python3.14` on
+    Python 3.14.6: the same single integration failure and the same individual
+    target results, `dossiers` the only red.
+  - The red is confined to WFS-007's own pending artifacts. `make dossiers`
+    reports `Invalid task dossiers: 20 issue(s)`, and all 20 name this task:
+    ten on `index.md` and `code-review.md` template placeholders in
+    `Artifact metadata`, one on the not-yet-written canonical `receipt.md`, three
+    on `Task identity` placeholders in `index.md`, and six on `Artifact status`
+    rows in `index.md` disagreeing with the artifacts. Filtering the validator
+    output for dossier paths other than WFS-007 returns nothing, on both
+    interpreters. Acceptance criterion 4 holds under its stated exception.
+  - Routing unit tests re-run directly:
+    `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest
+    tests.unit.test_model_routing tests.unit.test_cli_render` runs 77 tests, OK.
+  - No repository artifact depends on the old value in a way this change breaks.
+    `git grep -n 'claude-opus-5'` outside `evals` and `projects` returns only:
+    the changed line itself; three catalog lines in `docs/policy/model-catalog.md`;
+    two historical `metrics/runs.jsonl` rows; the packaged manifest's coordinator
+    Claude runtime; and `tests/unit/test_cli_render.py:457` and `:467`, which
+    build a manifest in a temporary directory and never read the repository file.
+  - No prefix-collision hazard, checked because `claude-opus-5` is a proper
+    prefix of `claude-opus-5-5`: no `startswith` or substring matching on model
+    identifiers exists under `src/brichan`; the only inspection is
+    `validate_model` in `src/brichan/orchestration/model_routing.py:77`, a
+    whole-string `re.fullmatch` against `^[A-Za-z0-9][A-Za-z0-9._:/-]*$`.
+  - L1 reproduction: the command as recorded in `report.md` exits 2 with
+    `brichan-herdr-agent-start: error: the following arguments are required: --cwd`;
+    adding `--cwd` produces the output `report.md` claims, verbatim.
+  - L2 basis: `projects/brida-workflow-simplification/handoffs/WFS-007/index.md`
+    is the unedited template, its `Evidence` section still reading
+    `<repository or source evidence for the claim>`, so it records no level
+    determination for a reviewer to check.
+  - Techstack scope: Snapshot pointer
+    `projects/brida-workflow-simplification/handoffs/WFS-007/snapshots/attempt-code-review-1-8915cd6577e68288dca65d9726ae2c26
+  f7a23c14bc9e8dd6b6966a695d598a81.snapshot.json`,
+    digest `8915cd6577e68288dca65d9726ae2c26f7a23c14bc9e8dd6b6966a695d598a81`.
+    `brichan techstacks verify --as-of 2026-09-26` returned `status: match` with
+    `observed_snapshot_sha256` equal to that digest, before any review work. All
+    four selected rule files were read: `techstacks/README.md`,
+    `techstacks/general.md`, `techstacks/policy/README.md`, and
+    `techstacks/policy/task-dossiers.md`.
+
+  ## Uncertainty
+
+  Three uncertainties remain, none of which changes the verdict.
+
+  1. Provider independence is not satisfied. `config/model-routing.json` routes
+     `review` to `codex`/`gpt-5.6-sol`, and `docs/policy/reviewer.md` prefers a
+     different verified provider, but this review ran Claude `claude-opus-5` at
+     `high` effort. Model independence holds and level 0 requires only routine
+     reviewer strength, which `claude-opus-5` at `high` meets or exceeds, so I
+     judge the verdict sound; whether a Claude reviewer satisfies the
+     coordinator's intent for a change that selects a Claude model is the
+     coordinator's call, not mine.
+  2. The routed model's availability is carried from the catalog's 2026-09-25
+     probe and the stage 1 worker run, not observed in this session. Starting a
+     real worker is out of scope, so a dry run is the strongest evidence I could
+     produce, and a dry run starts nothing and proves resolution only.
+  3. Whether `claude-opus-5-5` is genuinely better than `claude-opus-5` for the
+     `implement` route remains open on the merits. Stage 1 is three tasks with
+     one sample per arm, both arms at the hidden-test ceiling, separated only by
+     one blind reviewer from the same provider, with cost unavailable. That is
+     directional, which `request.md`, `report.md`, and the results file all say.
+     My PASS is that the change faithfully and safely implements the user's
+     decision, not that the decision is empirically proven.
+  MD
+  echo "written; bytes:"; wc -c projects/brida-workflow-simplification/handoffs/WFS-007/code-review.md)
+  ⎿  written; bytes:
+        22455 projects/brida-workflow-simplification/handoffs/WFS-007/code-review.md
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 make dossiers 2>&1 | tail -20; echo "---"; echo "code-review.md issues remaining:";
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | grep -c 'WFS-007/code-review.md')
+  ⎿  python3 scripts/validate_task_dossiers.py projects
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact metadata.Artifact version: must be a positive integer
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact metadata.Origin: must record a concrete immutable origin marker
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact metadata.Phase state: must be one of ['active', 'blocked', 'not-required', 'passed', 'pending'], found
+     '<pending, active, passed, not-required, or blocked>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact metadata.Applicability: must be one of ['not-required', 'required'], found '<required or not-required>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact metadata.Authorship: must be one of ['human', 'model'], found '<model or human>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Task identity.Canonical receipt path: canonical receipt does not exist:
+     projects/brida-workflow-simplification/handoffs/WFS-007/receipt.md
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Task identity.Review route strength: must be one of ['routine', 'stronger'], found '<routine or stronger>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Task identity.Ship authorization: must be one of ['not-requested', 'user-authorized'], found '<not-requested or
+     user-authorized>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Task identity.Ship authorization: level 0 does not gate a ship; authorization must be 'not-requested'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact status.index.Phase state: index says '<phase state>' but index.md says '<pending, active, passed,
+     not-required, or blocked>'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact status.request.Applicability: index says '<required or not-required>' but request.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact status.request.Phase state: index says '<phase state>' but request.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact status.report.Applicability: index says '<required or not-required>' but report.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact status.report.Phase state: index says '<phase state>' but report.md says 'passed'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact status.code-review.Applicability: index says '<required or not-required>' but code-review.md says 'required'
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact status.code-review.Phase state: index says '<phase state>' but code-review.md says 'passed'
+     Invalid task dossiers: 16 issue(s) across 19 dossier(s).
+     make: *** [dossiers] Error 1
+     ---
+     code-review.md issues remaining:
+     0
+
+⏺ Bash(S=<scratch>
+  scratchpad && for PY in python3 /opt/homebrew/bin/python3.14; do echo "=== $PY ==="; PYTHONDONTWRITEBYTECODE=1 make check
+  PYTHON=$PY > "$S/post-$(basename $PY).log" 2>&1; echo "check EXIT=$?"; grep -cE 'WFS-007/code-review.md'
+  "$S/post-$(basename $PY).log" | sed 's/^/code-review.md issues: /'; grep -E 'Invalid task dossiers|^FAIL:|^Ran |^OK$'
+  "$S/post-$(basename $PY).log" | tail -8; done)
+  ⎿  === python3 ===
+     check EXIT=2
+     code-review.md issues: 0
+     OK
+     Ran 1069 tests in 44.103s
+     OK
+     Ran 153 tests in 1.232s
+     OK
+     FAIL: test_repository_checkout_validates_clean
+     (tests.integration.test_task_dossier_workflow.TaskDossierWorkflowIntegrationTest)
+     Invalid task dossiers: 16 issue(s) across 19 dossier(s).
+     Ran 228 tests in 88.076s
+     === /opt/homebrew/bin/python3.14 ===
+     check EXIT=2
+     code-review.md issues: 0
+     OK
+     Ran 1069 tests in 44.959s
+     OK
+     Ran 153 tests in 1.142s
+     OK
+     FAIL: test_repository_checkout_validates_clean (tests.integration.test_task_dossier_workflow.TaskDossierWorkflowIntegrat
+     ionTest.test_repository_checkout_validates_clean)
+     Invalid task dossiers: 16 issue(s) across 19 dossier(s).
+     Ran 228 tests in 88.419s
+  ⎿  (timeout 10m)
+
+⏺ The artifact validates cleanly. One evidence line is now stale (it described the pre-write count), so I'll correct it in
+  place per DOSSIER-004.
+
+⏺ Bash(python3 - <<'PY'
+  from pathlib import Path
+  p = Path("projects/brida-workflow-simplification/handoffs/WFS-007/code-review.md")
+  text = p.read_text(encoding="utf-8")
+  old = """- The red is confined to WFS-007's own pending artifacts. `make dossiers`
+    reports `Invalid task dossiers: 20 issue(s)`, and all 20 name this task:
+    ten on `index.md` and `code-review.md` template placeholders in
+    `Artifact metadata`, one on the not-yet-written canonical `receipt.md`, three
+    on `Task identity` placeholders in `index.md`, and six on `Artifact status`
+    rows in `index.md` disagreeing with the artifacts. Filtering the validator
+    output for dossier paths other than WFS-007 returns nothing, on both
+    interpreters. Acceptance criterion 4 holds under its stated exception."""
+  new = """- The red is confined to WFS-007's own pending artifacts, before and after
+    this artifact was written. Reviewing the state I was given, `make dossiers`
+    reported `Invalid task dossiers: 20 issue(s)`, all 20 naming this task: ten on
+    `index.md` and `code-review.md` template placeholders in `Artifact metadata`,
+    one on the not-yet-written canonical `receipt.md`, three on `Task identity`
+    placeholders in `index.md`, and six on `Artifact status` rows in `index.md`
+    disagreeing with the artifacts. After this artifact replaced the
+    `code-review.md` template the count is 16, with zero issues on
+    `code-review.md`: the remainder are `index.md`'s placeholders and the missing
+    `receipt.md`, both coordinator-owned and both outside my write scope.
+    Filtering the validator output for dossier paths other than WFS-007 returns
+    nothing, before or after, on both interpreters. Acceptance criterion 4 holds
+    under its stated exception."""
+  assert text.count(old) == 1
+  p.write_text(text.replace(old, new), encoding="utf-8")
+  print("corrected in place")
+  PY
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | tail -2; echo "code-review.md issues:";
+  PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_task_dossiers.py projects 2>&1 | grep -c 'WFS-007/code-review.md'; echo
+  "=== files I changed ==="; git status --short)
+  ⎿  corrected in place
+     ../brida/projects/brida-workflow-simplification/handoffs/WFS-007/index.md:
+     Artifact status.code-review.Phase state: index says '<phase state>' but code-review.md says 'passed'
+     Invalid task dossiers: 16 issue(s) across 19 dossier(s).
+     code-review.md issues:
+     0
+     === files I changed ===
+      M .codex/config.toml
+      M config/model-routing.json
+     ?? .brichan.bak-2026-08-26/
+     ?? .brichan.bak-2026-08-28/
+     ?? .brichan.bak-2026-09-18/
+     ?? .brichan/
+
+⏺ Bash(git check-ignore -v projects/brida-workflow-simplification/handoffs/WFS-007/code-review.md; echo "ignore-exit=$?";
+  echo "--- tracked? ---"; git ls-files --error-unmatch
+  projects/brida-workflow-simplification/handoffs/WFS-007/code-review.md 2>&1; echo "--- diff stat for the file ---"; git
+  diff --stat -- projects/brida-workflow-simplification/handoffs/WFS-007/code-review.md; echo "--- first lines of my file on
+  disk ---"; head -12 projects/brida-workflow-simplification/handoffs/WFS-007/code-review.md)
+  ⎿  .gitignore:67:/projects/*/handoffs/*/      projects/brida-workflow-simplification/handoffs/WFS-007/code-review.md
+     ignore-exit=0
+     --- tracked? ---
+     error: pathspec 'projects/brida-workflow-simplification/handoffs/WFS-007/code-review.md' did not match any file(s) known
+     to git
+     Did you forget to 'git add'?
+     --- diff stat for the file ---
+     --- first lines of my file on disk ---
+     # Code review
+
+     Independent review of the implementation, or the recorded evidence for why no implementation review applies.
+
+     ## Artifact metadata
+
+     - Task ID: `WFS-007`
+     - Task level: `0`
+     - Artifact: `code-review`
+     - Artifact version: `1`
+     - Origin: `wfs-007-code-review-worker:2026-09-26:v1`
+     - Owner: `reviewer`
+
+⏺ Bash(sed -n '24,38p' docs/workflows/task-dossier.md)
+  ⎿  ## Local Git boundary
+
+     Task dossiers are durable local workflow state, not repository deliverables.
+     New directories matching `projects/*/handoffs/*/` are ignored by Git by
+     default. Ignoring changes only Git visibility: the directories remain on disk,
+     and Brichan, worker agents, scaffolders, validators, and later sessions continue
+     to read and update them through normal filesystem paths.
+
+     The project index and the canonical project-memory files directly under each
+     `projects/<project-slug>/` directory remain visible to Git. Dossier paths that
+     were already tracked before this rule remain tracked because Git ignore rules
+     do not retroactively remove files from the index. Sharing a new dossier is an
+     explicit opt-in with `git add -f`; no workflow may force-add one implicitly.
+
+     ## Standard artifacts
+
+⏺ 1. Verdict
+
+  PASS — 14/15 (Spec fidelity 5/5, Code review 5/5, Empirical verification 4/5). Two Low findings, neither blocking. No
+  Critical, High, or Medium.
+
+  All four acceptance criteria hold, each established by execution rather than by reading report.md:
+
+  - Structural JSON comparison of HEAD against the working copy: no key added, none removed, exactly one value changed —
+    .routes.implement.model, claude-opus-5 → claude-opus-5-5. The launcher dry run resolves implement to runtime claude,
+    model claude-opus-5-5, effort medium.
+  - claude-opus-5-5 is a verified catalog model (live probe 2026-09-25, verified effort medium, no alias → canonical ID
+    pinned, which the diff does).
+  - src/brichan/resources/ byte-unchanged; the packaged manifest still routes implement to codex/gpt-5.6-terra. The
+    checkout-only scope is structural: pyproject.toml packages only brichan.resources.dogfood_v1, so
+    config/model-routing.json can never reach an install.
+  - make check red is confined to WFS-007's own pending artifacts on both interpreters.
+
+  L1 (Low, not blocking) — report.md's recorded dry-run command is not reproducible as written: it omits the required --cwd
+  and exits 2 with a usage error. The claim it supports is true; I reproduced the exact output with --cwd. Fix in place per
+  DOSSIER-004.
+
+  L2 (Low, not blocking) — index.md is still the unedited template, so it records no level determination for a reviewer to
+  check. I checked the triggers directly instead: level 0 is correctly declared — no level‑1 trigger and no level‑2 trigger
+  applies, including the trade-off trigger (one reversible value, same subscription tier, dated probe plus a real worker
+  run).
+
+  2. File written
+
+  projects/brida-workflow-simplification/handoffs/WFS-007/code-review.md — exactly one file, nothing else. It validates with
+  zero issues against scripts/validate_task_dossiers.py. (The file is Git-ignored by design under /projects/*/handoffs/*/; I
+  did not force-add it.)
+
+  3. Verification
+
+  ┌──────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────┐
+  │              Check               │                                      Result                                       │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ Techstack verify, run before any │ status: match, observed digest equals the snapshot digest; all 4 rule files read  │
+  │  work                            │                                                                                   │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ Launcher dry run, implement      │ claude --permission-mode auto --model claude-opus-5-5 --effort medium             │
+  │                                  │ --disallowed-tools=Task; JSON resolved confirms the triple                        │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ Contract-path checker (set -o    │ exit 3, contract-path: yes, config/model-routing.json → review required           │
+  │ pipefail)                        │                                                                                   │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ make check on 3.10.11 and 3.14.6 │ unit 1069 OK, contract 153 OK, metrics 10 OK; one integration failure, the        │
+  │                                  │ dossier sweep                                                                     │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ The 9 targets check never        │ run individually: 8 exit 0; only dossiers red                                     │
+  │ reached (it stops at test)       │                                                                                   │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ Dossier red, before → after my   │ 20 → 16 issues, 0 on code-review.md; all remaining name index.md and the missing  │
+  │ write                            │ receipt.md; nothing outside WFS-007, on either interpreter                        │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ Routing unit tests               │ test_model_routing + test_cli_render, 77 tests, OK                                │
+  └──────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────┘
+
+  Two things I hunted for rather than assumed: a prefix collision (claude-opus-5 is a proper prefix of claude-opus-5-5) —
+  none, the only model inspection is a whole-string re.fullmatch; and a test that reads the real manifest and pins the old
+  value — none, tests/unit/test_cli_render.py:457 writes its own temp manifest.
+
+  No commit, push, remote action, or Herdr pane operation.
+
+  4. Uncertainties
+
+  - Provider independence not satisfied. The review route resolves to codex/gpt-5.6-sol; this review ran claude-opus-5 at
+    high. Model independence holds, and level 0 requires only routine reviewer strength, so I judge the verdict sound — but
+    whether a Claude reviewer satisfies your intent for a change that selects a Claude model is your call. Matches the a201
+    precedent.
+  - No automated guard ties routing to the catalog. validate_model is shape-only; I confirmed claude-opus-55 — a plausible
+    typo of this task's value — passes it and would pass make check, failing only at live launch. Recorded as residual risk
+    with a concrete hardening suggestion, not as a finding.
+  - The evidence is directional and the change is broader than the evidence's own conclusion — stage 1 says "strong enough …
+    for stage 2"; this makes it the standing checkout default. Your decision, recorded in request.md; not a defect.
+  - No live re-probe of the model (out of scope), and a stale untracked .brichan/config/model-routing.json still routes
+    implement to gpt-5.6-terra for callers that name the managed path explicitly — correct for the declared scope, worth
+    knowing so it is not later read as a regression.
+
+  5.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=8915cd6577e68288dca65d9726ae2c26f7a23c14bc9e8dd6b6966a695d598a81
+
+✻ Sautéed for 23m 31s · done 2:11 PM
+                                                                                                              150095 tokens
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ fix L1 in report.md and finish index.md and receipt.md
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 14% │ brida (feat/lifecycle-simplification*) ⑃ #37 │ ● high 💭
+  current ●●●○○○○○○○  34% ⟳ 5:10pm
+  weekly  ●●●●●●●○○○  71% ⟳ sep 30, 5:00am
+  fable   ●●●●○○○○○○  42% ⟳ sep 30, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

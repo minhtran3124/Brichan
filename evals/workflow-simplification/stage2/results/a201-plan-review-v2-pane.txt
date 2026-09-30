@@ -1,0 +1,400 @@
+  the coordinator
+    fills `index.md`, `code-review.md`, `pr-desc.md` and
+  creates `receipt.md`.
+    The close must read the diagnostics, not the exit code.
+  - **`index.md` is still an unfilled scaffold** and carries
+  28 of the 39
+    current diagnostics, including an absent canonical receipt
+  and a status
+    table that disagrees with every artifact it projects. It
+  is coordinator-owned
+    and outside this review's single-file write scope, but it
+  is the gating item
+    for task close and it must record the accepted plan ID and
+  version, review
+    route strength `routine`, and ship authorization
+  `not-requested`.
+  - **The two-interpreter gate is heavier than the change.**
+  TEST-001 conditions
+    the dual-interpreter run on interpreter-sensitive code,
+  which a `def` rename
+    is not; the general verification line asks for `make
+  check` on both. The
+    coordinator ratified the dual run, so the plan is right to
+  follow it. Noted
+    because this task is an arm of a workflow-simplification
+  measurement, where
+    process cost is itself the observable.
+  - **Review-route provenance diverged from the configured
+  route.**
+    `config/model-routing.json` routes `review` to the codex
+  runtime
+    (`gpt-5.6-sol`, effort `medium`); this review ran on the
+  claude runtime as
+    `claude-opus-5`. Level 0 requires only the routine review
+  route and
+    independence holds, so the verdict stands; the metadata
+  records what was
+    effective, not what was configured.
+
+  ## Evidence
+
+  - Reviewed artifacts, read in full against `request.md`
+  version 1:
+    `requirements.md` (v3), `brief.md` (v3), `options.md`
+  (v3), `design.md`
+    (v3), and `plan.md` (v3, plan ID `WFS-A-201-PLAN-001`,
+  status `draft`), with
+    `client-follow-up-questions.md` (v2, coordinator-owned)
+  and the archived
+    `versions/v2/plan-review.md` (v1) as the closure baseline.
+  - Source evidence:
+  `src/brichan/techstacks/markdown.py:319-333`;
+    `tests/unit/test_techstack_markdown.py:537-563`, `:565`,
+  `:566-569`,
+    `:570-574`, `:347-351`; `Makefile:24-28`, `:40`, `:75`,
+  `:76`;
+    `tests/contract/test_repository_contract.py:394-432` (the
+  home-path scan
+    whose two bare prefixes `/Users` and `/home` DOSSIER-002
+  governs);
+    `projects/brida-workflow-simplification/tasks.md:29`.
+  - Reference evidence (criterion 3): `git grep -n` for the
+  old name returns
+    `projects/brida-workflow-simplification/tasks.md:29` and
+    `tests/unit/test_techstack_markdown.py:565`; `git grep -n`
+  for the new name
+    and for the `test_prose_rejects_pipe` prefix return
+  nothing; a whole-tree
+    `grep -rIn` outside this dossier returns the same two
+  old-name lines.
+  - Guard-sensitivity probe (TEST-003): run out of tree with
+  `_is_prose`
+    substituted in memory only; results listed under
+  Verification performed. No
+    repository file was modified, and `git status --short` was
+  empty before and
+    after this review's single write.
+  - Gate evidence: both interpreters, all components, as
+  listed under
+    Verification performed. Validator before this write: 39
+  diagnostics across 8
+    dossiers, distributed `index.md` 28, `code-review.md` 5,
+  `pr-desc.md` 5,
+    `plan-review.md` 1, none against the five planner-owned
+  artifacts.
+  - Techstack Snapshot pointer for this review attempt:
+    `projects/brida-workflow-simplification/handoffs/WFS-A-201
+  /snapshots/attempt-plan-review-2-f03b2c93223620291d1d267974b
+  8061472c70ba72bfd52bee0220aaf7e56a86f.snapshot.json`,
+    sha256
+    `f03b2c93223620291d1d267974b8061472c70ba72bfd52bee0220aaf7
+  e56a86f`, verify
+    status `match` on 2026-09-25 before any other work;
+  acknowledged Context IDs
+    `general`, `policy`, `policy-dossiers`, `python`,
+  `python-tests`, `root`; all
+    six selected rule files (`techstacks/README.md`,
+  `techstacks/general.md`,
+    `techstacks/policy/README.md`,
+  `techstacks/policy/task-dossiers.md`,
+    `techstacks/python/README.md`,
+  `techstacks/python/tests.md`) read in full.
+  - Policy applied: `docs/policy/reviewer.md` (task-dossier
+  section: the
+    reviewer writes `plan-review.md` and nothing else, names
+  the exact plan ID
+    and version, records reviewing session identity and a PASS
+  / CHANGES
+    REQUIRED verdict, and never back-writes a planning
+  artifact) and
+    `docs/workflows/task-dossier.md` (evidence contract, level
+  0 depth, review
+    independence, DOSSIER-003 archive immutability).
+
+  ## Uncertainty
+
+  - Whether the coordinator will reissue criterion 3 in its
+  restated form to the
+    implementation and code-review packets is outside this
+  worktree's
+    observation. M1 is raised on that basis and would be
+  withdrawn once the
+    reissued packet exists; the plan itself needs no further
+  change either way.
+  - `Effective effort` is recorded as `medium`, the effort
+    `config/model-routing.json` configures for the `review`
+  route; this session
+    surfaced no per-session effort value to confirm it
+  directly. The recorded
+    route and model are what actually ran.
+  - No other uncertainty remains: every claim plan version 3
+  makes about the
+    code, the reference set, the archives, and the gate was
+  measured against
+    this worktree rather than accepted, on both interpreters,
+  and the results
+    are listed above.
+  ARTIFACT
+  echo "written"; wc -l projects/brida-workflow-simplification
+  /handoffs/WFS-A-201/plan-review.md)
+  ⎿  written
+          312 projects/brida-workflow-simplification/handoffs/
+     WFS-A-201/plan-review.md
+
+⏺ Bash(echo "=== home-path prefixes in the new artifact ==="
+  && grep -n '<HOME-PREFIX>/\|<HOME-DIR>/' projects/brida-workflow-simplif
+  ication/handoffs/WFS-A-201/plan-review.md; echo "(none above
+  = compliant)" && echo "=== validator ===" &&
+  PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | grep -E
+  'WFS-A-201|Invalid|Valid' | sed
+  's#.*/WFS-A-201/#WFS-A-201/#' && echo "=== distribution ==="
+  && PYTHONDONTWRITEBYTECODE=1 python3
+  scripts/validate_task_dossiers.py projects 2>&1 | grep -oE
+  '[a-z-]+\.md:' | sort | uniq -c && echo "=== git status ==="
+  && git status --short)
+  ⎿  === home-path prefixes in the new artifact ===
+     (none above = compliant)
+     === validator ===
+     WFS-A-201/index.md: Artifact metadata.Artifact version:
+     must be a positive integer
+     WFS-A-201/index.md: Artifact metadata.Origin: must record
+     a concrete immutable origin marker
+     WFS-A-201/index.md: Artifact metadata.Phase state: must
+     be one of ['active', 'blocked', 'not-required', 'passed',
+     'pending'], found '<pending, active, passed,
+     not-required, or blocked>'
+     WFS-A-201/index.md: Artifact metadata.Applicability: must
+     be one of ['not-required', 'required'], found '<required
+     or not-required>'
+     WFS-A-201/index.md: Artifact metadata.Authorship: must be
+     one of ['human', 'model'], found '<model or human>'
+     WFS-A-201/code-review.md: Artifact metadata.Artifact
+     version: must be a positive integer
+     WFS-A-201/code-review.md: Artifact metadata.Origin: must
+     record a concrete immutable origin marker
+     WFS-A-201/code-review.md: Artifact metadata.Phase state:
+     must be one of ['active', 'blocked', 'not-required',
+     'passed', 'pending'], found '<pending, active, passed,
+     not-required, or blocked>'
+     WFS-A-201/code-review.md: Artifact
+     metadata.Applicability: must be one of ['not-required',
+     'required'], found '<required or not-required>'
+     WFS-A-201/code-review.md: Artifact metadata.Authorship:
+     must be one of ['human', 'model'], found '<model or
+     human>'
+     WFS-A-201/pr-desc.md: Artifact metadata.Artifact version:
+     must be a positive integer
+     WFS-A-201/pr-desc.md: Artifact metadata.Origin: must
+     record a concrete immutable origin marker
+     WFS-A-201/pr-desc.md: Artifact metadata.Phase state: must
+     be one of ['active', 'blocked', 'not-required',
+     'passed', 'pending'], found '<pending, active, passed,
+     not-required, or blocked>'
+     WFS-A-201/pr-desc.md: Artifact metadata.Applicability:
+     must be one of ['not-required', 'required'], found
+     '<required or not-required>'
+     WFS-A-201/pr-desc.md: Artifact metadata.Authorship: must
+     be one of ['human', 'model'], found '<model or human>'
+     WFS-A-201/receipt.md
+     WFS-A-201/index.md: Task identity.Review route strength:
+     must be one of ['routine', 'stronger'], found '<routine
+     or stronger>'
+     WFS-A-201/index.md: Task identity.Ship authorization:
+     must be one of ['not-requested', 'user-authorized'],
+     found '<not-requested or user-authorized>'
+     WFS-A-201/index.md: Task identity.Ship authorization:
+     level 0 does not gate a ship; authorization must be
+     'not-requested'
+     WFS-A-201/index.md: Artifact status.index.Phase state:
+     index says '<phase state>' but index.md says '<pending,
+     active, passed, not-required, or blocked>'
+     WFS-A-201/index.md: Artifact
+     status.request.Applicability: index says '<required or
+     not-required>' but request.md says 'required'
+     WFS-A-201/index.md: Artifact status.request.Phase state:
+     index says '<phase state>' but request.md says 'passed'
+     WFS-A-201/index.md: Artifact
+     status.requirements.Applicability: index says '<required
+     or not-required>' but requirements.md says 'required'
+     WFS-A-201/index.md: Artifact status.requirements.Phase
+     state: index says '<phase state>' but requirements.md
+     says 'active'
+     WFS-A-201/index.md: Artifact status.brief.Applicability:
+     index says '<required or not-required>' but brief.md says
+     'required'
+     WFS-A-201/index.md: Artifact status.brief.Phase state:
+     index says '<phase state>' but brief.md says 'active'
+     WFS-A-201/index.md: Artifact
+     status.options.Applicability: index says '<required or
+     not-required>' but options.md says 'required'
+     WFS-A-201/index.md: Artifact status.options.Phase state:
+     index says '<phase state>' but options.md says 'active'
+     WFS-A-201/index.md: Artifact status.design.Applicability:
+     index says '<required or not-required>' but design.md
+     says 'required'
+     WFS-A-201/index.md: Artifact status.design.Phase state:
+     index says '<phase state>' but design.md says 'active'
+     WFS-A-201/index.md: Artifact
+     status.client-follow-up-questions.Applicability: index
+     says '<required or not-required>' but
+     client-follow-up-questions.md says 'required'
+     WFS-A-201/index.md: Artifact
+     status.client-follow-up-questions.Phase state: index says
+     '<phase state>' but client-follow-up-questions.md says
+     'passed'
+     WFS-A-201/index.md: Artifact status.plan.Applicability:
+     index says '<required or not-required>' but plan.md says
+     'required'
+     WFS-A-201/index.md: Artifact status.plan.Phase state:
+     index says '<phase state>' but plan.md says 'active'
+     WFS-A-201/index.md: Artifact
+     status.plan-review.Applicability: index says '<required
+     or not-required>' but plan-review.md says 'required'
+     WFS-A-201/index.md: Artifact status.plan-review.Phase
+     state: index says '<phase state>' but plan-review.md says
+     'passed'
+     WFS-A-201/index.md: Artifact status.code-review.Phase
+     state: index says '<phase state>' but code-review.md says
+     '<pending, active, passed, not-required, or blocked>'
+     WFS-A-201/index.md: Artifact status.pr-desc.Phase state:
+     index says '<phase state>' but pr-desc.md says '<pending,
+     active, passed, not-required, or blocked>'
+     Invalid task dossiers: 38 issue(s) across 8 dossier(s).
+     === distribution ===
+        5 code-review.md:
+       28 index.md:
+        5 pr-desc.md:
+     === git status ===
+
+⏺ Bash(PYTHONDONTWRITEBYTECODE=1 make test-contract 2>&1 |
+  grep -E '^(FAIL|ERROR|Ran |OK|FAILED)' ; echo "---";
+  PYTHONDONTWRITEBYTECODE=1 make test-integration 2>&1 | grep
+  -E '^(FAIL|ERROR|Ran |OK|FAILED)')
+  ⎿  FAIL: test_current_path_and_link_contracts_pass (tests.co
+     ntract.test_repository_paths.RepositoryPathContractTest)
+     FAIL: test_every_non_ephemeral_root_file_is_classified
+     (tests.contract.test_repository_paths.RepositoryPathContr
+     actTest)
+     Ran 148 tests in 0.993s
+     FAILED (failures=2, skipped=1)
+     ---
+     FAIL: test_repository_checkout_validates_clean
+     (tests.integration.test_task_dossier_workflow.TaskDossier
+     WorkflowIntegrationTest)
+     Ran 222 tests in 85.748s
+     FAILED (failures=1)
+  ⎿  (timeout 10m)
+
+⏺ Unchanged after the write — no new failure introduced by the
+  artifact.
+
+  1. Verdict
+
+  PASS — plan WFS-A-201-PLAN-001 version 3.
+
+  All four findings of plan-review version 1
+  (versions/v2/plan-review.md, CHANGES REQUIRED on plan
+  version 2) are closed, and I re-verified each against the
+  worktree rather than accepting the plan's closure table:
+
+  - H1 — the restated criterion 3 is now recorded verifiably
+    in coordinator-owned client-follow-up-questions.md:26 (v2,
+    origin coordinator:2026-09-25-wfs-stage2), cited by
+    requirements.md:65-74, design.md:68-73, plan.md:75-81.
+  - M1 — Step 4 now names all four expected-red components. I
+    measured them red and every other component green on both
+    3.10.11 and 3.14.6; the set is complete and exact.
+  - L1 — sh -n bin/brichan (Makefile:76) is in the gate; rc=0.
+  - L2 — baseline re-measured with a distribution-not-count
+    rule.
+
+  Technical core re-verified independently: the name maps
+  one-to-one onto the two assertions, the rename is
+  behavior-neutral, the name is unique, and a
+  guard-substitution probe confirms each subtest fails when
+  and only when its named guard is removed. The plan misses no
+  necessary change and adds none.
+
+  Two findings, neither a plan defect:
+  - M1 (medium) — this review packet still carries the strict
+    criterion 3 ("anywhere in the repository"), which
+    following the plan will not literally satisfy, since
+    projects/brida-workflow-simplification/tasks.md:29 keeps
+    the old name by the coordinator's own recorded decision.
+    Required coordinator action: carry the restated wording
+    into the implementation and code-review packets before
+    issuing them — otherwise the implementer holds a standing
+    instruction to remove a reference the plan forbids
+    removing. The plan flags this itself (plan.md:207-213) and
+    cannot close it.
+  - L1 (low) — the plan's recorded 38-diagnostic distribution
+    omitted a plan-review.md row present at plan-authoring
+    time; publishing this artifact cleared it, and the
+    validator now reports exactly the plan's recorded 38 /
+    index.md 28, code-review.md 5, pr-desc.md 5.
+
+  2. File written
+
+  projects/brida-workflow-simplification/handoffs/WFS-A-201/pl
+  an-review.md (artifact version 2, 312 lines). Exactly one
+  file written; git status --short empty before and after. The
+  replaced version 1 is byte-identical to the archived
+  versions/v2/plan-review.md, so no review evidence was
+  destroyed (DOSSIER-003).
+
+  3. Verification
+
+  - Techstack verify → match; all six selected rule files read
+    in full.
+  - PYTHONDONTWRITEBYTECODE=1 python3
+    scripts/validate_task_dossiers.py projects → 38 issues
+    across 8 dossiers; no diagnostic against plan-review.md or
+    any of the five planner-owned artifacts. Remaining
+    WFS-A-201 diagnostics are all in pending coordinator-owned
+    artifacts (index.md 28, code-review.md 5, pr-desc.md 5)
+    plus the absent receipt.md — expected.
+  - make check stops in test-contract with exactly the two
+    known worktree-only failures. Layer by layer on both
+    interpreters: test-unit 1026 OK, test-contract 2 known
+    failures, test-integration 1 known failure, techstack-eval
+    56 OK, metrics/receipts/memory-check/readme-check/phase5-
+    preflight/package-check exit 0, path-check exit 1 (.git),
+    dossiers exit 1, sh -n bin/brichan rc=0.
+  - Guard-sensitivity probe run in memory only; no repository
+    file modified.
+  - test-contract and test-integration re-run after the write:
+    unchanged.
+
+  4. Uncertainties
+
+  - Whether the coordinator reissues the restated criterion 3
+    is unobservable here; M1 rests on that and would be
+    withdrawn once the reissued packet exists.
+  - Effective effort recorded as medium (the configured review
+    effort); no per-session value was surfacable. The route
+    diverged from config/model-routing.json (configured
+    codex/gpt-5.6-sol; this session ran claude/claude-opus-5)
+    — recorded in the artifact; level 0 needs only the routine
+    route and independence holds on both arms.
+  - index.md is still an unfilled scaffold and is the gating
+    item for task close; coordinator-owned and outside my
+    write scope.
+
+  5.
+
+  Techstack verification acknowledgement: yes;
+  snapshot_sha256=f03b2c93223620291d1d267974b8061472c70ba72bfd
+  52bee0220aaf7e56a86f
+
+✻ Churned for 13m 32s · done 4:49 PM
+                                               137125 tokens
+──────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────
+  👤 <user> │ Opus 5 │ ✍️ 13% │ brichan-w…
+  current ●●●●●●●○○○  75% ⟳ 7:40pm
+  weekly  ●●●●○○○○○○  49% ⟳ sep 30, 5:00am
+  fable   ●●●○○○○○○○  30% ⟳ sep 30, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent
