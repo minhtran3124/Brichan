@@ -310,8 +310,9 @@ brichan-herdr-agent-observe watch <brichan-name>
 ```
 
 `watch` prints one JSON line per worker scheduling-state transition and ends
-with one `stop`, `expired`, or `error` line, looping bounded `herdr agent wait`
-calls itself. A Claude Code coordinator runs it under the Monitor tool so that
+with one `stop`, `expired`, or `error` line. It receives changes from Herdr's
+`events.subscribe` socket stream and falls back to looping bounded
+`herdr agent wait` calls when the subscription is unavailable. A Claude Code coordinator runs it under the Monitor tool so that
 waiting costs no model turns.
 
 `preflight` reports the client and server versions, protocol, compatibility,

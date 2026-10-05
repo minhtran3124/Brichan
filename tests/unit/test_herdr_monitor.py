@@ -2288,5 +2288,185 @@ class WatchTests(unittest.TestCase):
         self.assertEqual(["state", "error"], [event["event"] for event in events])
 
 
+# ---------------------------------------------------------------------------
+# watch --source events: the Herdr socket subscription (EVWAIT-002)
+# ---------------------------------------------------------------------------
+
+
+def herdr_line(payload):
+    return (json.dumps(payload) + "\n").encode()
+
+
+SUBSCRIBED = herdr_line({"id": "brichan:watch", "result": {"type": "subscription_started"}})
+
+
+def status_event(state, pane_id="w37:p8"):
+    # Shape captured live on Herdr 0.9.1 for EVWAIT-002.
+    return herdr_line(
+        {
+            "data": {
+                "agent": "claude",
+                "agent_status": state,
+                "pane_id": pane_id,
+                "workspace_id": "w37",
+            },
+            "event": "pane.agent_status_changed",
+        }
+    )
+
+
+def pane_closed(pane_id="w37:p8"):
+    return herdr_line(
+        {
+            "data": {"pane_id": pane_id, "type": "pane_closed", "workspace_id": "w37"},
+            "event": "pane_closed",
+        }
+    )
+
+
+class FakeSocket:
+    """Serves queued chunks; ``None`` is one quiet interval, ``b""`` is EOF."""
+
+    def __init__(self, *chunks):
+        self.chunks = list(chunks)
+        self.sent = b""
+        self.closed = False
+
+    def settimeout(self, value):
+        pass
+
+    def sendall(self, data):
+        self.sent += data
+
+    def recv(self, size):
+        if not self.chunks:
+            raise monitor.socket.timeout()
+        chunk = self.chunks.pop(0)
+        if chunk is None:
+            raise monitor.socket.timeout()
+        return chunk
+
+    def close(self):
+        self.closed = True
+
+
+class WatchEventsTests(unittest.TestCase):
+    def run_watch(self, runner, sock, **kwargs):
+        events = []
+        kwargs.setdefault("clock", FakeClock())
+        kwargs.setdefault("source", "events")
+        connected = []
+
+        def connector(path):
+            connected.append(path)
+            if isinstance(sock, Exception):
+                raise sock
+            return sock
+
+        code = monitor.watch_agent(
+            "brichan-worker", events.append, runner=runner, connector=connector, **kwargs
+        )
+        return code, events, connected
+
+    def responses(self, **overrides):
+        base = {"status": ok_json(STATUS_JSON_091), "agent get": agent_info("working")}
+        base.update(overrides)
+        return FakeRunner(base)
+
+    def test_pushed_changes_stream_without_any_wait_call(self):
+        sock = FakeSocket(SUBSCRIBED, status_event("working"), status_event("done"))
+        runner = self.responses()
+        code, events, connected = self.run_watch(runner, sock)
+        self.assertEqual(0, code)
+        self.assertEqual(
+            [("state", "working", "events"), ("stop", "done", "events")],
+            [(e["event"], e["state"], e["source"]) for e in events],
+        )
+        self.assertEqual(["/Users/example/.config/herdr/herdr.sock"], connected)
+        self.assertNotIn("wait", [call[2] for call in runner.calls if len(call) > 2])
+        request = json.loads(sock.sent)
+        self.assertEqual("events.subscribe", request["method"])
+        self.assertEqual(
+            [
+                {"type": "pane.agent_status_changed", "pane_id": "w37:p8", "agent_status": None},
+                {"type": "pane.closed"},
+            ],
+            request["params"]["subscriptions"],
+        )
+        self.assertTrue(sock.closed)
+
+    def test_state_is_read_again_after_subscribing(self):
+        # The stream sends no initial state; a change between the first read
+        # and the subscription must still be seen.
+        runner = self.responses(
+            **{"agent get": sequence(agent_info("working"), agent_info("blocked"))}
+        )
+        code, events, _ = self.run_watch(runner, FakeSocket(SUBSCRIBED))
+        self.assertEqual(0, code)
+        self.assertEqual([("stop", "blocked")], [(e["event"], e["state"]) for e in events])
+
+    def test_other_panes_are_ignored_and_closing_this_pane_is_an_error(self):
+        sock = FakeSocket(
+            SUBSCRIBED,
+            status_event("done", pane_id="w37:p9"),
+            pane_closed(pane_id="w37:p9"),
+            pane_closed(),
+        )
+        code, events, _ = self.run_watch(self.responses(), sock)
+        self.assertEqual(1, code)
+        self.assertEqual(["state", "error"], [e["event"] for e in events])
+        self.assertIn("w37:p8 closed", events[-1]["detail"])
+
+    def test_quiet_interval_rereads_and_reports_a_lost_agent(self):
+        runner = self.responses(
+            **{
+                "agent get": sequence(
+                    agent_info("working"), agent_info("working"), fail("agent_not_found")
+                )
+            }
+        )
+        code, events, _ = self.run_watch(runner, FakeSocket(SUBSCRIBED, None))
+        self.assertEqual(1, code)
+        self.assertEqual(["state", "error"], [e["event"] for e in events])
+
+    def test_a_closed_stream_is_an_error(self):
+        code, events, _ = self.run_watch(self.responses(), FakeSocket(SUBSCRIBED, b""))
+        self.assertEqual(1, code)
+        self.assertIn("event stream closed", events[-1]["detail"])
+
+    def test_auto_falls_back_to_the_wait_loop_when_subscribing_fails(self):
+        unverified = ok_json(status_with(server__version="0.9.2"))
+        for label, overrides, sock in (
+            ("unverified server", {"status": unverified}, FakeSocket(SUBSCRIBED)),
+            ("connect refused", {}, ConnectionRefusedError("refused")),
+            ("no ack", {}, FakeSocket(None)),
+        ):
+            runner = self.responses(**overrides, **{"agent wait": agent_info("idle")})
+            code, events, _ = self.run_watch(runner, sock, source="auto")
+            self.assertEqual(0, code, label)
+            self.assertEqual(
+                [("state", "wait"), ("stop", "wait")],
+                [(e["event"], e["source"]) for e in events],
+                label,
+            )
+
+    def test_strict_events_source_does_not_fall_back(self):
+        runner = self.responses(**{"agent wait": agent_info("idle")})
+        code, events, _ = self.run_watch(runner, ConnectionRefusedError("refused"))
+        self.assertEqual(1, code)
+        self.assertEqual(["error"], [e["event"] for e in events])
+        self.assertNotIn("wait", [call[2] for call in runner.calls if len(call) > 2])
+
+    def test_a_vanished_reader_ends_the_cli_without_a_traceback(self):
+        runner = FakeRunner({"agent get": agent_info("working"), "agent wait": agent_info("idle")})
+        with mock.patch.object(
+            monitor, "_herdr_available", return_value=True
+        ), mock.patch.object(
+            monitor, "_emit_event_line", side_effect=BrokenPipeError
+        ), mock.patch.object(monitor.os, "dup2"):
+            code = monitor.main(["watch", "w", "--source", "wait"], runner=runner)
+        self.assertEqual(1, code)
+
+
 if __name__ == "__main__":
     unittest.main()

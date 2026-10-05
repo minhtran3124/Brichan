@@ -14,6 +14,9 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
   `stop`, `expired`, or `error` line. The helper loops bounded (at most 30
   seconds) `herdr agent wait` calls itself, so a Claude Code coordinator can
   run it under the Monitor tool instead of spending a model turn per wait.
+  By default (`--source auto`) it receives changes pushed over Herdr's
+  `events.subscribe` socket stream (verified on Herdr 0.9.1) and falls back
+  to the bounded-wait loop when the subscription is unavailable.
   `herdr agent wait` now accepts a repeated `--until`, each value checked
   against the Herdr state vocabulary. A `stop` event is still a scheduling
   signal only, never completion evidence.

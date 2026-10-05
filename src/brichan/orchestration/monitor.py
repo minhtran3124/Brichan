@@ -19,7 +19,8 @@ separated:
   parses or judges content.
 
 Every Herdr command this module may run is read-only, and no code path sends
-input to an agent.
+input to an agent. The one socket call, ``events.subscribe`` used by ``watch``,
+only receives events.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ import json
 import os
 import re
 import shutil
+import socket
 import stat
 import subprocess
 import sys
@@ -1230,6 +1232,21 @@ def observe_agent(
 # Event-stream watch
 # ---------------------------------------------------------------------------
 
+#: How long ``watch`` waits for Herdr to acknowledge ``events.subscribe``
+#: before it falls back to the bounded-wait loop, in seconds.
+SUBSCRIBE_ACK_TIMEOUT_S = 5.0
+
+WATCH_SOURCE_AUTO = "auto"
+WATCH_SOURCE_EVENTS = "events"
+WATCH_SOURCE_WAIT = "wait"
+WATCH_SOURCES = (WATCH_SOURCE_AUTO, WATCH_SOURCE_EVENTS, WATCH_SOURCE_WAIT)
+
+#: Event names verified live on Herdr ``0.9.1`` for task ``EVWAIT-002``. The
+#: status change is keyed by pane; ``pane.closed`` has no pane filter and
+#: arrives as ``pane_closed`` for every pane, so ``watch`` filters it.
+HERDR_EVENT_STATUS = "pane.agent_status_changed"
+HERDR_EVENT_PANE_CLOSED = "pane_closed"
+
 WATCH_EVENT_STATE = "state"
 WATCH_EVENT_STOP = "stop"
 WATCH_EVENT_EXPIRED = "expired"
@@ -1281,6 +1298,126 @@ def _wait_for_change(
     return _agent_node(payload, prefix)
 
 
+Connector = Callable[[str], Any]
+
+
+def default_connector(path: str) -> socket.socket:
+    """Open the Herdr API socket. Only ``events.subscribe`` is ever sent."""
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        sock.connect(path)
+    except OSError:
+        sock.close()
+        raise
+    return sock
+
+
+class EventSubscription:
+    """A newline-delimited JSON event stream from the Herdr socket.
+
+    Herdr ``0.9.1`` acknowledges with ``subscription_started`` and then pushes
+    one JSON object per line. It sends no initial state, and it closes the
+    pane's stream silently: closing a pane emits ``pane_closed`` (when
+    subscribed) but never ends the connection.
+    """
+
+    def __init__(self, sock: Any, clock: Callable[[], float] = time.monotonic):
+        self._sock = sock
+        self._clock = clock
+        self._buffer = b""
+
+    def close(self) -> None:
+        try:
+            self._sock.close()
+        except OSError:
+            pass
+
+    def next_message(self, timeout_s: float) -> dict[str, Any] | None:
+        """Return the next message, or ``None`` when ``timeout_s`` passes."""
+
+        deadline = self._clock() + timeout_s
+        while b"\n" not in self._buffer:
+            remaining = deadline - self._clock()
+            if remaining <= 0:
+                return None
+            self._sock.settimeout(remaining)
+            try:
+                chunk = self._sock.recv(65536)
+            except socket.timeout:
+                return None
+            except OSError as error:
+                raise AdapterError(f"herdr event stream failed: {error}") from None
+            if not chunk:
+                raise AdapterError("herdr event stream closed")
+            self._buffer += chunk
+        line, self._buffer = self._buffer.split(b"\n", 1)
+        try:
+            message = json.loads(line)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            raise AdapterError("herdr event stream sent invalid JSON") from None
+        if not isinstance(message, dict):
+            raise AdapterError("herdr event stream sent a non-object message")
+        return message
+
+
+def subscribe_pane_events(
+    pane_id: str,
+    *,
+    runner: Runner | None = None,
+    connector: Connector | None = None,
+    verified_support: Iterable[tuple[str, int]] = VERIFIED_SUPPORT,
+    clock: Callable[[], float] = time.monotonic,
+) -> EventSubscription:
+    """Subscribe to one pane's status changes plus pane closes.
+
+    Refused, as an :class:`AdapterError`, unless ``herdr status --json``
+    reports a running server on a verified (version, protocol) pair with a
+    socket path; the subscription was verified on ``0.9.1`` only.
+    """
+
+    payload = run_json(["herdr", "status", "--json"], runner)
+    fields = parse_status_payload(payload)
+    if (fields["server_version"], fields["protocol"]) not in set(verified_support):
+        raise AdapterError(
+            f"events.subscribe is unverified on herdr {fields['server_version']} "
+            f"protocol {fields['protocol']}"
+        )
+    server = payload.get("server")
+    path = server.get("socket") if isinstance(server, dict) else None
+    if not isinstance(path, str) or not os.path.isabs(path):
+        raise AdapterError("herdr status reports no absolute socket path")
+
+    try:
+        sock = (connector or default_connector)(path)
+    except OSError as error:
+        raise AdapterError(f"cannot connect to the herdr socket: {error}") from None
+    subscription = EventSubscription(sock, clock)
+    request = {
+        "id": "brichan:watch",
+        "method": "events.subscribe",
+        "params": {
+            "subscriptions": [
+                {"type": HERDR_EVENT_STATUS, "pane_id": pane_id, "agent_status": None},
+                {"type": "pane.closed"},
+            ]
+        },
+    }
+    try:
+        try:
+            sock.sendall((json.dumps(request) + "\n").encode("utf-8"))
+        except OSError as error:
+            raise AdapterError(f"herdr events.subscribe failed: {error}") from None
+        ack = subscription.next_message(SUBSCRIBE_ACK_TIMEOUT_S)
+        result = ack.get("result") if isinstance(ack, dict) else None
+        if not isinstance(result, dict) or result.get("type") != "subscription_started":
+            raise AdapterError(f"herdr events.subscribe was not acknowledged: {ack!r}")
+    except AdapterError:
+        subscription.close()
+        raise
+    return subscription
+
+
 def watch_agent(
     name: str,
     emit: Callable[[dict[str, Any]], None],
@@ -1290,6 +1427,8 @@ def watch_agent(
     interval_ms: int = MAX_WAIT_TIMEOUT_MS,
     max_duration_ms: int = DEFAULT_WATCH_DURATION_MS,
     clock: Callable[[], float] = time.monotonic,
+    source: str = WATCH_SOURCE_WAIT,
+    connector: Connector | None = None,
 ) -> int:
     """Stream one worker's scheduling-state transitions as events.
 
@@ -1299,10 +1438,14 @@ def watch_agent(
     ``error`` when the agent is lost or Herdr fails (exit ``1``). Silence
     therefore always means "still in a non-stop state", never a crash.
 
-    Each wait asks Herdr for every state other than the current one, so any
-    change ends the wait at once and no next state is guessed. Each wait is
-    bounded by ``interval_ms`` and after a quiet interval the state is read
-    again, so a transition is never missed for longer than one interval.
+    ``source`` picks how changes arrive. ``wait`` loops bounded
+    ``herdr agent wait`` calls that ask for every state other than the current
+    one, so any change ends the wait at once and no next state is guessed.
+    ``events`` subscribes to the Herdr socket and receives each change as it
+    is pushed. ``auto`` tries ``events`` and falls back to ``wait`` when the
+    subscription cannot be set up. Either way, after a quiet ``interval_ms``
+    the state is read again, so a lost agent or a missed change is noticed
+    within one interval. Every event line names the source in use.
 
     A stop state is a scheduling signal only: it says when to observe, never
     that the task finished. Read-only; no code path sends input to the agent.
@@ -1310,17 +1453,46 @@ def watch_agent(
 
     stops = frozenset(stop_states)
     started = clock()
+    mode = WATCH_SOURCE_WAIT if source == WATCH_SOURCE_WAIT else WATCH_SOURCE_EVENTS
+    subscription: EventSubscription | None = None
 
     def elapsed_ms() -> int:
         return int((clock() - started) * 1000)
 
     def event(kind: str, **fields: Any) -> None:
-        emit({"agent": name, "elapsed_ms": elapsed_ms(), "event": kind, **fields})
+        emit(
+            {
+                "agent": name,
+                "elapsed_ms": elapsed_ms(),
+                "event": kind,
+                "source": mode,
+                **fields,
+            }
+        )
 
-    try:
-        node = _agent_node(
+    def get_node() -> dict[str, Any]:
+        return _agent_node(
             run_json(["herdr", "agent", "get", name], runner), f"herdr agent get {name}"
         )
+
+    try:
+        node = get_node()
+        pane_id = node.get("pane_id") if isinstance(node.get("pane_id"), str) else None
+        if mode == WATCH_SOURCE_EVENTS:
+            try:
+                if pane_id is None:
+                    raise AdapterError(f"herdr agent get {name} reported no pane")
+                subscription = subscribe_pane_events(
+                    pane_id, runner=runner, connector=connector, clock=clock
+                )
+            except AdapterError:
+                if source == WATCH_SOURCE_EVENTS:
+                    raise
+                mode = WATCH_SOURCE_WAIT
+            else:
+                # The stream sends no initial state: read it once more after
+                # subscribing so a change in between is not lost.
+                node = get_node()
         last: str | None = None
         while True:
             state = _node_state(node)
@@ -1335,18 +1507,30 @@ def watch_agent(
             if remaining <= 0:
                 event(WATCH_EVENT_EXPIRED, state=state, pane_id=pane_id)
                 return 0
+            if subscription is not None:
+                message = subscription.next_message(min(interval_ms, remaining) / 1000)
+                if message is None:
+                    node = get_node()  # quiet interval: liveness and resync
+                    continue
+                data = message.get("data")
+                if not isinstance(data, dict) or data.get("pane_id") != pane_id:
+                    continue
+                kind = message.get("event")
+                if kind == HERDR_EVENT_PANE_CLOSED:
+                    raise AdapterError(f"herdr pane {pane_id} closed")
+                if kind == HERDR_EVENT_STATUS:
+                    node = {"agent_status": data.get("agent_status"), "pane_id": pane_id}
+                continue
             others = sorted(AGENT_STATES - {state})
             changed = _wait_for_change(name, others, min(interval_ms, remaining), runner)
-            if changed is None:
-                changed = _agent_node(
-                    run_json(["herdr", "agent", "get", name], runner),
-                    f"herdr agent get {name}",
-                )
-            node = changed
+            node = changed if changed is not None else get_node()
     except MonitorError as error:
         # AdapterError and a refused argv alike end in the one final event.
         event(WATCH_EVENT_ERROR, detail=str(error))
         return 1
+    finally:
+        if subscription is not None:
+            subscription.close()
 
 
 # ---------------------------------------------------------------------------
@@ -1409,6 +1593,7 @@ def build_parser() -> _Parser:
     watch.add_argument(
         "--interval-ms", dest="interval_ms", type=_positive_int, default=MAX_WAIT_TIMEOUT_MS
     )
+    watch.add_argument("--source", choices=WATCH_SOURCES, default=WATCH_SOURCE_AUTO)
     watch.add_argument(
         "--max-duration-ms",
         dest="max_duration_ms",
@@ -1504,18 +1689,28 @@ def _watch_command(args: argparse.Namespace, runner: Runner | None) -> int:
                 "detail": "herdr is not on PATH",
                 "elapsed_ms": 0,
                 "event": WATCH_EVENT_ERROR,
+                "source": args.source,
             }
         )
         print(f"{PROGRAM}: herdr is not on PATH", file=sys.stderr)
         return 1
-    return watch_agent(
-        args.name,
-        _emit_event_line,
-        runner=runner,
-        stop_states=args.stop_on or DEFAULT_WATCH_STOP_STATES,
-        interval_ms=args.interval_ms,
-        max_duration_ms=args.max_duration_ms,
-    )
+    try:
+        return watch_agent(
+            args.name,
+            _emit_event_line,
+            runner=runner,
+            stop_states=args.stop_on or DEFAULT_WATCH_STOP_STATES,
+            interval_ms=args.interval_ms,
+            max_duration_ms=args.max_duration_ms,
+            source=args.source,
+        )
+    except BrokenPipeError:
+        # The reader went away (a stopped Monitor, a closed pipe): nobody is
+        # left to tell, so end quietly instead of with a traceback.
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+        os.close(devnull)
+        return 1
 
 
 def main(argv: Sequence[str] | None = None, *, runner: Runner | None = None) -> int:
