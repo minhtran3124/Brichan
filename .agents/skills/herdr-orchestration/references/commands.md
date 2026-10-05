@@ -199,7 +199,13 @@ bin/brichan-herdr-agent-observe observe <brichan-name> \
   --lines 200 \
   --project-root <absolute-target-project> \
   --evidence <repo-relative-path> [--evidence <repo-relative-path> ...]
+bin/brichan-herdr-agent-observe watch <brichan-name> \
+  [--stop-on <state>]... [--interval-ms 30000] [--max-duration-ms 1800000]
 ```
+
+`watch` streams one JSON line per scheduling-state transition and ends with
+one `stop`, `expired`, or `error` line; see the skill's event-driven waiting
+rules. It is meant for the Claude Code Monitor tool.
 
 `preflight` reports the client/server version, protocol, compatibility, both
 restart-need values, per-runtime integration health, and capability findings

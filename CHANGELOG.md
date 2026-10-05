@@ -9,6 +9,14 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ### Added
 
+- `brichan-herdr-agent-observe watch <brichan-name>` streams a worker's
+  scheduling-state transitions as one JSON line each and ends with exactly one
+  `stop`, `expired`, or `error` line. The helper loops bounded (at most 30
+  seconds) `herdr agent wait` calls itself, so a Claude Code coordinator can
+  run it under the Monitor tool instead of spending a model turn per wait.
+  `herdr agent wait` now accepts a repeated `--until`, each value checked
+  against the Herdr state vocabulary. A `stop` event is still a scheduling
+  signal only, never completion evidence.
 - A persisted worker ledger (`src/brichan/orchestration/worker_ledger.py`,
   `bin/brichan-herdr-worker-ledger`, console script
   `brichan-herdr-worker-ledger`). `brichan-herdr-agent-start` appends exactly

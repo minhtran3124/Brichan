@@ -47,6 +47,11 @@ PARITY_MARKERS = (
     "escalate",
     # The monitoring surface both trees route observation through.
     "brichan-herdr-agent-observe",
+    # Event-driven waiting keeps the stop-is-not-completion and dispatch
+    # rules wherever the watch is documented (EVWAIT-001).
+    "watch <brichan-name>",
+    "is not proof of completion",
+    "fresh observation shows the worker `working`",
     # Techstack delivery: the packet block, the caps, and the reread gate must
     # reach an installed coordinator, not only a checkout one (plan step 7).
     "Techstack verification requirement: run-before-work",

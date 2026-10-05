@@ -306,7 +306,13 @@ brichan-herdr-agent-observe observe <brichan-name> \
   --lines 200 \
   --project-root /absolute/path/to/repository \
   --evidence relative/path/to/evidence.md
+brichan-herdr-agent-observe watch <brichan-name>
 ```
+
+`watch` prints one JSON line per worker scheduling-state transition and ends
+with one `stop`, `expired`, or `error` line, looping bounded `herdr agent wait`
+calls itself. A Claude Code coordinator runs it under the Monitor tool so that
+waiting costs no model turns.
 
 `preflight` reports the client and server versions, protocol, compatibility,
 both restart-need values, per-runtime integration health parsed from the

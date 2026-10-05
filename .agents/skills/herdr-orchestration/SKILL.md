@@ -129,6 +129,32 @@ Wait in bounded intervals of at most 30 seconds. Never send input to a worker
 automatically — no keys, no prompts, no nudges. A `blocked` worker is reported
 for coordinator judgment or user escalation.
 
+Event-driven waiting (Claude Code runtime). A Claude Code coordinator should
+not spend one model turn per bounded wait. Run `watch` under the Claude Code
+Monitor tool, or as a background Bash task when only the final event matters:
+
+```text
+bin/brichan-herdr-agent-observe watch <brichan-name> \
+  [--stop-on <state>]... [--interval-ms 30000] [--max-duration-ms 1800000]
+```
+
+The helper, not the model, loops bounded `herdr agent wait` calls of at most
+30 seconds and prints one compact JSON line per scheduling-state transition
+(`"event": "state"`), then exactly one final line: `stop` when a stop state is
+reached (default `idle`, `done`, `blocked`; exit `0`), `expired` when the run
+outlives `--max-duration-ms` (exit `0`; re-arm it), or `error` when the agent
+is lost or Herdr fails (exit `1`). Silence means the worker is still in a
+non-stop state, never that it crashed.
+
+- A `stop` event is a scheduling signal only and is not proof of completion:
+  follow it with `observe` and the evidence-file fallback.
+- Start the watch only after a fresh observation shows the worker `working`.
+  A `stop` on `idle` right after dispatch is the `[Pasted text #1]`
+  swallowed-Enter case, not a finished task.
+- Codex has no Monitor tool; a Codex coordinator keeps the bounded
+  `herdr agent wait` loop.
+- `watch` is read-only and never sends input to the worker.
+
 ## Safety
 
 - Run `herdr agent list` before creating or closing anything.

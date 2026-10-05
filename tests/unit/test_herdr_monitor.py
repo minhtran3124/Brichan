@@ -423,15 +423,26 @@ class ReadOnlyAllowlistTest(unittest.TestCase):
                 "wait",
                 "w",
                 "--until",
-                "idle",
-                "--until",
-                "blocked",
+                "finished",
                 "--timeout",
                 "100",
             ],
         ):
             with self.assertRaises(monitor.MonitorError, msg=argv):
                 monitor.assert_read_only(argv)
+
+    def test_wait_accepts_repeated_until_for_watch(self):
+        # A repeated --until matches any listed state on Herdr 0.9.1 (live
+        # probe for EVWAIT-001); watch depends on it to wait for any change.
+        monitor.assert_read_only(
+            ["herdr", "agent", "wait", "w", "--until", "idle", "--until",
+             "blocked", "--timeout", "100"]
+        )
+        self.assertEqual(
+            ["herdr", "agent", "wait", "w", "--until", "done", "--until",
+             "idle", "--timeout", "30000"],
+            monitor.wait_argv("w", ["done", "idle"]),
+        )
 
     def test_malformed_arity_is_refused(self):
         for argv in (
@@ -2090,6 +2101,156 @@ class ExitTableTest(unittest.TestCase):
         self.assertFalse(out.endswith("\n\n"))
         repeated, _ = self.assert_exit(0, ["preflight"])
         self.assertEqual(out, repeated)
+
+
+# ---------------------------------------------------------------------------
+# watch: one event per transition, exactly one final event
+# ---------------------------------------------------------------------------
+
+
+def agent_info(state, pane_id="w37:p8"):
+    return ok_json(
+        {
+            "id": "cli:agent:get",
+            "result": {
+                "agent": {"agent_status": state, "pane_id": pane_id},
+                "type": "agent_info",
+            },
+        }
+    )
+
+
+# Herdr 0.9.1 writes a timed-out wait's error envelope to stderr (live probe).
+WAIT_TIMEOUT = monitor.CommandResult(
+    1,
+    "",
+    json.dumps(
+        {
+            "error": {"code": "timeout", "message": "timed out waiting for agent status"},
+            "id": "cli:agent:wait",
+        }
+    ),
+)
+
+
+def sequence(*results):
+    queue = list(results)
+    return lambda argv: queue.pop(0)
+
+
+class FakeClock:
+    """Advances a fixed step on every read, so durations are deterministic."""
+
+    def __init__(self, step=1.0):
+        self.now = 0.0
+        self.step = step
+
+    def __call__(self):
+        value = self.now
+        self.now += self.step
+        return value
+
+
+class WatchTests(unittest.TestCase):
+    def run_watch(self, runner, **kwargs):
+        events = []
+        kwargs.setdefault("clock", FakeClock())
+        code = monitor.watch_agent("brichan-worker", events.append, runner=runner, **kwargs)
+        return code, events
+
+    def test_transition_to_a_stop_state_emits_state_then_stop(self):
+        runner = FakeRunner(
+            {"agent get": agent_info("working"), "agent wait": agent_info("done")}
+        )
+        code, events = self.run_watch(runner)
+        self.assertEqual(0, code)
+        self.assertEqual(
+            [("state", "working"), ("stop", "done")],
+            [(event["event"], event["state"]) for event in events],
+        )
+        # The wait asks for every state except the current one, bounded.
+        wait = runner.calls[1]
+        until = [wait[i + 1] for i, part in enumerate(wait) if part == "--until"]
+        self.assertEqual(sorted(monitor.AGENT_STATES - {"working"}), until)
+        self.assertEqual("30000", wait[wait.index("--timeout") + 1])
+
+    def test_quiet_interval_rereads_without_repeating_the_event(self):
+        runner = FakeRunner(
+            {
+                "agent get": sequence(agent_info("working"), agent_info("working")),
+                "agent wait": sequence(WAIT_TIMEOUT, agent_info("blocked")),
+            }
+        )
+        code, events = self.run_watch(runner)
+        self.assertEqual(0, code)
+        self.assertEqual(["state", "stop"], [event["event"] for event in events])
+        self.assertEqual("blocked", events[-1]["state"])
+
+    def test_run_past_its_duration_expires_with_exit_zero(self):
+        runner = FakeRunner(
+            {"agent get": agent_info("working"), "agent wait": WAIT_TIMEOUT}
+        )
+        code, events = self.run_watch(runner, max_duration_ms=5000)
+        self.assertEqual(0, code)
+        self.assertEqual("expired", events[-1]["event"])
+        # The last wait never outlives the remaining budget.
+        for call in runner.calls:
+            if call[2] == "wait":
+                self.assertLessEqual(int(call[call.index("--timeout") + 1]), 5000)
+
+    def test_lost_agent_or_failed_wait_ends_with_an_error_event(self):
+        lost = FakeRunner(
+            {
+                "agent get": sequence(agent_info("working"), fail("agent_not_found")),
+                "agent wait": WAIT_TIMEOUT,
+            }
+        )
+        code, events = self.run_watch(lost)
+        self.assertEqual(1, code)
+        self.assertEqual("error", events[-1]["event"])
+
+        broken = FakeRunner(
+            {"agent get": agent_info("working"), "agent wait": fail("socket closed")}
+        )
+        code, events = self.run_watch(broken)
+        self.assertEqual(1, code)
+        self.assertIn("socket closed", events[-1]["detail"])
+
+    def test_custom_stop_states_replace_the_defaults(self):
+        runner = FakeRunner(
+            {
+                "agent get": agent_info("idle"),
+                "agent wait": agent_info("done"),
+            }
+        )
+        code, events = self.run_watch(runner, stop_states={"done"})
+        self.assertEqual(0, code)
+        self.assertEqual(
+            [("state", "idle"), ("stop", "done")],
+            [(event["event"], event["state"]) for event in events],
+        )
+
+    def test_cli_rejects_an_unbounded_interval_or_duration(self):
+        for argv in (
+            ["watch", "w", "--interval-ms", "30001"],
+            ["watch", "w", "--max-duration-ms", "3600001"],
+            ["watch", "w", "--stop-on", "finished"],
+        ):
+            with redirect_stderr(io.StringIO()):
+                self.assertEqual(2, monitor.main(argv, runner=FakeRunner()), argv)
+
+    def test_cli_prints_one_flushed_json_line_per_event(self):
+        runner = FakeRunner(
+            {"agent get": agent_info("working"), "agent wait": agent_info("idle")}
+        )
+        out = io.StringIO()
+        with redirect_stdout(out), mock.patch.object(
+            monitor, "_herdr_available", return_value=True
+        ):
+            code = monitor.main(["watch", "brichan-worker"], runner=runner)
+        self.assertEqual(0, code)
+        lines = out.getvalue().splitlines()
+        self.assertEqual(["state", "stop"], [json.loads(line)["event"] for line in lines])
 
 
 if __name__ == "__main__":
