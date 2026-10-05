@@ -77,6 +77,7 @@ non-stop state, never that it crashed.
 - Codex has no Monitor tool; a Codex coordinator keeps the bounded
   `herdr agent wait` loop.
 - `watch` is read-only and never sends input to the worker.
+
 ## Techstack context
 
 When the target project opts in with a regular, non-symlink

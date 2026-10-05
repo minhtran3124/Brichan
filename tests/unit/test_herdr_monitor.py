@@ -2252,6 +2252,41 @@ class WatchTests(unittest.TestCase):
         lines = out.getvalue().splitlines()
         self.assertEqual(["state", "stop"], [json.loads(line)["event"] for line in lines])
 
+    def test_cli_stop_on_replaces_the_default_stop_states(self):
+        # idle is a default stop state; --stop-on done must keep watching past it.
+        runner = FakeRunner(
+            {
+                "agent get": agent_info("working"),
+                "agent wait": sequence(agent_info("idle"), agent_info("done")),
+            }
+        )
+        out = io.StringIO()
+        with redirect_stdout(out), mock.patch.object(
+            monitor, "_herdr_available", return_value=True
+        ):
+            code = monitor.main(["watch", "w", "--stop-on", "done"], runner=runner)
+        self.assertEqual(0, code)
+        events = [json.loads(line) for line in out.getvalue().splitlines()]
+        self.assertEqual(
+            [("state", "working"), ("state", "idle"), ("stop", "done")],
+            [(event["event"], event["state"]) for event in events],
+        )
+
+    def test_every_failure_ends_with_one_error_event_on_stdout(self):
+        # A missing herdr binary still ends the stream with an error line.
+        out = io.StringIO()
+        with redirect_stdout(out), redirect_stderr(io.StringIO()), mock.patch.object(
+            monitor, "_herdr_available", return_value=False
+        ):
+            self.assertEqual(1, monitor.main(["watch", "w"], runner=FakeRunner()))
+        self.assertEqual("error", json.loads(out.getvalue())["event"])
+
+        # A refused argv inside the loop (library call past the cap) too.
+        runner = FakeRunner({"agent get": agent_info("working")})
+        code, events = self.run_watch(runner, interval_ms=monitor.MAX_WAIT_TIMEOUT_MS + 1)
+        self.assertEqual(1, code)
+        self.assertEqual(["state", "error"], [event["event"] for event in events])
+
 
 if __name__ == "__main__":
     unittest.main()

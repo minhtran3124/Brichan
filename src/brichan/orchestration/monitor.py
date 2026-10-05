@@ -1343,7 +1343,8 @@ def watch_agent(
                     f"herdr agent get {name}",
                 )
             node = changed
-    except AdapterError as error:
+    except MonitorError as error:
+        # AdapterError and a refused argv alike end in the one final event.
         event(WATCH_EVENT_ERROR, detail=str(error))
         return 1
 
@@ -1495,6 +1496,16 @@ def _emit_event_line(payload: dict[str, Any]) -> None:
 
 def _watch_command(args: argparse.Namespace, runner: Runner | None) -> int:
     if not _herdr_available():
+        # Still end the stream with its final event, so a consumer reading
+        # only stdout never sees a silent exit.
+        _emit_event_line(
+            {
+                "agent": args.name,
+                "detail": "herdr is not on PATH",
+                "elapsed_ms": 0,
+                "event": WATCH_EVENT_ERROR,
+            }
+        )
         print(f"{PROGRAM}: herdr is not on PATH", file=sys.stderr)
         return 1
     return watch_agent(
