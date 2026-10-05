@@ -2,6 +2,12 @@
 
 - Status: receipt lifecycle schema v2 is implemented, migrated, mutation-tested,
   and independently reviewed `PASS`.
+- `EVWAIT-001` (2026-10-05, branch `feat/herdr-agent-watch`, commits
+  `746f82e` and `6882121`, not pushed): `brichan-herdr-agent-observe watch`
+  streams worker state transitions as JSON lines for the Claude Code Monitor
+  tool, so a Claude coordinator waits without a model turn per 30 s wait.
+  Review `PASS` (5 Lows, fixed). Next: approach 2, a probed Herdr
+  `events.subscribe` (`pane.agent_status_changed`) push source.
 - Claude Code 2.1.220 is authenticated and routable; Codex and Claude Herdr
   integrations are current.
 - Canonical receipts support schema v1 and v2. V2 separates immutable attempt
