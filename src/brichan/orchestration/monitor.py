@@ -1377,7 +1377,12 @@ def subscribe_pane_events(
     """
 
     payload = run_json(["herdr", "status", "--json"], runner)
-    fields = parse_status_payload(payload)
+    try:
+        fields = parse_status_payload(payload)
+    except StatusSchemaError as error:
+        # A status shape the subscription was not verified against is a
+        # setup failure like any other, so ``auto`` can still fall back.
+        raise AdapterError(f"events.subscribe setup: {error}") from None
     if (fields["server_version"], fields["protocol"]) not in set(verified_support):
         raise AdapterError(
             f"events.subscribe is unverified on herdr {fields['server_version']} "
@@ -1689,7 +1694,12 @@ def _watch_command(args: argparse.Namespace, runner: Runner | None) -> int:
                 "detail": "herdr is not on PATH",
                 "elapsed_ms": 0,
                 "event": WATCH_EVENT_ERROR,
-                "source": args.source,
+                # The same normalization watch_agent applies: auto starts as events.
+                "source": (
+                    WATCH_SOURCE_WAIT
+                    if args.source == WATCH_SOURCE_WAIT
+                    else WATCH_SOURCE_EVENTS
+                ),
             }
         )
         print(f"{PROGRAM}: herdr is not on PATH", file=sys.stderr)

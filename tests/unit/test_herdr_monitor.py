@@ -2279,7 +2279,10 @@ class WatchTests(unittest.TestCase):
             monitor, "_herdr_available", return_value=False
         ):
             self.assertEqual(1, monitor.main(["watch", "w"], runner=FakeRunner()))
-        self.assertEqual("error", json.loads(out.getvalue())["event"])
+        line = json.loads(out.getvalue())
+        self.assertEqual("error", line["event"])
+        # The default auto source is reported as the events mode it starts in.
+        self.assertEqual("events", line["source"])
 
         # A refused argv inside the loop (library call past the cap) too.
         runner = FakeRunner({"agent get": agent_info("working")})
@@ -2331,9 +2334,10 @@ class FakeSocket:
         self.chunks = list(chunks)
         self.sent = b""
         self.closed = False
+        self.timeouts = []
 
     def settimeout(self, value):
-        pass
+        self.timeouts.append(value)
 
     def sendall(self, data):
         self.sent += data
@@ -2434,10 +2438,32 @@ class WatchEventsTests(unittest.TestCase):
         self.assertEqual(1, code)
         self.assertIn("event stream closed", events[-1]["detail"])
 
+    def test_a_corrupted_stream_ends_with_one_error_event(self):
+        for label, line in (
+            ("invalid JSON", b"not json\n"),
+            ("non-object", b"[1, 2]\n"),
+        ):
+            code, events, _ = self.run_watch(
+                self.responses(), FakeSocket(SUBSCRIBED, line)
+            )
+            self.assertEqual(1, code, label)
+            self.assertEqual(["state", "error"], [e["event"] for e in events], label)
+
+    def test_an_events_run_past_its_duration_expires(self):
+        sock = FakeSocket(SUBSCRIBED, None, None, None, None, None, None)
+        code, events, _ = self.run_watch(self.responses(), sock, max_duration_ms=5000)
+        self.assertEqual(0, code)
+        self.assertEqual(("expired", "events"), (events[-1]["event"], events[-1]["source"]))
+        # No single read may outlive the run's remaining budget.
+        self.assertLessEqual(max(sock.timeouts), 5.0)
+
     def test_auto_falls_back_to_the_wait_loop_when_subscribing_fails(self):
         unverified = ok_json(status_with(server__version="0.9.2"))
+        schema_drift = copy.deepcopy(STATUS_JSON_091)
+        del schema_drift["update"]["restart_needed"]
         for label, overrides, sock in (
             ("unverified server", {"status": unverified}, FakeSocket(SUBSCRIBED)),
+            ("status schema drift", {"status": ok_json(schema_drift)}, FakeSocket(SUBSCRIBED)),
             ("connect refused", {}, ConnectionRefusedError("refused")),
             ("no ack", {}, FakeSocket(None)),
         ):
