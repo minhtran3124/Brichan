@@ -6,7 +6,7 @@ catalog. Active coordinator and worker route defaults live only in
 capabilities only; it must not restate which route or coordinator currently
 uses which model, so a routing change never requires editing this file.
 
-Last verified: 2026-07-29.
+Last verified: 2026-07-29 (Codex); 2026-10-08 (Claude Code section).
 
 Evidence commands:
 
@@ -40,27 +40,36 @@ the installed catalog describes it as enabling automatic task delegation.
 
 ## Claude Code
 
-- CLI: installed, version `2.1.220`.
+- CLI: installed, version `2.1.294`.
 - Herdr integration: installed/current (v7).
 - Authentication: verified on 2026-07-29. `claude auth status` reports
   `loggedIn: true`, method `claude.ai`, subscription `max`.
-- Verified aliases: `fable`, `sonnet`, and `opus` each completed an isolated
-  `claude -p` probe on 2026-07-29. Canonical IDs `claude-fable-5`,
-  `claude-sonnet-5`, and `claude-opus-5` also completed live CLI probes. The
-  installed CLI advertises these aliases and full names and supports efforts
-  `low` through `max`.
+- Alias resolution: on 2026-10-08 (Claude Code `2.1.294`) an isolated
+  `claude -p --output-format json` probe per alias reported the model that
+  served it; `sonnet` and `opus` ran at `medium` effort and `fable` at `low`.
+  Aliases move between releases; routing files must use canonical IDs.
 
 | Alias | Canonical ID | Verified effort | Suggested uses |
 |---|---|---:|---|
-| `fable` | `claude-fable-5` | `low` | Complex planning, architectural reasoning, coordination, final review |
-| `opus` | `claude-opus-5` | `high` | Complex implementation, difficult debugging |
-| `sonnet` | `claude-sonnet-5` | `medium` | Repository scanning, summaries, routine implementation |
-| — | `claude-opus-5-5` | `medium` | Implementation and debugging; see note below |
+| `fable` | `claude-fable-5-1` | `low` | Alias target only; no worker run recorded |
+| — | `claude-fable-5` | `low` | Complex planning, architectural reasoning, coordination, final review |
+| `opus` | `claude-opus-5-5` | `medium` | Implementation and debugging; see note below |
+| — | `claude-opus-5` | `high` | Complex implementation, difficult debugging |
+| `sonnet` | `claude-sonnet-5-5` | `medium` | Repository scanning, summaries, routine implementation |
+| — | `claude-sonnet-5` | `medium` | Repository scanning, summaries, routine implementation |
 
-`claude-opus-5-5` completed a live `claude -p` probe on 2026-09-25 (Claude
-Code `2.1.282`, `claude.ai` authentication) and ran as a Herdr worker at
-`medium` effort in `evals/workflow-simplification/stage1/results/results.md`.
-No alias was verified for it; use the canonical ID.
+`claude-fable-5`, `claude-sonnet-5`, and `claude-opus-5` completed live CLI
+probes on 2026-07-29. `claude-opus-5-5` completed a live `claude -p` probe on
+2026-09-25 (Claude Code `2.1.282`, `claude.ai` authentication) and ran as a
+Herdr worker at `medium` effort in
+`evals/workflow-simplification/stage1/results/results.md`.
+`claude-sonnet-5-5` completed a live `claude -p` probe at `medium` effort on
+2026-10-08 (Claude Code `2.1.294`) and ran as a Herdr `scan` worker at
+`medium` effort in `evals/workflow-simplification/wfs-009/scan-inventory.md`.
+A side-by-side run against `claude-sonnet-5` is in
+`evals/workflow-simplification/sonnet55/results/results.md`.
+Its effort levels are recalibrated from `claude-sonnet-5`, so Sonnet 5 effort
+tuning does not carry over.
 
 Claude is routable. Brichan pins canonical IDs in its routing files so a future
 Claude alias update cannot silently change the model. Re-check
@@ -86,11 +95,11 @@ defaults in `config/model-routing.json`.
 
 | Task | First choice | Escalate when |
 |---|---|---|
-| Fast repository inventory | Luna, `medium` | Findings require architectural inference |
-| Routine implementation | Terra, `medium` | Cross-cutting design or repeated failure |
+| Fast repository inventory | Luna or `claude-sonnet-5-5`, `medium` | Findings require architectural inference |
+| Routine implementation | Terra or `claude-opus-5-5`, `medium` | Cross-cutting design or repeated failure |
 | Complex implementation | Sol, `high` | Only after scope and criteria are clear |
 | Difficult root-cause debugging | Sol, `high` or `xhigh` | Reproduction is verified but cause remains unclear |
-| Test/lint execution and summarization | Luna, `medium` | Failures require diagnosis |
+| Test/lint execution and summarization | Luna or `claude-sonnet-5-5`, `medium` | Failures require diagnosis |
 | Independent code review | Different provider if verified; otherwise fresh Sol session | Security or production risk requires human review |
 | Chief-of-Staff coordination | Terra, `medium` | Material strategy/architecture decision needs Sol or user |
 
