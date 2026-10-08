@@ -1,0 +1,35 @@
+# Policy pack audit findings (WFS-010)
+
+Pack: `pack/` (paths below are relative to it).
+
+## Defects
+
+1. `policy/operating.md:15-16` — **missing-reference**
+   Verification requires running `scripts/validate_packets.py`, but `scripts/` holds only `check_memory.py` and `start_worker.py`. The task register (`memory/tasks.md:9`, T-005 "Packet validator", blocked) shows it was never built, so the rule cannot be followed.
+
+2. `policy/review.md:10` — **missing-reference**
+   Links `../templates/review.md`, but the pack has no `templates/` directory.
+
+3. `policy/review.md:6-7`, `policy/workers.md:10` — **contradiction**
+   `review.md` lets a read-only research worker start a helper sub-agent. `workers.md` says workers never spawn sub-agents or delegate any part of their task. Both cannot be followed.
+
+4. `config/routing.json:7`, `policy/catalog.md:9`, `policy/operating.md:20-21` — **config-violates-policy**
+   The `scan` route uses `atlas-1`. The catalog marks `atlas-1` "retired 2026-08-15; must not be routed", and `operating.md` forbids routing a retired model.
+
+5. `policy/workers.md:5`, `config/routing.json:7`, `README.md:13-14` — **contradiction**
+   `workers.md` says scan workers run on `atlas-2-mini`. The README says routing lives only in `config/routing.json` and policy files never restate which route uses which model. The restatement also disagrees with the config (`atlas-1`).
+
+6. `memory/tasks.md:8`, `memory/tasks.md:10` — **data-integrity**
+   ID `T-004` appears twice for different tasks ("Catalog refresh" and "Escalation guide"). IDs should be unique, and the ID sequence skips T-006.
+
+## Checked and not defects
+
+- `policy/escalation.md:6` links `operating.md#monitoring`. That heading exists at `policy/operating.md:8`.
+- `policy/operating.md:10` (coordinator waits at most 30 s) and `policy/workers.md:14` (worker polls an external process at most every 60 s) govern different actors and activities, so they do not conflict.
+- `policy/workers.md:19-21` mentions a nested `policy/local/` file. It is hypothetical, and the pack itself says such a file is an override, not a conflict, so the missing directory is not a broken reference.
+- `scripts/check_memory.py` and `scripts/start_worker.py` are one-line stubs. The pack labels them "fixture stub", and both exist as referenced.
+- `atlas-2-mini` appears in the catalog (`policy/catalog.md:7`) but in no route. The catalog describes capability only, and unrouted models are allowed.
+- The retired `atlas-1` row (`policy/catalog.md:9`) is itself valid. The defect is the route that uses it (finding 4).
+- All README links other than review's template resolve: `policy/operating.md`, `policy/workers.md`, `policy/catalog.md`, `policy/review.md`, `memory/tasks.md`, `policy/escalation.md`.
+- `routing.json` is valid JSON with all four routes well-formed. The `plan` and `review` routes use `atlas-2` and `implement` uses `boreal-3`, all active in the catalog.
+- `orchard-` worker owner names in `memory/tasks.md` match the `orchard-` naming rule at `policy/workers.md:5`. The owner "coordinator" for T-001 is not a worker.

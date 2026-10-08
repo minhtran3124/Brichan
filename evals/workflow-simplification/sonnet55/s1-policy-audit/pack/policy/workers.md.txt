@@ -1,0 +1,21 @@
+# Worker rules
+
+## Identity
+
+Every worker name starts with `orchard-`. Scan workers run on `atlas-2-mini`. Workers are told they act for the
+coordinator, never for the human user.
+
+## Delegation limits
+
+Workers never spawn sub-agents or delegate any part of their task.
+
+## Waiting
+
+A worker that waits on an external process polls at most every 60 seconds and
+reports progress after each poll.
+
+## Scope
+
+A worker edits only paths named in its packet. A nested `policy/local/` file
+may narrow these rules for its own directory; that is an override, not a
+conflict.

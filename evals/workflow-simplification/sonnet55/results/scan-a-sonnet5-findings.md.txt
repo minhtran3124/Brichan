@@ -1,0 +1,35 @@
+# Policy pack audit findings
+
+Pack root: `evals/workflow-simplification/sonnet55/s1-policy-audit/pack/`.
+All paths below are relative to that root unless stated otherwise.
+
+## Defects
+
+1. **config-violates-policy** — `config/routing.json:7`, `policy/catalog.md:9`, `policy/operating.md:20-21`
+   `routing.json` routes `"scan": {"model": "atlas-1", ...}`, but `catalog.md` marks `atlas-1` "retired 2026-08-15; must not be routed," and `operating.md`'s own Routing rule says "Do not route a model the catalog marks as retired." The configuration directly violates the pack's own routing rule.
+
+2. **contradiction** — `policy/workers.md:5`, `config/routing.json:7`
+   `workers.md` states "Scan workers run on `atlas-2-mini`," but `routing.json` configures the `scan` route to `atlas-1`. The two cannot both be true about which model actually backs scan workers.
+
+3. **contradiction** — `README.md:13-14`, `policy/workers.md:5`
+   `README.md` states "Policy files describe rules; they never restate which route uses which model." `policy/workers.md:5` then states "Scan workers run on `atlas-2-mini`," which is exactly a route-to-model restatement, violating the pack's own division of concerns.
+
+4. **contradiction** — `policy/review.md:6-7`, `policy/workers.md:10`
+   `review.md` says "For a read-only research task, the worker may start one helper sub-agent to parallelize source reading, provided it records the helper in its report." `workers.md:10` says "Workers never spawn sub-agents or delegate any part of their task," with no stated exception. The two rules cannot both be followed for a read-only research worker.
+
+5. **missing-reference** — `policy/operating.md:16`
+   `operating.md` requires running `scripts/validate_packets.py` before closing a task, but no such file exists under `scripts/` (only `scripts/check_memory.py` and `scripts/start_worker.py` are present).
+
+6. **missing-reference** — `policy/review.md:9-10`
+   `review.md` directs reviewers to fill "the [review template](../templates/review.md)," but no `templates/` directory or `templates/review.md` file exists anywhere in the pack.
+
+7. **data-integrity** — `memory/tasks.md:8`, `memory/tasks.md:10`
+   The task register uses ID `T-004` twice: once for "Catalog refresh" (owner `orchard-cat`, status `active`) and again for "Escalation guide" (owner `orchard-esc`, status `done`). Task IDs are not unique, breaking the register's own key integrity.
+
+## Checked, not a defect
+
+- `catalog.md` lists `atlas-2-mini` as active and suggested for "Scanning and summaries." This is consistent on its own; the conflict is in `routing.json` and `workers.md` (findings 1-2), not in the catalog entry itself.
+- `policy/escalation.md:5` links to `operating.md#monitoring`; `operating.md` has a matching `## Monitoring` heading, so the anchor resolves.
+- `operating.md`'s "Monitoring" rule (coordinator waits on workers in intervals of at most 30 seconds) and `workers.md`'s "Waiting" rule (a worker polls an external process at most every 60 seconds) describe different actors waiting on different things (coordinator-on-worker vs. worker-on-external-process), so they do not conflict.
+- `scripts/check_memory.py` and `scripts/start_worker.py` contain only a docstring each. `README.md` itself describes the scripts directory as "helper script stubs," so minimal stub content is explained by the pack, not a defect.
+- `policy/workers.md`'s "Scope" section mentions that "a nested `policy/local/` file may narrow these rules" as a general override mechanism; it does not assert that such a file currently exists in this pack, so its absence is not a missing reference.

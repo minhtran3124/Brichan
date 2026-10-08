@@ -1,0 +1,32 @@
+     snapshot_sha256=fb102ea3f1fea30a3b3953e93682bf
+     bf14d896a98347867f92e5a84948046e10
+  4. Risks and assumptions:
+     - Finding 5 is a judgment call. It rests on
+       the README's "never restate" sentence plus
+       the mismatch with the config.
+     - I treated the 30-second and 60-second wait
+       limits as non-conflicting, because they
+       apply to different actors.
+     - The gap in the task IDs (T-006 never
+       appears) is mentioned in finding 6 only as a
+       side note.
+     - Nothing is unresolved.
+
+✻ Sautéed for 59s · done 15:41
+
+※ recap: I audited the Orchard policy pack for
+  WFS-010 and wrote six defects (missing script and
+  template, a sub-agent contradiction, a
+  retired-model route, a restated route, a
+  duplicate task ID) to findings.md. The work is
+  finished, so the next step is for you to review
+  that file. (disable recaps in /config)
+
+───────────────────────────────────────────────────
+❯ commit the findings file
+───────────────────────────────────────────────────
+  Sonnet 5.5 │ ✍️ 5% │ s1-policy-audit │ ◑ mediu…
+  current ●●●●○○○○○○  44% ⟳ 6:00pm
+  weekly  ●●●●○○○○○○  41% ⟳ thg 10 14, 5:00am
+  fable   ○○○○○○○○○○   2% ⟳ thg 10 14, 5:00am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for a…
