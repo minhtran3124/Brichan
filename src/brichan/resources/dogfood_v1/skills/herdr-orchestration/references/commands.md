@@ -30,7 +30,16 @@ brichan-herdr-agent-observe observe <brichan-name> \
   --lines 200 \
   --project-root <absolute-target-project> \
   --evidence <repo-relative-path>
+brichan-herdr-agent-observe watch <brichan-name> \
+  [--source auto|events|wait] [--stop-on <state>]... \
+  [--interval-ms 30000] [--max-duration-ms 1800000]
 ```
+
+`watch` streams one JSON line per scheduling-state transition and ends with
+one `stop`, `expired`, or `error` line; see the skill's event-driven waiting
+rules. It is meant for the Claude Code Monitor tool. By default it receives
+changes from Herdr's `events.subscribe` socket stream and falls back to
+bounded `herdr agent wait` calls when that is unavailable.
 
 It exits `0` report collected, `1` report impossible, `2` invalid invocation or
 rejected path. Herdr `0.9.1` (protocol `22`) is the minimum supported version

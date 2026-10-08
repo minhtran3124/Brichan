@@ -19,7 +19,8 @@ separated:
   parses or judges content.
 
 Every Herdr command this module may run is read-only, and no code path sends
-input to an agent.
+input to an agent. The one socket call, ``events.subscribe`` used by ``watch``,
+only receives events.
 """
 
 from __future__ import annotations
@@ -30,9 +31,11 @@ import json
 import os
 import re
 import shutil
+import socket
 import stat
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Sequence
 
@@ -67,6 +70,24 @@ COMPLETENESS_CAPABILITIES: frozenset[str] = frozenset()
 
 #: Hard cap on every ``herdr agent wait`` timeout, in milliseconds.
 MAX_WAIT_TIMEOUT_MS = 30000
+
+#: The complete ``herdr agent wait --until`` vocabulary on Herdr ``0.9.1``.
+#: Every ``--until`` value is checked against it, so a typo can never become a
+#: wait that silently matches nothing until its timeout.
+AGENT_STATES: frozenset[str] = frozenset(
+    {"idle", "working", "blocked", "done", "unknown"}
+)
+
+#: States at which ``watch`` stops by default: the worker is no longer
+#: working, so the coordinator has something to look at. Reaching one is a
+#: scheduling signal only, never completion evidence.
+DEFAULT_WATCH_STOP_STATES: frozenset[str] = frozenset({"idle", "done", "blocked"})
+
+#: Default and hard cap on one ``watch`` run, in milliseconds. The default
+#: matches the Claude Code Monitor tool's 30-minute cap; the coordinator
+#: re-arms a watch that expires.
+DEFAULT_WATCH_DURATION_MS = 1_800_000
+MAX_WATCH_DURATION_MS = 3_600_000
 
 #: Runtime identifiers Herdr reports in ``integration status``. Frozen from a
 #: live ``0.7.3`` probe on 2026-08-14 and extended with the four runtimes a
@@ -193,6 +214,7 @@ class CommandGrammar:
     positionals: int
     options: dict[str, int]  # option -> number of values it consumes
     required: frozenset[str] = frozenset()
+    repeatable: frozenset[str] = frozenset()
 
 
 #: Exact read-only Herdr command grammars. Nothing here mutates control-plane
@@ -230,14 +252,17 @@ COMMAND_GRAMMARS: dict[tuple[str, ...], CommandGrammar] = {
         required=frozenset({"--json"}),
     ),
     # ``--status`` was removed in Herdr ``0.9.1``; the state option is now
-    # ``--until``. It is repeatable on the client, but this grammar keeps the
-    # single-occurrence rule: one state per wait, always with a bounded
-    # ``--timeout``.
+    # ``--until``. It is repeatable on the client, and a repeated ``--until``
+    # matches any listed state (re-verified live on ``0.9.1`` on 2026-10-05
+    # for task ``EVWAIT-001``), which is what lets ``watch`` wait for any
+    # change of state. Every value must come from ``AGENT_STATES``, and
+    # ``--timeout`` stays single and bounded.
     ("agent", "wait"): CommandGrammar(
         adapter="json",
         positionals=1,
         options={"--until": 1, "--timeout": 1},
         required=frozenset({"--until", "--timeout"}),
+        repeatable=frozenset({"--until"}),
     ),
 }
 
@@ -290,7 +315,7 @@ def validate_argv(argv: Sequence[str]) -> tuple[tuple[str, ...], CommandGrammar]
                     f"refusing unknown option {token!r} for "
                     f"{'herdr ' + ' '.join(prefix)!r}"
                 )
-            if token in seen:
+            if token in seen and token not in grammar.repeatable:
                 raise MonitorError(
                     f"refusing duplicate option {token!r} for "
                     f"{'herdr ' + ' '.join(prefix)!r}"
@@ -303,6 +328,13 @@ def validate_argv(argv: Sequence[str]) -> tuple[tuple[str, ...], CommandGrammar]
                 value = rest[index + offset]
                 if value.startswith("-"):
                     raise MonitorError(f"option {token!r} is missing its value")
+            if prefix == ("agent", "wait") and token == "--until":
+                state = rest[index + 1]
+                if state not in AGENT_STATES:
+                    raise MonitorError(
+                        f"herdr agent wait --until must be one of "
+                        f"{', '.join(sorted(AGENT_STATES))}, got {state!r}"
+                    )
             index += arity + 1
             continue
         positionals += 1
@@ -354,8 +386,10 @@ def _assert_every_timeout_is_bounded(rest: Sequence[str]) -> None:
             )
 
 
-def wait_argv(name: str, status: str, timeout_ms: int = MAX_WAIT_TIMEOUT_MS) -> list[str]:
-    """Build a bounded ``herdr agent wait`` argv.
+def wait_argv(
+    name: str, status: str | Sequence[str], timeout_ms: int = MAX_WAIT_TIMEOUT_MS
+) -> list[str]:
+    """Build a bounded ``herdr agent wait`` argv for one or more states.
 
     The timeout is capped in code, never merely documented.
     """
@@ -366,7 +400,13 @@ def wait_argv(name: str, status: str, timeout_ms: int = MAX_WAIT_TIMEOUT_MS) -> 
         raise MonitorError(
             f"wait timeout must be 1..{MAX_WAIT_TIMEOUT_MS} ms, got {timeout_ms}"
         )
-    argv = ["herdr", "agent", "wait", name, "--until", status, "--timeout", str(timeout_ms)]
+    states = [status] if isinstance(status, str) else list(status)
+    if not states:
+        raise MonitorError("wait needs at least one state")
+    argv = ["herdr", "agent", "wait", name]
+    for state in states:
+        argv += ["--until", state]
+    argv += ["--timeout", str(timeout_ms)]
     assert_read_only(argv)
     return argv
 
@@ -1189,6 +1229,316 @@ def observe_agent(
 
 
 # ---------------------------------------------------------------------------
+# Event-stream watch
+# ---------------------------------------------------------------------------
+
+#: How long ``watch`` waits for Herdr to acknowledge ``events.subscribe``
+#: before it falls back to the bounded-wait loop, in seconds.
+SUBSCRIBE_ACK_TIMEOUT_S = 5.0
+
+WATCH_SOURCE_AUTO = "auto"
+WATCH_SOURCE_EVENTS = "events"
+WATCH_SOURCE_WAIT = "wait"
+WATCH_SOURCES = (WATCH_SOURCE_AUTO, WATCH_SOURCE_EVENTS, WATCH_SOURCE_WAIT)
+
+#: Event names verified live on Herdr ``0.9.1`` for task ``EVWAIT-002``. The
+#: status change is keyed by pane; ``pane.closed`` has no pane filter and
+#: arrives as ``pane_closed`` for every pane, so ``watch`` filters it.
+HERDR_EVENT_STATUS = "pane.agent_status_changed"
+HERDR_EVENT_PANE_CLOSED = "pane_closed"
+
+WATCH_EVENT_STATE = "state"
+WATCH_EVENT_STOP = "stop"
+WATCH_EVENT_EXPIRED = "expired"
+WATCH_EVENT_ERROR = "error"
+
+
+def _agent_node(payload: dict[str, Any], prefix: str) -> dict[str, Any]:
+    agent_node = envelope_result(payload, prefix).get("agent")
+    if not isinstance(agent_node, dict):
+        raise AdapterError(f"{prefix} returned no agent record")
+    return agent_node
+
+
+def _node_state(agent_node: dict[str, Any]) -> str:
+    state = agent_node.get("agent_status")
+    return state if state in AGENT_STATES else "unknown"
+
+
+def _wait_for_change(
+    name: str, states: Sequence[str], timeout_ms: int, runner: Runner | None
+) -> dict[str, Any] | None:
+    """Run one bounded wait; return the agent record, or ``None`` on timeout.
+
+    Herdr ``0.9.1`` reports a wait that runs out as exit ``1`` with error code
+    ``timeout``, written to stderr (live probe 2026-10-05). That one outcome is
+    the normal end of a quiet interval; every other failure is an
+    :class:`AdapterError`.
+    """
+
+    argv = wait_argv(name, states, timeout_ms)
+    result = (runner or default_runner)(argv)
+    prefix = f"herdr agent wait {name}"
+    if result.returncode != 0:
+        try:
+            failure = json.loads(result.stderr)
+        except (json.JSONDecodeError, TypeError):
+            failure = None
+        error = failure.get("error") if isinstance(failure, dict) else None
+        if isinstance(error, dict) and error.get("code") == "timeout":
+            return None
+        detail = (result.stderr or result.stdout).strip()
+        raise AdapterError(f"{prefix} failed: {detail}" if detail else f"{prefix} failed")
+    try:
+        payload = json.loads(result.stdout)
+    except (json.JSONDecodeError, TypeError):
+        payload = None
+    if not isinstance(payload, dict) or "error" in payload:
+        raise AdapterError(f"{prefix} returned an invalid payload")
+    return _agent_node(payload, prefix)
+
+
+Connector = Callable[[str], Any]
+
+
+def default_connector(path: str) -> socket.socket:
+    """Open the Herdr API socket. Only ``events.subscribe`` is ever sent."""
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        sock.connect(path)
+    except OSError:
+        sock.close()
+        raise
+    return sock
+
+
+class EventSubscription:
+    """A newline-delimited JSON event stream from the Herdr socket.
+
+    Herdr ``0.9.1`` acknowledges with ``subscription_started`` and then pushes
+    one JSON object per line. It sends no initial state, and it closes the
+    pane's stream silently: closing a pane emits ``pane_closed`` (when
+    subscribed) but never ends the connection.
+    """
+
+    def __init__(self, sock: Any, clock: Callable[[], float] = time.monotonic):
+        self._sock = sock
+        self._clock = clock
+        self._buffer = b""
+
+    def close(self) -> None:
+        try:
+            self._sock.close()
+        except OSError:
+            pass
+
+    def next_message(self, timeout_s: float) -> dict[str, Any] | None:
+        """Return the next message, or ``None`` when ``timeout_s`` passes."""
+
+        deadline = self._clock() + timeout_s
+        while b"\n" not in self._buffer:
+            remaining = deadline - self._clock()
+            if remaining <= 0:
+                return None
+            self._sock.settimeout(remaining)
+            try:
+                chunk = self._sock.recv(65536)
+            except socket.timeout:
+                return None
+            except OSError as error:
+                raise AdapterError(f"herdr event stream failed: {error}") from None
+            if not chunk:
+                raise AdapterError("herdr event stream closed")
+            self._buffer += chunk
+        line, self._buffer = self._buffer.split(b"\n", 1)
+        try:
+            message = json.loads(line)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            raise AdapterError("herdr event stream sent invalid JSON") from None
+        if not isinstance(message, dict):
+            raise AdapterError("herdr event stream sent a non-object message")
+        return message
+
+
+def subscribe_pane_events(
+    pane_id: str,
+    *,
+    runner: Runner | None = None,
+    connector: Connector | None = None,
+    verified_support: Iterable[tuple[str, int]] = VERIFIED_SUPPORT,
+    clock: Callable[[], float] = time.monotonic,
+) -> EventSubscription:
+    """Subscribe to one pane's status changes plus pane closes.
+
+    Refused, as an :class:`AdapterError`, unless ``herdr status --json``
+    reports a running server on a verified (version, protocol) pair with a
+    socket path; the subscription was verified on ``0.9.1`` only.
+    """
+
+    payload = run_json(["herdr", "status", "--json"], runner)
+    try:
+        fields = parse_status_payload(payload)
+    except StatusSchemaError as error:
+        # A status shape the subscription was not verified against is a
+        # setup failure like any other, so ``auto`` can still fall back.
+        raise AdapterError(f"events.subscribe setup: {error}") from None
+    if (fields["server_version"], fields["protocol"]) not in set(verified_support):
+        raise AdapterError(
+            f"events.subscribe is unverified on herdr {fields['server_version']} "
+            f"protocol {fields['protocol']}"
+        )
+    server = payload.get("server")
+    path = server.get("socket") if isinstance(server, dict) else None
+    if not isinstance(path, str) or not os.path.isabs(path):
+        raise AdapterError("herdr status reports no absolute socket path")
+
+    try:
+        sock = (connector or default_connector)(path)
+    except OSError as error:
+        raise AdapterError(f"cannot connect to the herdr socket: {error}") from None
+    subscription = EventSubscription(sock, clock)
+    request = {
+        "id": "brichan:watch",
+        "method": "events.subscribe",
+        "params": {
+            "subscriptions": [
+                {"type": HERDR_EVENT_STATUS, "pane_id": pane_id, "agent_status": None},
+                {"type": "pane.closed"},
+            ]
+        },
+    }
+    try:
+        try:
+            sock.sendall((json.dumps(request) + "\n").encode("utf-8"))
+        except OSError as error:
+            raise AdapterError(f"herdr events.subscribe failed: {error}") from None
+        ack = subscription.next_message(SUBSCRIBE_ACK_TIMEOUT_S)
+        result = ack.get("result") if isinstance(ack, dict) else None
+        if not isinstance(result, dict) or result.get("type") != "subscription_started":
+            raise AdapterError(f"herdr events.subscribe was not acknowledged: {ack!r}")
+    except AdapterError:
+        subscription.close()
+        raise
+    return subscription
+
+
+def watch_agent(
+    name: str,
+    emit: Callable[[dict[str, Any]], None],
+    *,
+    runner: Runner | None = None,
+    stop_states: Iterable[str] = DEFAULT_WATCH_STOP_STATES,
+    interval_ms: int = MAX_WAIT_TIMEOUT_MS,
+    max_duration_ms: int = DEFAULT_WATCH_DURATION_MS,
+    clock: Callable[[], float] = time.monotonic,
+    source: str = WATCH_SOURCE_WAIT,
+    connector: Connector | None = None,
+) -> int:
+    """Stream one worker's scheduling-state transitions as events.
+
+    Emits one event per observed transition, then exactly one final event:
+    ``stop`` when a stop state is reached (exit ``0``), ``expired`` when the
+    run outlives ``max_duration_ms`` (exit ``0``; re-arm to continue), or
+    ``error`` when the agent is lost or Herdr fails (exit ``1``). Silence
+    therefore always means "still in a non-stop state", never a crash.
+
+    ``source`` picks how changes arrive. ``wait`` loops bounded
+    ``herdr agent wait`` calls that ask for every state other than the current
+    one, so any change ends the wait at once and no next state is guessed.
+    ``events`` subscribes to the Herdr socket and receives each change as it
+    is pushed. ``auto`` tries ``events`` and falls back to ``wait`` when the
+    subscription cannot be set up. Either way, after a quiet ``interval_ms``
+    the state is read again, so a lost agent or a missed change is noticed
+    within one interval. Every event line names the source in use.
+
+    A stop state is a scheduling signal only: it says when to observe, never
+    that the task finished. Read-only; no code path sends input to the agent.
+    """
+
+    stops = frozenset(stop_states)
+    started = clock()
+    mode = WATCH_SOURCE_WAIT if source == WATCH_SOURCE_WAIT else WATCH_SOURCE_EVENTS
+    subscription: EventSubscription | None = None
+
+    def elapsed_ms() -> int:
+        return int((clock() - started) * 1000)
+
+    def event(kind: str, **fields: Any) -> None:
+        emit(
+            {
+                "agent": name,
+                "elapsed_ms": elapsed_ms(),
+                "event": kind,
+                "source": mode,
+                **fields,
+            }
+        )
+
+    def get_node() -> dict[str, Any]:
+        return _agent_node(
+            run_json(["herdr", "agent", "get", name], runner), f"herdr agent get {name}"
+        )
+
+    try:
+        node = get_node()
+        pane_id = node.get("pane_id") if isinstance(node.get("pane_id"), str) else None
+        if mode == WATCH_SOURCE_EVENTS:
+            try:
+                if pane_id is None:
+                    raise AdapterError(f"herdr agent get {name} reported no pane")
+                subscription = subscribe_pane_events(
+                    pane_id, runner=runner, connector=connector, clock=clock
+                )
+            except AdapterError:
+                if source == WATCH_SOURCE_EVENTS:
+                    raise
+                mode = WATCH_SOURCE_WAIT
+            else:
+                # The stream sends no initial state: read it once more after
+                # subscribing so a change in between is not lost.
+                node = get_node()
+        last: str | None = None
+        while True:
+            state = _node_state(node)
+            pane_id = node.get("pane_id") if isinstance(node.get("pane_id"), str) else None
+            if state in stops:
+                event(WATCH_EVENT_STOP, state=state, pane_id=pane_id)
+                return 0
+            if state != last:
+                event(WATCH_EVENT_STATE, state=state, pane_id=pane_id)
+                last = state
+            remaining = max_duration_ms - elapsed_ms()
+            if remaining <= 0:
+                event(WATCH_EVENT_EXPIRED, state=state, pane_id=pane_id)
+                return 0
+            if subscription is not None:
+                message = subscription.next_message(min(interval_ms, remaining) / 1000)
+                if message is None:
+                    node = get_node()  # quiet interval: liveness and resync
+                    continue
+                data = message.get("data")
+                if not isinstance(data, dict) or data.get("pane_id") != pane_id:
+                    continue
+                kind = message.get("event")
+                if kind == HERDR_EVENT_PANE_CLOSED:
+                    raise AdapterError(f"herdr pane {pane_id} closed")
+                if kind == HERDR_EVENT_STATUS:
+                    node = {"agent_status": data.get("agent_status"), "pane_id": pane_id}
+                continue
+            others = sorted(AGENT_STATES - {state})
+            changed = _wait_for_change(name, others, min(interval_ms, remaining), runner)
+            node = changed if changed is not None else get_node()
+    except MonitorError as error:
+        # AdapterError and a refused argv alike end in the one final event.
+        event(WATCH_EVENT_ERROR, detail=str(error))
+        return 1
+    finally:
+        if subscription is not None:
+            subscription.close()
+
+
+# ---------------------------------------------------------------------------
 # Deterministic rendering and CLI
 # ---------------------------------------------------------------------------
 
@@ -1235,6 +1585,26 @@ def build_parser() -> _Parser:
     observe.add_argument("--source", default=DEFAULT_READ_SOURCE)
     observe.add_argument("--project-root", dest="project_root", default=None)
     observe.add_argument("--evidence", action="append", default=[])
+
+    watch = subparsers.add_parser("watch")
+    watch.add_argument("name")
+    watch.add_argument(
+        "--stop-on",
+        dest="stop_on",
+        action="append",
+        choices=sorted(AGENT_STATES),
+        default=None,
+    )
+    watch.add_argument(
+        "--interval-ms", dest="interval_ms", type=_positive_int, default=MAX_WAIT_TIMEOUT_MS
+    )
+    watch.add_argument("--source", choices=WATCH_SOURCES, default=WATCH_SOURCE_AUTO)
+    watch.add_argument(
+        "--max-duration-ms",
+        dest="max_duration_ms",
+        type=_positive_int,
+        default=DEFAULT_WATCH_DURATION_MS,
+    )
     return parser
 
 
@@ -1244,6 +1614,16 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     if args.command == "observe":
         if args.evidence and not args.project_root:
             raise UsageError("--evidence requires --project-root")
+    if args.command == "watch":
+        if args.interval_ms > MAX_WAIT_TIMEOUT_MS:
+            raise UsageError(
+                f"--interval-ms must be 1..{MAX_WAIT_TIMEOUT_MS}, got {args.interval_ms}"
+            )
+        if args.max_duration_ms > MAX_WATCH_DURATION_MS:
+            raise UsageError(
+                f"--max-duration-ms must be 1..{MAX_WATCH_DURATION_MS}, "
+                f"got {args.max_duration_ms}"
+            )
     return args
 
 
@@ -1296,6 +1676,53 @@ def _observe_command(args: argparse.Namespace, runner: Runner | None) -> int:
     return 0
 
 
+def _emit_event_line(payload: dict[str, Any]) -> None:
+    """One compact JSON object per line, flushed, so a line-reading consumer
+    such as the Claude Code Monitor tool sees each event as it happens."""
+
+    sys.stdout.write(json.dumps(payload, sort_keys=True, ensure_ascii=False) + "\n")
+    sys.stdout.flush()
+
+
+def _watch_command(args: argparse.Namespace, runner: Runner | None) -> int:
+    if not _herdr_available():
+        # Still end the stream with its final event, so a consumer reading
+        # only stdout never sees a silent exit.
+        _emit_event_line(
+            {
+                "agent": args.name,
+                "detail": "herdr is not on PATH",
+                "elapsed_ms": 0,
+                "event": WATCH_EVENT_ERROR,
+                # The same normalization watch_agent applies: auto starts as events.
+                "source": (
+                    WATCH_SOURCE_WAIT
+                    if args.source == WATCH_SOURCE_WAIT
+                    else WATCH_SOURCE_EVENTS
+                ),
+            }
+        )
+        print(f"{PROGRAM}: herdr is not on PATH", file=sys.stderr)
+        return 1
+    try:
+        return watch_agent(
+            args.name,
+            _emit_event_line,
+            runner=runner,
+            stop_states=args.stop_on or DEFAULT_WATCH_STOP_STATES,
+            interval_ms=args.interval_ms,
+            max_duration_ms=args.max_duration_ms,
+            source=args.source,
+        )
+    except BrokenPipeError:
+        # The reader went away (a stopped Monitor, a closed pipe): nobody is
+        # left to tell, so end quietly instead of with a traceback.
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+        os.close(devnull)
+        return 1
+
+
 def main(argv: Sequence[str] | None = None, *, runner: Runner | None = None) -> int:
     """Entry point. Exit ``0`` collected, ``1`` impossible, ``2`` invalid."""
 
@@ -1310,6 +1737,8 @@ def main(argv: Sequence[str] | None = None, *, runner: Runner | None = None) -> 
     try:
         if args.command == "preflight":
             return _preflight_command(args, runner)
+        if args.command == "watch":
+            return _watch_command(args, runner)
         return _observe_command(args, runner)
     except PathValidationError as error:
         print(f"{PROGRAM}: {error}", file=sys.stderr)

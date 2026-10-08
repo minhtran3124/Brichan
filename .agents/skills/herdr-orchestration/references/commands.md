@@ -199,7 +199,16 @@ bin/brichan-herdr-agent-observe observe <brichan-name> \
   --lines 200 \
   --project-root <absolute-target-project> \
   --evidence <repo-relative-path> [--evidence <repo-relative-path> ...]
+bin/brichan-herdr-agent-observe watch <brichan-name> \
+  [--source auto|events|wait] [--stop-on <state>]... \
+  [--interval-ms 30000] [--max-duration-ms 1800000]
 ```
+
+`watch` streams one JSON line per scheduling-state transition and ends with
+one `stop`, `expired`, or `error` line; see the skill's event-driven waiting
+rules. It is meant for the Claude Code Monitor tool. By default it receives
+changes from Herdr's `events.subscribe` socket stream and falls back to
+bounded `herdr agent wait` calls when that is unavailable.
 
 `preflight` reports the client/server version, protocol, compatibility, both
 restart-need values, per-runtime integration health, and capability findings
@@ -230,8 +239,9 @@ herdr integration status
 ```
 
 The wait state option is `--until` on `0.9.1`; `--status` was removed and the
-client exits `2` on it. `--until` is repeatable on the client, but Brichan
-emits one state per wait and always with `--timeout 30000` or less.
+client exits `2` on it. `--until` is repeatable on the client. `observe`
+builds one state per wait; the `watch` fallback loop passes one `--until` per
+state other than the current one. Every wait uses `--timeout 30000` or less.
 
 `herdr integration status` is text-only on `0.9.1`; its
 `--json` flag exits `2`. On `0.9.1` its rows added an `(experimental)` runtime

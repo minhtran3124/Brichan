@@ -52,6 +52,39 @@ invocation or rejected path).
 - Before declaring a worker stale, record three timestamped no-progress
   observations, then allow one bounded replacement, then escalate.
 
+Event-driven waiting (Claude Code runtime). A Claude Code coordinator should
+not spend one model turn per bounded wait. Run `watch` under the Claude Code
+Monitor tool, or as a background Bash task when only the final event matters:
+
+```text
+brichan-herdr-agent-observe watch <brichan-name> \
+  [--source auto|events|wait] [--stop-on <state>]... \
+  [--interval-ms 30000] [--max-duration-ms 1800000]
+```
+
+The helper, not the model, does the waiting and prints one compact JSON line
+per scheduling-state transition (`"event": "state"`). With the default
+`--source auto` it subscribes to Herdr's `events.subscribe` socket stream
+(verified on `0.9.1` only), so each change is pushed; if the subscription
+cannot be set up it falls back to bounded `herdr agent wait` calls of at most
+30 seconds (`--source wait` forces that loop, `--source events` refuses the
+fallback). Either way the state is re-read after every quiet interval, so a
+lost agent is reported within one interval, and every line names its
+`source`. It then prints exactly one final line: `stop` when a stop state is
+reached (default `idle`, `done`, `blocked`; exit `0`), `expired` when the run
+outlives `--max-duration-ms` (exit `0`; re-arm it), or `error` when the agent
+is lost or Herdr fails (exit `1`). Silence means the worker is still in a
+non-stop state, never that it crashed.
+
+- A `stop` event is a scheduling signal only and is not proof of completion:
+  follow it with `observe` and the evidence-file fallback.
+- Start the watch only after a fresh observation shows the worker `working`.
+  A `stop` on `idle` right after dispatch is the `[Pasted text #1]`
+  swallowed-Enter case, not a finished task.
+- Codex has no Monitor tool; a Codex coordinator keeps the bounded
+  `herdr agent wait` loop.
+- `watch` is read-only and never sends input to the worker.
+
 ## Techstack context
 
 When the target project opts in with a regular, non-symlink
