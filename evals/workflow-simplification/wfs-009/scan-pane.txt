@@ -1,0 +1,121 @@
+
+ ▐▛███▛█   Claude Code v2.1.294
+▝▜██████▀  Sonnet 5.5 with medium effort · Claude Max
+ ▝▝   ▝▝   ~/Documents/minh.tran/projects/Brichan
+
+
+❯ You are a worker agent coordinated by Brichan, an AI Chief of Staff acting on
+  the user's behalf. Brichan is the delegated project coordinator, not the human
+  user.
+
+  Task ID: WFS-009 (scan step)
+
+  Objective: Inventory every reference to a Claude model ID or Claude CLI model
+  alias in this repository's runtime surface, and write the inventory to one
+  evidence file.
+
+  Context: The checkout scan route was just moved from claude-sonnet-5 to
+  claude-sonnet-5-5, and the packaged installed-mode Claude coordinator from
+  claude-opus-5 to claude-opus-5-5. This inventory checks for leftover pins and
+  gives the coordinator an independent cross-check. You are also the first Herdr
+  worker run on claude-sonnet-5-5.
+
+  Applicable operating policy:
+  - Read and follow docs/policy/operating-principles.md, including its testing
+  discipline, before running Required verification.
+
+  Upstream plan and receipt: none (null).
+
+  In scope:
+  - Search these paths: config/, docs/ (all of it), .agents/, src/, tests/,
+  bin/, scripts/, packaging/, README.md, README_PYPI.md, CHANGELOG.md,
+  AGENTS.md, CLAUDE.md, PRODUCT.md, Makefile, pyproject.toml.
+  - Match full IDs that start with claude-fable, claude-opus, claude-sonnet, or
+  claude-haiku, and the bare CLI aliases fable, opus, sonnet, haiku where they
+  are used as a model value (not ordinary prose).
+
+  Out of scope:
+  - evals/, metrics/, projects/, .git/.
+  - Changing any file other than the one deliverable below.
+
+  Deliverable:
+  - Create evals/workflow-simplification/wfs-009/scan-inventory.md with one
+  table row per occurrence: path:line, the exact ID or alias, and one class
+  from: active-routing-pin (a JSON routing value that selects a model at
+  runtime), catalog-record, test-fixture, documentation, other. After the table,
+  list any active-routing-pin that names claude-sonnet-5, claude-opus-5, or
+  claude-fable-5 exactly, and state the total row count.
+
+  Acceptance criteria:
+  - Every occurrence in scope is listed once, with a correct path:line.
+  - Every row has exactly one class from the list above.
+  - git status --short shows the deliverable as the only change you made.
+
+  Required verification:
+  - Before finishing, re-run your search and confirm the row count matches it.
+  Include the exact search command(s) you ran in the deliverable.
+
+  Constraints:
+  - Do not spawn sub-agents or delegate this task.
+  - Do not broaden permissions or access secrets.
+  - Do not modify files outside the stated scope.
+  - Do not perform destructive, remote, production, deployment, or publishing
+  actions.
+
+  Escalate when:
+  - The search scope or the class of an occurrence is genuinely ambiguous in a
+  way that changes the result; say which and stop.
+
+  Final response:
+  1. Outcome.
+  2. Files/artifacts changed.
+  3. Verification and evidence.
+  4. Risks, assumptions, and unresolved issues.
+
+  Read 1 file, listed 1 directory, ran 1 shell command
+
+● zsh doesn't word-split the variable; use an array.
+
+  Ran 4 shell commands
+
+● 1. Outcome: The inventory is written with 29 rows (24 full model IDs and 5 bare
+     aliases). Two active routing pins still name an exact old ID:
+     config/model-routing.json:11 and :19, both claude-fable-5. These are the
+     Claude coordinator default and the plan route. No active pin names
+     claude-sonnet-5 or claude-opus-5. The scan route (claude-sonnet-5-5), the
+     implement route (claude-opus-5-5) and the packaged dogfood coordinator
+     (claude-opus-5-5) are on the new IDs.
+  2. Files changed: I created only
+     evals/workflow-simplification/wfs-009/scan-inventory.md. git status --short
+     also shows the three modified files that were already there before I
+     started: config/model-routing.json, docs/policy/model-catalog.md and the
+     dogfood model-routing.json. I didn't touch them.
+  3. Verification:
+     - I re-ran both grep commands, which are saved in the deliverable. They
+       returned 24 full-ID and 5 alias hits, and the table has 29 rows.
+     - I read docs/policy/operating-principles.md first. No tests were needed
+       because I changed no executable behavior.
+  4. Risks and assumptions:
+     - Catalog split: I classed the alias and ID table rows at
+       docs/policy/model-catalog.md:54-59 as catalog-record, and the probe notes
+       and guidance table (lines 61-99) as documentation. The line-61 to 99 call
+       is judgment-based and doesn't change which pins are stale.
+     - Aliases: Only the bare aliases used as values were counted: three catalog
+       alias cells and "sonnet" at tests/integration/test_cli_compatibility.py:85
+       and :90. The prose "Sonnet 5" at model-catalog.md:68 and the word
+       "diffable" were excluded.
+     - Missing paths: .agents/ and every other in-scope path exist, so nothing
+       was skipped.
+     - Not checked: I didn't check the 29 hits against the scan-route change, so
+       I can't say whether the two claude-fable-5 pins are intended.
+
+✻ Cogitated for 50s · done 15:18
+
+─────────────────────────────────────────────────────────────────────────────────
+❯ Report back to Brichan that WFS-009 scan is complete
+─────────────────────────────────────────────────────────────────────────────────
+  Sonnet 5.5 │ ✍️ 5% │ Brichan (main*) │ ◑ medium │ ◷ cache 0% 60m │ 🐍 3.12.3…
+  current ●●●○○○○○○○  30% ⟳ 6:00pm
+  weekly  ●●●○○○○○○○  39% ⟳ thg 10 14, 5:00am
+  fable   ○○○○○○○○○○   0% ⟳ thg 10 14, 4:59am
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents
