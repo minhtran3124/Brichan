@@ -24,8 +24,8 @@ Lows recorded in `handoffs/WFS-005/code-review.md` (local).
   `claude-opus-5-5` (effort unchanged); catalog re-probed (aliases now
   `sonnet`/`opus`/`fable` -> `claude-sonnet-5-5`/`claude-opus-5-5`/
   `claude-fable-5-1`). First `claude-sonnet-5-5` Herdr worker matched the
-  coordinator's inventory 29/29. Review PASS (2 Lows fixed). Uncommitted on
-  `main`; commit, PR, and release not authorized.
+  coordinator's inventory 29/29. Review PASS (2 Lows fixed). In PR #41;
+  release not authorized.
 - 2026-10-08: WFS-010 side-by-side `claude-sonnet-5` vs `claude-sonnet-5-5`
   (stage 1 coding tasks at `40f46d8` plus a seeded scan audit): `sonnet-5-5`
   preferred. Blind review 42 vs 36; `sonnet-5` shipped 2 functional defects
@@ -67,9 +67,8 @@ None.
    Codex usage-limited; reviews run on Claude meanwhile.
 6. Dogfood count toward the adoption check: WFS-006 (L1), WFS-007 (L0),
    WFS-008 (L0), WFS-009 (L1) -- no escaped defect so far.
-7. User decides whether to commit WFS-009 and WFS-010 (three routing and
-   catalog files plus `evals/workflow-simplification/wfs-009/` and
-   `evals/workflow-simplification/sonnet55/`).
+7. User reviews and merges PR #41 (WFS-009 and WFS-010, branch
+   `feat/sonnet-opus-5-5-routing`).
 5. Revisit installed-mode adoption after external dogfood.
 
 ## Unverified assumptions
