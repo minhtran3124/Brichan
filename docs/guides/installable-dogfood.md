@@ -312,8 +312,9 @@ brichan-herdr-agent-observe watch <brichan-name>
 `watch` prints one JSON line per worker scheduling-state transition and ends
 with one `stop`, `expired`, or `error` line. It receives changes from Herdr's
 `events.subscribe` socket stream and falls back to looping bounded
-`herdr agent wait` calls when the subscription is unavailable. A Claude Code coordinator runs it under the Monitor tool so that
-waiting costs no model turns.
+`herdr agent wait` calls when the subscription is unavailable. A Claude Code
+coordinator runs it under the Monitor tool so that waiting costs no model
+turns.
 
 `preflight` reports the client and server versions, protocol, compatibility,
 both restart-need values, per-runtime integration health parsed from the
@@ -339,14 +340,19 @@ state option `--until` (for example `herdr agent wait <brichan-name> --until
 idle --timeout 30000`). Herdr `0.9.1` removed `--status`; the client exits `2`
 on it. `herdr integration status` stays text-only.
 
-Both subcommands write one JSON document to stdout with sorted keys, two-space
-indentation, and exactly one trailing newline.
+`preflight` and `observe` write one JSON document to stdout with sorted keys,
+two-space indentation, and exactly one trailing newline. `watch` writes compact
+newline-delimited JSON, one object per event.
 
 | Exit | Meaning |
 |---:|---|
 | 0 | Report collected, including `unverified`, degraded, and truncation findings |
 | 1 | Report impossible: `herdr` missing, or the primary probe failed, returned malformed JSON, or omitted a required status field |
 | 2 | Invalid invocation, or a rejected project-root or evidence path |
+
+For `watch`, exit `0` means the final line is `stop` or `expired`, exit `1`
+means it is `error` (including `herdr` missing), and exit `2` is an invalid
+invocation.
 
 Exit classes are evaluated in the fixed order 2, then 1, then 0. All argument
 and path validation happens before any subprocess runs, so a rejected path
