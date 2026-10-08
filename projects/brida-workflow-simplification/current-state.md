@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-09-26
+Last updated: 2026-10-08
 
 ## Summary
 
@@ -19,6 +19,18 @@ Lows recorded in `handoffs/WFS-005/code-review.md` (local).
   (proposed); A/B protocol; `claude-opus-5-5` answered a `claude -p` probe.
 - 2026-09-25: stage 1 benchmark (`evals/workflow-simplification/stage1/`),
   catalog entry for `claude-opus-5-5`.
+- 2026-10-08: WFS-009 (level 1) routes checkout `scan` to
+  `claude-sonnet-5-5` and the packaged installed-mode Claude coordinator to
+  `claude-opus-5-5` (effort unchanged); catalog re-probed (aliases now
+  `sonnet`/`opus`/`fable` -> `claude-sonnet-5-5`/`claude-opus-5-5`/
+  `claude-fable-5-1`). First `claude-sonnet-5-5` Herdr worker matched the
+  coordinator's inventory 29/29. Review PASS (2 Lows fixed). Uncommitted on
+  `main`; commit, PR, and release not authorized.
+- 2026-10-08: WFS-010 side-by-side `claude-sonnet-5` vs `claude-sonnet-5-5`
+  (stage 1 coding tasks at `40f46d8` plus a seeded scan audit): `sonnet-5-5`
+  preferred. Blind review 42 vs 36; `sonnet-5` shipped 2 functional defects
+  the hidden tests miss; hidden 36/36 and scan 6/6 with 0 decoys for both;
+  `sonnet-5-5` about 3.5x faster. `evals/workflow-simplification/sonnet55/`.
 
 ## In progress
 
@@ -37,6 +49,11 @@ None.
   model effect in stage 1.
 - Token and time data are mostly `null` today, so savings may stay
   unmeasurable unless stage runs capture them.
+- Codex is not installed on this machine (2026-10-08), so `review` route
+  work falls back to a same-provider stronger Claude model.
+- Techstack receipt contract wants an absolute `--project-root` in the
+  verify row, but receipt path hygiene forbids home paths; WFS-009 recorded
+  `--project-root .`. Needs a policy decision.
 
 ## Next actions
 
@@ -49,11 +66,17 @@ None.
    `fix/worktree-git-file`, stacked on PR #37). Codex update pending and
    Codex usage-limited; reviews run on Claude meanwhile.
 6. Dogfood count toward the adoption check: WFS-006 (L1), WFS-007 (L0),
-   WFS-008 (L0) -- no escaped defect so far.
+   WFS-008 (L0), WFS-009 (L1) -- no escaped defect so far.
+7. User decides whether to commit WFS-009 and WFS-010 (three routing and
+   catalog files plus `evals/workflow-simplification/wfs-009/` and
+   `evals/workflow-simplification/sonnet55/`).
 5. Revisit installed-mode adoption after external dogfood.
 
 ## Unverified assumptions
 
+- `claude-sonnet-5-5` is better than `claude-sonnet-5` in general (WFS-010
+  is four tasks, one sample, same-provider reviewer; the scan fixture hit
+  the ceiling).
 - `claude-opus-5-5` is stronger than `claude-opus-5` in general (stage 1 is
   three tasks, one sample, same-provider reviewer).
 - Level 0/1 review would find nothing on real (not synthetic) tasks.

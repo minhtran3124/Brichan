@@ -10,3 +10,5 @@
 | Verifier research | `internal-docs/research/2026-09-25-llm-as-a-verifier.md` (local, gitignored) | 2026-09-25 | Source of the per-criterion review idea (phase 0) |
 | WFS-005 receipt | `projects/brida-workflow-simplification/handoffs/WFS-005/receipt.md` (local, gitignored dossier) | 2026-09-26 | Level 2 lifecycle evidence; pane captures in `evals/workflow-simplification/wfs-005/` |
 | WFS-006 and WFS-007 receipts | `projects/brida-workflow-simplification/handoffs/WFS-006/receipt.md`, `.../WFS-007/receipt.md` (local, gitignored dossiers) | 2026-09-26 | First level 1 and level 0 tasks under the new lifecycle |
+| WFS-009 receipt and evidence | `projects/brida-workflow-simplification/handoffs/WFS-009/receipt.md` (local, gitignored dossier); `evals/workflow-simplification/wfs-009/` | 2026-10-08 | Sonnet 5.5 scan route, installed Opus 5.5 coordinator, alias re-probe, first Sonnet 5.5 worker run |
+| Sonnet 5.5 side-by-side | `evals/workflow-simplification/sonnet55/results/results.md` | 2026-10-08 | WFS-010: `sonnet-5-5` preferred over `sonnet-5` (42 vs 36 blind review; 0 vs 2 functional defects) |
