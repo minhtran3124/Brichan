@@ -92,15 +92,25 @@ for a not-applicable resolution.
 
 In `## Verification`, one row records the literal verify command with
 `pass; snapshot_sha256=<digest>`, or the literal publication command with
-`pass; snapshot_sha256=null; status=not_applicable`.
+`pass; snapshot_sha256=null; status=not_applicable`, except that the project
+root is written as the exact token `<project-root>`:
+`brichan techstacks verify --project-root <project-root> --snapshot-json <QPATH> --as-of <YYYY-MM-DD>`
+or
+`brichan techstacks resolve --project-root <project-root> --input-json <QINPUT> --snapshot-directory <QDIR>`.
+A receipt must not carry a
+personal or home path, and the CLI accepts only an absolute root, so the task
+packet carries the real root and the receipt names it by token. To rerun a row,
+replace `<project-root>` with the quoted absolute root. Never record `.` or
+another relative root: the CLI rejects it with `PROJECT_ROOT_INVALID`.
 
 The receipt parser splits every table line on the pipe character with no escape
 step, and the Verification validator rejects any row that does not yield
 exactly two columns. `shlex.quote` never removes or escapes a pipe, and a
-backslash escape is not unescaped anywhere. A project root or Snapshot artifact
-path containing a pipe, CR, or LF is out of contract for receipt embedding: do
-not create a techstacks receipt for such a root. Roots containing a space, a
-single quote, or a leading-dash final component are in contract.
+backslash escape is not unescaped anywhere. A Snapshot artifact path, input
+path, or Snapshot directory containing a pipe, CR, or LF is out of contract for
+receipt embedding: do not create a techstacks receipt for such a path. The
+project root never reaches the receipt; roots containing a space, a single
+quote, or a leading-dash final component remain in contract for the packet.
 
 ## Planning reread
 

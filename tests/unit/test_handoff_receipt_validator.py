@@ -566,8 +566,9 @@ class TechstackReceiptRoundTripTest(ReceiptFixtureMixin, unittest.TestCase):
     value and the verify result inside the existing `Verification` table. That
     claim is only credible if a complete receipt carrying those exact bytes
     parses with the production parser and validates with zero diagnostics, so
-    these fixtures freeze the fully substituted commands rather than
-    placeholders. No parser, validator, schema, section, field, generator, or
+    these fixtures freeze fully substituted commands. Policy writes the root
+    as the `<project-root>` token, so that form is frozen too; the substituted
+    roots stay as proof the row survives real quoting. No parser, validator, schema, section, field, generator, or
     template is touched by this module.
     """
 
@@ -724,14 +725,80 @@ class TechstackReceiptRoundTripTest(ReceiptFixtureMixin, unittest.TestCase):
         self.assertEqual(0, result, stderr)
         self.assertIn("Validated 2 canonical handoff receipt", stdout)
 
+    def test_the_project_root_token_form_validates_with_zero_diagnostics(self):
+        """The form policy prescribes: the root is the `<project-root>` token.
+
+        A cell is a placeholder only when the whole value is `<...>`, so a
+        token inside the command must not trip the placeholder check.
+        """
+
+        forms = (
+            (
+                self.applicable_scope(),
+                self.verify_command("<project-root>"),
+                f"pass; snapshot_sha256={self.DIGEST}",
+            ),
+            (
+                "bounded validator implementation; "
+                "Techstack snapshot pointer: none; "
+                "Techstack snapshot SHA-256: null",
+                self.publication_command("<project-root>"),
+                "pass; snapshot_sha256=null; status=not_applicable",
+            ),
+        )
+        for index, (scope, command, result) in enumerate(forms, start=1):
+            with self.subTest(command=command):
+                task_id = f"TASK-4{index:02d}"
+                content = self.implemented_receipt(
+                    task_id=task_id,
+                    scope=scope,
+                    verification_command=command,
+                    verification_result=result,
+                )
+                path = self.write_receipt(content, task_id=task_id)
+                self.assertIn("--project-root <project-root> ", content)
+
+                diagnostics = validate_handoff_receipts.validate_receipt(
+                    path, self.projects
+                )
+                self.assertEqual(
+                    [],
+                    [diagnostic.format() for diagnostic in diagnostics],
+                )
+
+    def test_an_absolute_home_root_in_the_verify_row_fails_path_hygiene(self):
+        """Why the receipt names the root by token: checkouts live under home."""
+
+        for index, root in enumerate(
+            ("/home/alice/repo", "/Users/alice/repo"), start=1
+        ):
+            with self.subTest(root=root):
+                task_id = f"TASK-5{index:02d}"
+                content = self.implemented_receipt(
+                    task_id=task_id,
+                    scope=self.applicable_scope(),
+                    verification_command=self.verify_command(shlex.quote(root)),
+                    verification_result=f"pass; snapshot_sha256={self.DIGEST}",
+                )
+                path = self.write_receipt(content, task_id=task_id)
+
+                diagnostics = validate_handoff_receipts.validate_receipt(
+                    path, self.projects
+                )
+                self.assertIn(
+                    "path hygiene",
+                    [diagnostic.field for diagnostic in diagnostics],
+                )
+
     def test_a_root_containing_a_pipe_is_out_of_contract(self):
         """The stated boundary, frozen as observed behavior.
 
         `src/brichan/contracts/receipts/validation.py:223` splits every table
         line on `|` with no unescape step, so a root carrying one produces a
         three-column row. `shlex.quote` only wraps the value in single quotes
-        and a `\|` escape is never unescaped, so neither rescues the row. This
-        is why coordinator policy forbids a techstacks receipt for such a root.
+        and a `\|` escape is never unescaped, so neither rescues the row. The
+        same holds for any embedded path, which is why policy now writes the
+        root as `<project-root>` and forbids a receipt for a piped path.
         """
 
         expected = "Verification.row[1]: expected 2 columns, found 3"
