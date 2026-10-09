@@ -37,7 +37,7 @@ Lows recorded in `handoffs/WFS-005/code-review.md` (local).
   receipt root conflict: receipts write `--project-root <project-root>`,
   packets keep the real root; the WFS-009 row used `.`, which the CLI
   rejects, and was corrected. Both reviewed PASS with no findings. Branch
-  `fix/techstack-test-and-receipt-root`, stacked on PR #41; not pushed.
+  `fix/techstack-test-and-receipt-root`, PR #42 stacked on PR #41.
 
 ## In progress
 
@@ -74,8 +74,8 @@ None.
    defect so far.
 7. User reviews and merges PR #41 (WFS-009 and WFS-010, branch
    `feat/sonnet-opus-5-5-routing`).
-8. User decides whether to push `fix/techstack-test-and-receipt-root`
-   (WFS-011, WFS-012) as a PR stacked on PR #41.
+8. User reviews and merges PR #42 (WFS-011, WFS-012, branch
+   `fix/techstack-test-and-receipt-root`) after PR #41; it is stacked on #41.
 5. Revisit installed-mode adoption after external dogfood.
 
 ## Unverified assumptions
