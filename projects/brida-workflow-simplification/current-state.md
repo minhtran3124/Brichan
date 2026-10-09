@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-08
+Last updated: 2026-10-09
 
 ## Summary
 
@@ -31,6 +31,13 @@ Lows recorded in `handoffs/WFS-005/code-review.md` (local).
   preferred. Blind review 42 vs 36; `sonnet-5` shipped 2 functional defects
   the hidden tests miss; hidden 36/36 and scan 6/6 with 0 decoys for both;
   `sonnet-5-5` about 3.5x faster. `evals/workflow-simplification/sonnet55/`.
+- 2026-10-09: WFS-011 (level 0) made the techstack publication-cap test
+  deterministic; the intermittent failure came from inode digit width in a
+  twin publication, not from `__pycache__`. WFS-012 (level 1) resolved the
+  receipt root conflict: receipts write `--project-root <project-root>`,
+  packets keep the real root; the WFS-009 row used `.`, which the CLI
+  rejects, and was corrected. Both reviewed PASS with no findings. Branch
+  `fix/techstack-test-and-receipt-root`, stacked on PR #41; not pushed.
 
 ## In progress
 
@@ -51,9 +58,6 @@ None.
   unmeasurable unless stage runs capture them.
 - Codex is not installed on this machine (2026-10-08), so `review` route
   work falls back to a same-provider stronger Claude model.
-- Techstack receipt contract wants an absolute `--project-root` in the
-  verify row, but receipt path hygiene forbids home paths; WFS-009 recorded
-  `--project-root .`. Needs a policy decision.
 
 ## Next actions
 
@@ -66,9 +70,12 @@ None.
    `fix/worktree-git-file`, stacked on PR #37). Codex update pending and
    Codex usage-limited; reviews run on Claude meanwhile.
 6. Dogfood count toward the adoption check: WFS-006 (L1), WFS-007 (L0),
-   WFS-008 (L0), WFS-009 (L1) -- no escaped defect so far.
+   WFS-008 (L0), WFS-009 (L1), WFS-011 (L0), WFS-012 (L1) -- no escaped
+   defect so far.
 7. User reviews and merges PR #41 (WFS-009 and WFS-010, branch
    `feat/sonnet-opus-5-5-routing`).
+8. User decides whether to push `fix/techstack-test-and-receipt-root`
+   (WFS-011, WFS-012) as a PR stacked on PR #41.
 5. Revisit installed-mode adoption after external dogfood.
 
 ## Unverified assumptions

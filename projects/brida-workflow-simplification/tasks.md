@@ -14,11 +14,14 @@
 | WFS-007 | Route checkout `implement` to `claude-opus-5-5` (level 0, contract path) | coordinator; reviewer `brichan-wfs007-cr` (`w4J:p1F`, launch `72117df1…`) | done 2026-09-26: review PASS (2 Low); pane closed |
 | WFS-009 | Route checkout `scan` to `claude-sonnet-5-5`, installed Claude coordinator to `claude-opus-5-5`; catalog probe (level 1) | coordinator; scan `brichan-wfs009-scan` (`w9:pD`, launch `d8c05141…`), reviewer `brichan-wfs009-cr` (`w9:pF`, launch `b3ddccb6…`) | done 2026-10-08: review PASS (2 Low, fixed in place); panes closed; uncommitted on `main` |
 | WFS-010 | Side-by-side `claude-sonnet-5` vs `claude-sonnet-5-5` (stage 1 coding tasks + seeded scan audit) | Brichan (Herdr workers) | done 2026-10-08: `sonnet-5-5` preferred (blind review 42 vs 36, 0 vs 2 functional defects, hidden 36/36 both, scan 6/6 both, ~3.5x faster); `evals/workflow-simplification/sonnet55/results/results.md` |
+| WFS-011 | Make the techstack publication-cap test deterministic (level 0, no contract path) | coordinator; reviewer `brichan-wfs012-cr` (`w9:pV`, launch `b2183932…`) | done 2026-10-09: review PASS (no findings); cause was inode digit width, not `__pycache__`; branch `fix/techstack-test-and-receipt-root` |
+| WFS-012 | Receipt verify row names the root as `<project-root>` (level 1, contract path) | coordinator; reviewer `brichan-wfs012-cr` (`w9:pV`, launch `b2183932…`) | done 2026-10-09: review PASS (no findings); pane closed; branch `fix/techstack-test-and-receipt-root` |
 
 ## Workers
 
 | Agent | Pane | Model | Task | Worktree | Launch ID | Status |
 |---|---|---|---|---|---|---|
+| `brichan-wfs012-cr` | `w9:pV` | claude `claude-fable-5` high (Codex not installed) | WFS-011 and WFS-012 code review | primary checkout | `b2183932-8b68-4ecc-9978-fa028b45990a` | PASS both (no findings) 04:36Z; pane closed; ledger finished |
 | `brichan-wfs010-code-a` | `w9:pG` | claude `claude-sonnet-5` medium | WFS-010 coding arm A | `../brichan-s55-a` @ `40f46d8` | `2a0a642f-96a6-4b01-adb6-5cd0fb102ff3` | done 4m52s; 2 functional defects (blind review X); pane closed; ledger finished |
 | `brichan-wfs010-code-b` | `w9:pH` | claude `claude-sonnet-5-5` medium | WFS-010 coding arm B | `../brichan-s55-b` @ `40f46d8` | `564f0bb5-7c8e-4e71-83d2-0abfb4db5514` | done 1m20s; 0 functional defects (blind review Y); pane closed; ledger finished |
 | `brichan-wfs010-scan-a` | `w9:pJ` | claude `claude-sonnet-5` medium | WFS-010 scan arm A | `../brichan-s55-a` @ `40f46d8` | `c4bb6845-c11e-47d2-aa83-c3ebe10e5691` | done 3m26s; 6/6 seeded, 0 decoys; pane closed; ledger finished |
