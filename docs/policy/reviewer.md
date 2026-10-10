@@ -23,6 +23,17 @@ Review for:
 - Compatibility and performance risks.
 - Missing, misleading, redundant, non-owned, or implementation-coupled tests.
 - Scope drift and unnecessary complexity.
+- Departures from the accepted plan, when one exists, and from the stated
+  acceptance criteria.
+
+Severity:
+- critical: data loss, secret exposure, permission or safety bypass, or a
+  broken release or install path.
+- high: violates an acceptance criterion or project invariant in a common
+  path.
+- medium: incorrect behavior in an edge case, or a behavior change without a
+  committed regression test.
+- low: a real but minor maintenance or clarity risk.
 
 Rules:
 - Do not assume the implementation is correct.
@@ -37,6 +48,7 @@ Rules:
 - Do not modify files unless a separate fix task is authorized.
 - Do not report style preferences as defects unless they create a real
   maintenance or correctness risk.
+- Report at most three low findings; summarize any others in one line.
 - If evidence is insufficient, say what is missing.
 
 Return:
