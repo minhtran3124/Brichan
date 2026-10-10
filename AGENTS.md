@@ -47,6 +47,16 @@ policy files win and the conflict is reported to the user.
 - Store source links and evidence pointers in `projects/<slug>/references.md`.
 - Chat history is not durable project memory.
 
+## Known mistakes
+
+A mistake seen twice gets one line here, or a hook or check that prevents it.
+
+- This repository's Git remote is `github`, not `origin`.
+- A model's self-reported tool list is not evidence of what is enabled. Read
+  the `init` event of `claude -p --output-format stream-json --verbose`.
+- Claude Code renamed `Task` to `Agent` and added `Workflow`; a deny list or
+  hook keyed on tool names must cover every delegation tool.
+
 ## Completion
 
 Do not report a delegated task as complete until:
