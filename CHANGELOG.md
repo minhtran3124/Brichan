@@ -9,6 +9,13 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ### Added
 
+- This checkout ships a project `.claude/settings.json` that denies the
+  native delegation tools `Agent`, `Task`, and `Workflow` and runs a
+  `PreToolUse` hook (`.claude/hooks/block_native_delegation.py`) that also
+  denies tools whose names suggest sub-agents, delegation, or orchestration.
+  It applies to plain `claude` sessions in the checkout, not only to
+  `bin/brichan` launches. `brichan init` still writes no hooks into a
+  target repository.
 - `brichan-herdr-agent-observe watch <brichan-name>` streams a worker's
   scheduling-state transitions as one JSON line each and ends with exactly one
   `stop`, `expired`, or `error` line. The helper loops bounded (at most 30
