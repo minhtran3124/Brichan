@@ -53,6 +53,11 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ### Changed
 
+- Claude coordinator, worker, and legacy launches now pass
+  `--disallowed-tools=Agent,Task,Workflow` instead of
+  `--disallowed-tools=Task`. The old flag hid `Agent` only through its legacy
+  `Task` alias and left the native multi-agent `Workflow` tool available,
+  contrary to the no-native-delegation contract.
 - The checkout-mode task-dossier contract is level-keyed
   (`docs/workflows/task-dossier.md` is the single normative statement). Level 0
   and level 1 tasks carry `index`, `request`, a new implementer-owned worker

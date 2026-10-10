@@ -209,7 +209,7 @@ class ModelRoutingTest(unittest.TestCase):
 
         self.assertIn("agents.enabled=false", codex)
         self.assertEqual(2, codex.count("--disable"))
-        self.assertIn("--disallowed-tools=Task", claude)
+        self.assertIn("--disallowed-tools=Agent,Task,Workflow", claude)
         self.assertIn("--permission-mode", claude)
         self.assertIn("--effort", claude)
 
@@ -221,9 +221,9 @@ class ModelRoutingTest(unittest.TestCase):
 
         self.assertEqual(["-m", "legacy-model", "--help"], codex[-3:])
         self.assertIn("agents.enabled=false", codex)
-        self.assertLess(claude.index("--disallowed-tools=Task"), claude.index("--verbose"))
+        self.assertLess(claude.index("--disallowed-tools=Agent,Task,Workflow"), claude.index("--verbose"))
         self.assertIn("legacy-model", claude)
-        self.assertIn("--disallowed-tools=Task", claude)
+        self.assertIn("--disallowed-tools=Agent,Task,Workflow", claude)
 
     def test_legacy_permission_bypass_and_arbitrary_config_are_rejected(self):
         cases = (
@@ -301,11 +301,11 @@ class ModelRoutingTest(unittest.TestCase):
         settings = parse_settings(manifest_payload())
         route = resolve_coordinator(settings, "claude")
         command = claude_command(route, ["--", "coordinator prompt"])
-        self.assertLess(command.index("--disallowed-tools=Task"), command.index("--"))
+        self.assertLess(command.index("--disallowed-tools=Agent,Task,Workflow"), command.index("--"))
 
     def test_legacy_claude_attached_deny_flag_precedes_separator(self):
         command = secure_legacy_command(["claude", "--", "legacy prompt"])
-        self.assertLess(command.index("--disallowed-tools=Task"), command.index("--"))
+        self.assertLess(command.index("--disallowed-tools=Agent,Task,Workflow"), command.index("--"))
 
     def test_coordinator_command_builders_reject_permission_bypass(self):
         settings = parse_settings(manifest_payload())
