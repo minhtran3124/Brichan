@@ -4,8 +4,8 @@ This document is historical evidence, not normative policy.
 
 One entry per escaped defect: a defect that reached `main` or a release before
 it was caught. Each entry names the regression test or check that now catches
-it. A lesson that repeats also earns a line under `Known mistakes` in
-`AGENTS.md`, or a hook or check.
+it. Promotion of a repeated lesson follows the rule under `Known mistakes` in
+`AGENTS.md`.
 
 | Date | Escaped defect | How it was found | Now caught by |
 |---|---|---|---|
