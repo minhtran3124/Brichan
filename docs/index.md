@@ -29,6 +29,7 @@ and orchestration boundaries.
 ## History
 
 - [Setup status snapshot](history/setup-status.md)
+- [Lessons from escaped defects](history/lessons.md)
 
 Historical documents record past environment evidence and are not current
 runtime policy.

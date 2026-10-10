@@ -181,6 +181,12 @@
       "policy": "canonical"
     },
     {
+      "path": "docs/history/lessons.md",
+      "kind": "file",
+      "category": "history",
+      "policy": "canonical"
+    },
+    {
       "path": "bin/brichan",
       "kind": "file",
       "category": "runtime-entrypoint",
