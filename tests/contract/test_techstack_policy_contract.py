@@ -243,6 +243,30 @@ class TechstackPolicyDeliveryTest(unittest.TestCase):
             self.assertNotIn("/Users/", text, label)
             self.assertNotIn("/home/", text, label)
 
+    def test_every_receipt_surface_names_the_root_by_token(self):
+        """A receipt row with the absolute root fails path hygiene under home.
+
+        The packet keeps `<QROOT>`; every receipt passage must write the
+        `<project-root>` token and refuse a relative root instead.
+        """
+
+        for path in (
+            CHECKOUT_POLICY,
+            PACKAGED_POLICY,
+            CHECKOUT_SKILL / "references/handoff-receipt.md",
+            PACKAGED_SKILL / "references/handoff-receipt.md",
+        ):
+            label = str(path.relative_to(ROOT))
+            text = normalized(path)
+            receipt = (
+                text.split("## Handoff receipt", 1)[1].split("## Planning", 1)[0]
+                if "## Handoff receipt" in text
+                else text
+            )
+            self.assertIn("--project-root <project-root> --", receipt, label)
+            self.assertIn("PROJECT_ROOT_INVALID", receipt, label)
+            self.assertNotIn("<QROOT>", receipt, label)
+
 
 class TechstackResourceInventoryTest(unittest.TestCase):
     """The new resources must reach the managed footprint, not just the tree."""
