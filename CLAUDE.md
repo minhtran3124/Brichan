@@ -8,7 +8,8 @@ The approved worker-control plane is Herdr. Worker sessions must be independent
 main-agent sessions created through Herdr, use `brichan-` names, receive bounded
 task packets, produce acceptance evidence, and be recorded in project memory.
 Do not use Claude Code's native delegation or background-agent mechanisms to
-replace the Herdr lifecycle.
+replace the Herdr lifecycle. In this checkout, `.claude/settings.json` denies
+those tools and its hook explains the Herdr route.
 
 Coordinator defaults and named worker routes are resolved from
 `config/model-routing.json`. Explicit coordinator CLI options remain one-off

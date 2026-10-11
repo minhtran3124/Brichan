@@ -79,3 +79,4 @@ Later arm A sessions (plan revisions v3/v4, plan reviews 2-4, implementers, code
 | `brichan-wfs005-cr` | `w4J:p1A` | claude `claude-opus-5` high | code review v1 | `10a0b370-f8f1-49e7-ab13-4e69df4ef247` | CHANGES REQUIRED (M1); pane closed |
 | `brichan-wfs005-fix1` | `w4J:p1B` | claude `claude-opus-5-5` medium | Fix 1 (M1 test) | `98972747-a0b9-4c99-a1f6-75f95b6bcb89` | done; pane closed |
 | `brichan-wfs005-cr2` | `w4J:p1C` | claude `claude-opus-5` high | code review v2 | `e60f482b-7a99-4552-bc7f-11d2aa13c486` | PASS; pane closed |
+| `brichan-wfs013-review` | `wP:p5` | claude `claude-fable-5` high | WFS-013 code review (SDLC easy wins E2-E6) | `c6ad5c7f-b790-4afa-a370-d17434fa8766` | PASS (3 low; 2 fixed); pane closed |

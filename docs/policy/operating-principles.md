@@ -84,6 +84,8 @@ presence is not evidence, and an artifact with no material work is recorded as
 - Diagnose a failure — new defect, wrong assumption, or pre-existing issue —
   before code or tests change. Never weaken, skip, or delete a meaningful
   assertion merely to make a gate pass.
+- For a bug fix, commit a regression test that fails on the unfixed code
+  before the fix; the fix does not edit that test.
 - Focused runs are fast implementation feedback; they never replace the
   project-defined completion, CI, or release gate. In this repository that
   gate is `make check`.

@@ -88,3 +88,17 @@ The first treatment is retained as invalid evidence because the coordinator made
 a third invocation. Accept `PILOT-003-T-R1` instead: it preserves raw output,
 one exact wrapper-log fault, and pre-dispatch provenance; Claude Sonnet made
 the two actual calls and independent Codex Terra review returned `PASS`.
+
+## 2026-10-10 — The no-native-delegation block covers Workflow
+
+The user confirmed that Claude Code's `Workflow` tool falls under the
+no-native-delegation non-goal. Claude launches now disallow `Agent`, `Task`
+(legacy alias), and `Workflow` by name (`CLAUDE-007`). A hook-based block for
+future tool names remains a separate, unscheduled hardening item.
+
+## 2026-10-10 — Project-scoped Claude hooks are allowed in the Brichan checkout
+
+The user approved a repository-owned `.claude/settings.json` with hooks for
+work inside this checkout (research items M6 and M1). `brichan init` must
+still never write hooks or provider configuration into a target repository;
+that `PRODUCT.md` non-goal is unchanged.

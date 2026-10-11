@@ -278,7 +278,7 @@ class WorkerRoutingCliTest(FakeHerdrTestCase):
             self.assertIn("agents.enabled=false", command)
             self.assertIn("multi_agent_v2", command)
         else:
-            self.assertIn("--disallowed-tools=Task", command)
+            self.assertIn("--disallowed-tools=Agent,Task,Workflow", command)
             self.assertIn("--permission-mode", command)
         self.assertIn("--model", command)
         if runtime == "claude":
@@ -465,7 +465,7 @@ class WorkerRoutingCliTest(FakeHerdrTestCase):
 
         self.assertEqual(0, result.returncode, result.stderr)
         command = self.forwarded_agent_argv()
-        self.assertLess(command.index("--disallowed-tools=Task"), command.index("--"))
+        self.assertLess(command.index("--disallowed-tools=Agent,Task,Workflow"), command.index("--"))
 
 
 class WorkerLedgerLaunchTest(FakeHerdrTestCase):

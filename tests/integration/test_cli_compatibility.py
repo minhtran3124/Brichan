@@ -90,7 +90,7 @@ class CliCompatibilityTest(unittest.TestCase):
                 "sonnet",
                 "--effort",
                 CLAUDE_COORDINATOR["effort"],
-                "--disallowed-tools=Task",
+                "--disallowed-tools=Agent,Task,Workflow",
                 "--verbose",
             ],
             result["argv"],
@@ -208,7 +208,7 @@ class CliCompatibilityTest(unittest.TestCase):
         codex = self.run_launcher("brichan", "--runtime", "codex", "--help")
         claude = self.run_launcher("brichan", "--runtime=claude", "--help")
         self.assertIn("agents.enabled=false", codex["argv"])
-        self.assertIn("--disallowed-tools=Task", claude["argv"])
+        self.assertIn("--disallowed-tools=Agent,Task,Workflow", claude["argv"])
 
     def test_checkout_dispatch_works_from_descendant_directory(self):
         result = self.run_launcher(
