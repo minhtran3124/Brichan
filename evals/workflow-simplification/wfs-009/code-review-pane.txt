@@ -1,0 +1,400 @@
+      166 +- `python3 scripts/val
+          +idate_task_dossiers.py
+          + projects`: same place
+          +holder
+      167 +  diagnostics before f
+          +illing; the post-fill
+          +run must report no WFS
+          +-009
+      168 +  diagnostic.
+      169 +- `set -o pipefail; gi
+          +t diff --name-only --n
+          +o-renames HEAD |
+      170 +  python3 scripts/chec
+          +k_contract_paths.py`:
+          +exit 3, `contract-path
+          +: yes`,
+      171 +  listing exactly the
+          +three changed files —
+          +matching the index's r
+          +ecorded
+      172 +  contract-path decisi
+          +on.
+      173 +- Independent re-execu
+          +tion of both scan-inve
+          +ntory grep commands: 2
+          +4 + 5 hits,
+      174 +  identical to the wor
+          +ker's 29 rows.
+      175 +- Full read of the thr
+          +ee changed files, the
+          +diff against `HEAD`, `
+          +report.md`,
+      176 +  `request.md`, `index
+          +.md`, `receipt.md`, bo
+          +th routing manifests,
+          +the
+      177 +  reviewer and operati
+          +ng-principles policies
+          +, the task-dossier wor
+          +kflow, and
+      178 +  the eight techstack
+          +rule files.
+      179 +- `git status --short`
+          + before and after: the
+          + only change made by t
+          +his
+      180 +  reviewer is this art
+          +ifact.
+      181 +
+      182 +No sub-agent, network
+          +request, secret access
+          +, permission broadenin
+          +g, remote,
+      183 +destructive, productio
+          +n, deployment, or publ
+          +ishing action was perf
+          +ormed.
+      184 +
+      185 +## Residual risks and
+          +required decisions
+      186 +
+      187 +- The routing-policy g
+          +uidance rows now mirro
+          +r the active checkout
+          +routing
+      188 +  choices closely enou
+          +gh that a future routi
+          +ng change could leave
+          +the
+      189 +  guidance stale — the
+          + drift the catalog hea
+          +der rule exists to pre
+          +vent. The
+      190 +  rows stay rule-compl
+          +iant because they name
+          + tasks and alternative
+          +s, not
+      191 +  routes; keeping them
+          + capability-phrased is
+          + a maintenance note, n
+          +ot a
+      192 +  defect.
+      193 +- One short scan task
+          +is a smoke test, not a
+          + quality comparison;
+      194 +  `claude-sonnet-5-5`
+          +has no A/B evidence li
+          +ke stage 1 produced fo
+          +r
+      195 +  `claude-opus-5-5`. T
+          +he report records this
+          + risk honestly.
+      196 +- The installed-mode c
+          +oordinator value ships
+          + only with a future pa
+          +ckage
+      197 +  release, which will
+          +need its own lifecycle
+          + and authorization.
+      198 +- This review is same-
+          +provider (Claude revie
+          +wing Claude) on a stro
+          +nger model
+      199 +  than the implementer
+          +; the index records wh
+          +y and the receipt reco
+          +rds the
+      200 +  session identities.
+          +No human decision is r
+          +equired for this verdi
+          +ct.
+      201 +
+      202  ## Claim or decision
+      203
+       31 -`<claim or decision th
+          -is artifact asserts>`
+      204 +PASS. The WFS-009 work
+          +ing-tree diff correctl
+          +y moves the checkout `
+          +scan` route
+      205 +to `claude-sonnet-5-5`
+          + and the packaged inst
+          +alled-mode Claude coor
+          +dinator to
+      206 +`claude-opus-5-5`, the
+          + model catalog records
+          + the 2026-10-08 probe
+          +without
+      207 +restating route assign
+          +ments, the declared le
+          +vel 1 is right, the wo
+          +rker
+      208 +evidence is reproducib
+          +le, and no committed r
+          +egression test is owed
+          +. The two
+      209 +low documentation-accu
+          +racy findings in the c
+          +atalog do not block ac
+          +ceptance
+      210 +and are left to the co
+          +ordinator to fix in pl
+          +ace.
+      211
+      212  ## Evidence
+      213
+       35 -- `<repository or sour
+          -ce evidence for the cl
+          -aim>`
+      214 +- `config/model-routin
+          +g.json:32-36` and
+      215 +  `src/brichan/resourc
+          +es/dogfood_v1/config/m
+          +odel-routing.json:10-1
+          +3` show
+      216 +  exactly the two auth
+          +orized model changes w
+          +ith efforts and every
+          +other key
+      217 +  unchanged; the contr
+          +act-path checker outpu
+          +t lists exactly the th
+          +ree changed
+      218 +  files.
+      219 +- Independent re-execu
+          +tion of the two invent
+          +ory grep commands repr
+          +oduced all
+      220 +  29 rows of `evals/wo
+          +rkflow-simplification/
+          +wfs-009/scan-inventory
+          +.md`, and
+      221 +  `scan-pane.txt` corr
+          +oborates the `claude-s
+          +onnet-5-5` `medium` wo
+          +rker run.
+      222 +- `tests/contract/test
+          +_repository_contract.p
+          +y:286-296` and
+      223 +  `tests/contract/test
+          +_task_dossier_contract
+          +.py:304-312` pin the m
+          +anifest
+      224 +  behaviors that remai
+          +n unchanged, and commi
+          +t `1545c84` is the rev
+          +iewed
+      225 +  precedent for a test
+          +-free routing-value ch
+          +ange.
+      226
+      227  ## Uncertainty
+      228
+       39 -- `<unresolved uncerta
+          -inty, or a recorded st
+          -atement that none rema
+          -ins>`
+      229 +- Whether `claude-sonn
+          +et-5-5` matches `claud
+          +e-sonnet-5` on harder
+          +scan work
+      230 +  is unmeasured by des
+          +ign; the report record
+          +s it as an open risk a
+          +nd this
+      231 +  review does not reso
+          +lve it.
+      232 +- The effort level of
+          +the 2026-10-08 `fable`
+          + alias probe is unreco
+          +rded
+      233 +  (finding Low-2); unt
+          +il stated, the catalog
+          +'s `low` attribution f
+          +or
+      234 +  `claude-fable-5-1` i
+          +s unverified.
+      235 +- No other uncertainty
+          + remains about this ve
+          +rdict.
+
+● Now the final verification runs: the
+  dossier validator, full make check,
+  and the git status check.
+
+  Ran 1 shell command
+
+● The remaining diagnostic is in
+  index.md's coordinator-owned
+  projection, not code-review.md, and
+  updating it is outside my scope. I'll
+  run make check to report the result.
+  · summary
+
+  Ran 1 shell command
+
+● The exit capture was wrong there (it
+  captured tail's exit); make did fail.
+  Let me confirm the single failing test
+  is the dossier-validation one.
+
+
+
+
+  check failure is the index projection
+  the coordinator must update after this
+  verdict — not something I may touch.
+  Final report:
+
+  ---
+
+  1. Outcome
+
+  Verdict: PASS. The WFS-009 routing
+  change is correct and fully
+  authorized: routes.scan.model →
+  claude-sonnet-5-5 (effort unchanged,
+  config/model-routing.json:32-36),
+  installed-mode Claude coordinator →
+  claude-opus-5-5 (effort unchanged,
+  src/brichan/resources/dogfood_v1/confi
+  g/model-routing.json:10-13), both
+  manifests keeping schema version 1 and
+  the four routes. Two low findings,
+  both documentation accuracy in the
+  catalog, neither blocking:
+
+  - Low 1 —
+    docs/policy/model-catalog.md:67
+    claims claude-sonnet-5-5 has "no
+    Herdr worker run recorded yet",
+    contradicted by this task's own
+    worker run (evals/workflow-simplific
+    ation/wfs-009/scan-inventory.md,
+    pane capture, receipt AC3).
+  - Low 2 —
+    docs/policy/model-catalog.md:54
+    attributes "Verified effort: low" to
+    claude-fable-5-1 with no recorded
+    probe-effort evidence
+    (report.md:51-54 records only
+    OK/modelUsage); the value appears
+    carried over from claude-fable-5
+    despite the catalog's own warning
+    that effort calibration doesn't
+    transfer across versions.
+
+  On the in-scope questions: the catalog
+  still obeys its route-neutrality rule
+  (task-type guidance with alternatives
+  and an explicit disclaimer, no route
+  named); level 1 is correctly declared
+  (delegation requested; no level-2
+  trigger — the index's recorded
+  determination holds); the scan
+  inventory is accurate — I re-ran both
+  grep commands and reproduced all 29
+  rows exactly; no committed regression
+  test is owed — the values are routing
+  data, the executable behaviors
+  (schema, four-route shape, resolution)
+  are unchanged and already pinned
+  (tests/contract/test_repository_contra
+  ct.py:286, tests/contract/test_task_do
+  ssier_contract.py:304), and precedent
+  1545c84 (WFS-007) shipped the same
+  kind of change test-free with a PASS
+  review.
+
+  2. Files/artifacts changed
+
+  Only the deliverable:
+  projects/brida-workflow-simplification
+  /handoffs/WFS-009/code-review.md, all
+  placeholders replaced (Origin
+  review:…/report.md, phase passed,
+  verdict PASS, sessions
+  6777e7d4-8e50-47bf-8e1e-05c634b9ff17,
+  route review, model claude-fable-5,
+  effort high, plan targets null).
+
+  3. Verification and evidence
+
+  - Techstack verification
+    acknowledgement: yes; snapshot_sha25
+    6=fcfe2d94c7653e104d84d9d121adb8ba2e
+    003aecdb41748e8228a7a645847f18 —
+    verify exited 0 with match; all
+    eight required rule files read.
+  - python3
+    scripts/validate_task_dossiers.py
+    projects — no diagnostic for
+    WFS-009's code-review.md (acceptance
+    criterion met). One remaining
+    diagnostic names index.md: its
+    status table still says code-review
+    active while the artifact is now
+    passed. That is the
+    coordinator-owned post-verdict
+    projection, which I am barred from
+    writing.
+  - PYTHONDONTWRITEBYTECODE=1 make check
+    — fails on exactly that one issue:
+    211 tests, 1 pre-existing skip, 1
+    failure (test_repository_checkout_va
+    lidates_clean), whose sole cause is
+    the index projection above.
+    Everything else passes.
+  - Contract-path check: contract-path:
+    yes (exit 3), listing exactly
+    config/model-routing.json,
+    docs/policy/model-catalog.md,
+    src/brichan/resources/dogfood_v1/con
+    fig/model-routing.json — matching
+    the index's recorded decision.
+  - git status --short shows only the
+    implementer's three modified files
+    plus the untracked evals directory;
+    the dossier is git-ignored, and my
+    only write was the deliverable.
+
+  4. Risks, assumptions, and unresolved
+  issues
+
+  - Coordinator action required to
+    close: update index.md's code-review
+    row to passed (and receipt
+    AC4/Review verdict), then re-run
+    make check — it should then exit 0.
+    The two low findings should be fixed
+    in place in the catalog.
+  - One scan task is a smoke test, not a
+    quality comparison; Sonnet 5.5 has
+    no A/B result like stage 1 gave Opus
+    5.5 (report records this honestly).
+  - This review is same-provider (Claude
+    on Claude) on a stronger model than
+    the implementer, Codex being
+    unavailable; the index documents
+    why.
+  - The installed-mode coordinator value
+    reaches users only via a future
+    package release, which needs its own
+    lifecycle.
+  - The catalog's routing-guidance rows
+    now mirror active routing closely
+    enough to invite drift at the next
+    routing change — rule-compliant
+    today, a maintenance note for later.
+
+✻ Churned for 8m 33s · done 15:30
+
+────────────────────────────────────────
+❯
+────────────────────────────────────────
+  Fable 5 │ ✍️ 12% │ Brichan (main*) …
+  current ●●●○○○○○○○  39% ⟳ 6:00pm
+  weekly  ●●●●○○○○○○  40% ⟳ thg 10 14…
+  fable   ○○○○○○○○○○   2% ⟳ thg 10 14…
+  ⏵⏵ auto mode on (shift+tab to cycle)

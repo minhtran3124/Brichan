@@ -1,0 +1,6 @@
+# Escalation guide
+
+Escalate to the user before any destructive, remote, or credential-touching
+action, and when acceptance criteria conflict.
+
+See the [operating rules](operating.md#monitoring) for wait intervals.

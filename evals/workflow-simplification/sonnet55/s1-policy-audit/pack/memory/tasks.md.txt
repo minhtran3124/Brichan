@@ -1,0 +1,10 @@
+# Task register
+
+| ID | Task | Owner | Status |
+|---|---|---|---|
+| T-001 | Write routing schema | coordinator | done |
+| T-002 | Add memory size check | orchard-mem | done |
+| T-003 | Draft review rules | orchard-rev | done |
+| T-004 | Catalog refresh | orchard-cat | active |
+| T-005 | Packet validator | orchard-pkt | blocked |
+| T-004 | Escalation guide | orchard-esc | done |

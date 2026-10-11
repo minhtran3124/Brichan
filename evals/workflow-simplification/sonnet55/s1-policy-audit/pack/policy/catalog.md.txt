@@ -1,0 +1,12 @@
+# Model catalog
+
+Last verified: 2026-09-01.
+
+| Model | Status | Suggested uses |
+|---|---|---|
+| `atlas-2` | active | Planning and review |
+| `atlas-2-mini` | active | Scanning and summaries |
+| `atlas-1` | retired 2026-08-15; must not be routed | none |
+| `boreal-3` | active | Implementation |
+
+Catalog rows describe capability only.

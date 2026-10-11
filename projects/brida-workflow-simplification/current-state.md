@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-09-26
+Last updated: 2026-10-09
 
 ## Summary
 
@@ -19,6 +19,25 @@ Lows recorded in `handoffs/WFS-005/code-review.md` (local).
   (proposed); A/B protocol; `claude-opus-5-5` answered a `claude -p` probe.
 - 2026-09-25: stage 1 benchmark (`evals/workflow-simplification/stage1/`),
   catalog entry for `claude-opus-5-5`.
+- 2026-10-08: WFS-009 (level 1) routes checkout `scan` to
+  `claude-sonnet-5-5` and the packaged installed-mode Claude coordinator to
+  `claude-opus-5-5` (effort unchanged); catalog re-probed (aliases now
+  `sonnet`/`opus`/`fable` -> `claude-sonnet-5-5`/`claude-opus-5-5`/
+  `claude-fable-5-1`). First `claude-sonnet-5-5` Herdr worker matched the
+  coordinator's inventory 29/29. Review PASS (2 Lows fixed). In PR #41;
+  release not authorized.
+- 2026-10-08: WFS-010 side-by-side `claude-sonnet-5` vs `claude-sonnet-5-5`
+  (stage 1 coding tasks at `40f46d8` plus a seeded scan audit): `sonnet-5-5`
+  preferred. Blind review 42 vs 36; `sonnet-5` shipped 2 functional defects
+  the hidden tests miss; hidden 36/36 and scan 6/6 with 0 decoys for both;
+  `sonnet-5-5` about 3.5x faster. `evals/workflow-simplification/sonnet55/`.
+- 2026-10-09: WFS-011 (level 0) made the techstack publication-cap test
+  deterministic; the intermittent failure came from inode digit width in a
+  twin publication, not from `__pycache__`. WFS-012 (level 1) resolved the
+  receipt root conflict: receipts write `--project-root <project-root>`,
+  packets keep the real root; the WFS-009 row used `.`, which the CLI
+  rejects, and was corrected. Both reviewed PASS with no findings. Branch
+  `fix/techstack-test-and-receipt-root`, PR #42 stacked on PR #41.
 
 ## In progress
 
@@ -37,6 +56,8 @@ None.
   model effect in stage 1.
 - Token and time data are mostly `null` today, so savings may stay
   unmeasurable unless stage runs capture them.
+- Codex is not installed on this machine (2026-10-08), so `review` route
+  work falls back to a same-provider stronger Claude model.
 
 ## Next actions
 
@@ -49,11 +70,19 @@ None.
    `fix/worktree-git-file`, stacked on PR #37). Codex update pending and
    Codex usage-limited; reviews run on Claude meanwhile.
 6. Dogfood count toward the adoption check: WFS-006 (L1), WFS-007 (L0),
-   WFS-008 (L0) -- no escaped defect so far.
+   WFS-008 (L0), WFS-009 (L1), WFS-011 (L0), WFS-012 (L1) -- no escaped
+   defect so far.
+7. User reviews and merges PR #41 (WFS-009 and WFS-010, branch
+   `feat/sonnet-opus-5-5-routing`).
+8. User reviews and merges PR #42 (WFS-011, WFS-012, branch
+   `fix/techstack-test-and-receipt-root`) after PR #41; it is stacked on #41.
 5. Revisit installed-mode adoption after external dogfood.
 
 ## Unverified assumptions
 
+- `claude-sonnet-5-5` is better than `claude-sonnet-5` in general (WFS-010
+  is four tasks, one sample, same-provider reviewer; the scan fixture hit
+  the ceiling).
 - `claude-opus-5-5` is stronger than `claude-opus-5` in general (stage 1 is
   three tasks, one sample, same-provider reviewer).
 - Level 0/1 review would find nothing on real (not synthetic) tasks.

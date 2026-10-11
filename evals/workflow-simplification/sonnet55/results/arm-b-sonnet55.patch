@@ -1,0 +1,340 @@
+diff --git a/evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py b/evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py
+index eca7371..df2790f 100644
+--- a/evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py
++++ b/evals/workflow-simplification/stage1/t1-ledger-summary/ledger_summary.py
+@@ -2,6 +2,65 @@
+ 
+ from __future__ import annotations
+ 
++import json
++
++_EVENTS = ("launched", "finished")
++
++
++def _decode(line: bytes):
++    """Return (event, launch_id), None for a blank line, or False if undecodable."""
++    try:
++        text = line.decode("utf-8")
++    except UnicodeDecodeError:
++        return False
++    if not text.strip():
++        return None
++    try:
++        record = json.loads(text)
++    except (ValueError, RecursionError):
++        return False
++    if not isinstance(record, dict):
++        return False
++    event = record.get("event")
++    launch_id = record.get("launch_id")
++    if not isinstance(launch_id, str) or event not in _EVENTS:
++        return False
++    return event, launch_id
++
+ 
+ def summarize(data: bytes) -> dict:
+-    raise NotImplementedError
++    launched: list[str] = []  # first-launch order
++    launched_set: set[str] = set()
++    finished_set: set[str] = set()
++    orphan_candidates: list[str] = []  # first finished occurrence order
++    undecodable = duplicate_finished = duplicate_launched = 0
++
++    # Split on b"\n" only: str.splitlines() would also split on \x0b, \x0c, etc.
++    for line in data.split(b"\n"):
++        decoded = _decode(line)
++        if decoded is None:
++            continue
++        if decoded is False:
++            undecodable += 1
++            continue
++        event, launch_id = decoded
++        if event == "launched":
++            if launch_id in launched_set:
++                duplicate_launched += 1
++            else:
++                launched_set.add(launch_id)
++                launched.append(launch_id)
++        elif launch_id in finished_set:
++            duplicate_finished += 1
++        else:
++            finished_set.add(launch_id)
++            orphan_candidates.append(launch_id)
++
++    return {
++        "finished": [i for i in launched if i in finished_set],
++        "unknown": [i for i in launched if i not in finished_set],
++        "orphans": [i for i in orphan_candidates if i not in launched_set],
++        "undecodable": undecodable,
++        "duplicate_finished": duplicate_finished,
++        "duplicate_launched": duplicate_launched,
++    }
+diff --git a/evals/workflow-simplification/stage1/t1-ledger-summary/test_ledger_rules.py b/evals/workflow-simplification/stage1/t1-ledger-summary/test_ledger_rules.py
+new file mode 100644
+index 0000000..b607fe5
+--- /dev/null
++++ b/evals/workflow-simplification/stage1/t1-ledger-summary/test_ledger_rules.py
+@@ -0,0 +1,76 @@
++import unittest
++
++from ledger_summary import summarize
++
++
++def rec(event, launch_id, **extra):
++    import json
++
++    return json.dumps({"event": event, "launch_id": launch_id, **extra}).encode()
++
++
++class LedgerRulesTest(unittest.TestCase):
++    def test_blank_lines_ignored_but_bad_lines_counted(self):
++        data = b"\n  \t\r\n" + rec("launched", "a") + b"\n[1]\n\xff\n{bad\n" + (
++            b'{"event": "launched", "launch_id": 3}\n'
++            b'{"event": "started", "launch_id": "a"}\n'
++            b'{"event": "finished"}\n'
++        )
++        result = summarize(data)
++        self.assertEqual(6, result["undecodable"])
++        self.assertEqual(["a"], result["unknown"])
++
++    def test_pairs_by_launch_id_and_orders_by_launch(self):
++        data = b"\n".join(
++            [
++                rec("launched", "b", worker="w", pane_id="p"),
++                rec("launched", "a", worker="w", pane_id="p"),
++                rec("finished", "a", worker="x", pane_id="q"),
++                rec("finished", "b"),
++            ]
++        )
++        result = summarize(data)  # no trailing newline
++        self.assertEqual(["b", "a"], result["finished"])
++        self.assertEqual([], result["unknown"])
++
++    def test_duplicates_orphans_and_unknown(self):
++        data = b"\n".join(
++            [
++                rec("finished", "o"),
++                rec("launched", "a"),
++                rec("launched", "a"),
++                rec("finished", "a"),
++                rec("finished", "a"),
++                rec("finished", "o"),
++                rec("launched", "u"),
++                rec("finished", "late"),
++                rec("launched", "late"),
++            ]
++        )
++        self.assertEqual(
++            {
++                "finished": ["a", "late"],
++                "unknown": ["u"],
++                "orphans": ["o"],
++                "undecodable": 0,
++                "duplicate_finished": 2,
++                "duplicate_launched": 1,
++            },
++            summarize(data),
++        )
++
++    def test_crlf_line_is_valid(self):
++        result = summarize(rec("launched", "a") + b"\r\n" + rec("finished", "a") + b"\r\n")
++        self.assertEqual(["a"], result["finished"])
++        self.assertEqual(0, result["undecodable"])
++
++    def test_line_separator_chars_do_not_split_records(self):
++        # \x0c is not a line break for this format; it is JSON-invalid inside a line.
++        data = rec("launched", "a") + b"\x0c" + rec("launched", "b") + b"\n"
++        result = summarize(data)
++        self.assertEqual(1, result["undecodable"])
++        self.assertEqual([], result["unknown"])
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py b/evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py
+index aa87f63..b78b7e5 100644
+--- a/evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py
++++ b/evals/workflow-simplification/stage1/t2-prerelease-order/semver_order.py
+@@ -9,7 +9,8 @@ _SEMVER = re.compile(
+     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+     r"(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)"
+     r"(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?"
+-    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
++    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?\Z",
++    re.ASCII,  # \d must not match non-ASCII digits; \Z must not allow a trailing newline
+ )
+ 
+ 
+@@ -27,6 +28,14 @@ def parse(version: str) -> tuple[tuple[int, int, int], tuple[str, ...]]:
+     return core, pre
+ 
+ 
++def _identifier_key(identifier: str) -> tuple[int, int, str]:
++    # Numeric identifiers compare numerically and rank below alphanumeric ones,
++    # which compare in ASCII order.
++    if identifier.isdigit():
++        return (0, int(identifier), "")
++    return (1, 0, identifier)
++
++
+ def compare(a: str, b: str) -> int:
+     """Return -1, 0, or 1 as a has lower, equal, or higher precedence than b."""
+     core_a, pre_a = parse(a)
+@@ -40,7 +49,11 @@ def compare(a: str, b: str) -> int:
+         return 1
+     if not pre_b:
+         return -1
+-    return -1 if pre_a < pre_b else 1
++    # A larger set of identifiers wins when all preceding ones are equal, which
++    # is exactly how tuple comparison treats a proper prefix.
++    key_a = tuple(_identifier_key(i) for i in pre_a)
++    key_b = tuple(_identifier_key(i) for i in pre_b)
++    return -1 if key_a < key_b else 1
+ 
+ 
+ def sort_versions(versions: list[str]) -> list[str]:
+diff --git a/evals/workflow-simplification/stage1/t2-prerelease-order/test_precedence.py b/evals/workflow-simplification/stage1/t2-prerelease-order/test_precedence.py
+new file mode 100644
+index 0000000..7926633
+--- /dev/null
++++ b/evals/workflow-simplification/stage1/t2-prerelease-order/test_precedence.py
+@@ -0,0 +1,55 @@
++import unittest
++
++from semver_order import compare, sort_versions
++
++
++class PrecedenceTest(unittest.TestCase):
++    def test_reported_bug_numeric_identifiers_compare_numerically(self):
++        self.assertEqual(
++            ["1.0.0-rc.2", "1.0.0-rc.10", "1.0.0"],
++            sort_versions(["1.0.0-rc.10", "1.0.0-rc.2", "1.0.0"]),
++        )
++
++    def test_semver_spec_example_chain(self):
++        chain = [
++            "1.0.0-alpha",
++            "1.0.0-alpha.1",
++            "1.0.0-alpha.beta",
++            "1.0.0-beta",
++            "1.0.0-beta.2",
++            "1.0.0-beta.11",
++            "1.0.0-rc.1",
++            "1.0.0",
++        ]
++        self.assertEqual(chain, sort_versions(list(reversed(chain))))
++        for lower, higher in zip(chain, chain[1:]):
++            self.assertEqual(-1, compare(lower, higher))
++            self.assertEqual(1, compare(higher, lower))
++
++    def test_ascii_order_for_alphanumeric_identifiers(self):
++        self.assertEqual(-1, compare("1.0.0-Z", "1.0.0-a"))
++        self.assertEqual(-1, compare("1.0.0-1a", "1.0.0-1b"))
++        self.assertEqual(-1, compare("1.0.0-a-", "1.0.0-a0"))
++
++    def test_numeric_below_alphanumeric_even_when_larger(self):
++        self.assertEqual(-1, compare("1.0.0-99999", "1.0.0-0a"))
++
++    def test_build_metadata_ignored(self):
++        self.assertEqual(0, compare("1.0.0+a", "1.0.0+b"))
++        self.assertEqual(0, compare("1.0.0-rc.1+x", "1.0.0-rc.1"))
++
++    def test_sort_is_stable_for_equal_precedence(self):
++        self.assertEqual(["1.0.0+b", "1.0.0+a"], sort_versions(["1.0.0+b", "1.0.0+a"]))
++
++    def test_core_compared_numerically(self):
++        self.assertEqual(-1, compare("1.9.0", "1.10.0"))
++
++    def test_invalid_versions_rejected(self):
++        for bad in ["1.0.0\\n", "1.0.0\n", "01.0.0", "1.0.0-01", "1.0.0-", "1.0.0-a..b",
++                    "١.0.0", "1.0.0-١", "", "v1.0.0"]:
++            with self.subTest(bad=bad), self.assertRaises(ValueError):
++                compare(bad, "1.0.0")
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/evals/workflow-simplification/stage1/t3-path-guard/path_guard.py b/evals/workflow-simplification/stage1/t3-path-guard/path_guard.py
+index 7b01b65..3de5f05 100644
+--- a/evals/workflow-simplification/stage1/t3-path-guard/path_guard.py
++++ b/evals/workflow-simplification/stage1/t3-path-guard/path_guard.py
+@@ -8,10 +8,14 @@ Security invariants (must always hold):
+ - The value contains no backslash and no NUL character.
+ - The final component ends in ``.jsonl``.
+ 
+-Current strictness (not a security invariant):
++Normalization (not a security invariant):
+ 
+-- The value must already be normalized: no empty component (``//`` or a
+-  trailing ``/``) and no ``.`` component.
++- Redundant ``.`` components and repeated ``/`` separators are accepted and
++  removed; the normalized path is returned, components joined by one ``/``.
++- Every invariant above is checked against the value as supplied, before
++  normalization, so ``a/./../b`` and ``.//.BRICHAN/x.jsonl`` are still rejected.
++- The final component of the supplied value must end in ``.jsonl``; a trailing
++  ``/`` or ``/.`` names a directory and is rejected.
+ """
+ 
+ from __future__ import annotations
+@@ -27,12 +31,10 @@ def validate_ledger_path(value: str) -> str:
+         raise ValueError("absolute path")
+     parts = value.split("/")
+     for part in parts:
+-        if part in ("", "."):
+-            raise ValueError("path is not normalized")
+         if part == "..":
+             raise ValueError("parent component")
+         if part.lower() == ".brichan":
+             raise ValueError(".brichan component")
+     if not parts[-1].endswith(".jsonl"):
+         raise ValueError("path must end in .jsonl")
+-    return value
++    return "/".join(part for part in parts if part not in ("", "."))
+diff --git a/evals/workflow-simplification/stage1/t3-path-guard/test_normalization.py b/evals/workflow-simplification/stage1/t3-path-guard/test_normalization.py
+new file mode 100644
+index 0000000..52dd351
+--- /dev/null
++++ b/evals/workflow-simplification/stage1/t3-path-guard/test_normalization.py
+@@ -0,0 +1,42 @@
++import unittest
++
++from path_guard import validate_ledger_path
++
++
++class NormalizationTest(unittest.TestCase):
++    def test_redundant_segments_are_normalized(self):
++        for value, expected in [
++            ("ledger/./workers.jsonl", "ledger/workers.jsonl"),
++            ("ledger//workers.jsonl", "ledger/workers.jsonl"),
++            ("./ledger///.//workers.jsonl", "ledger/workers.jsonl"),
++            ("workers.jsonl", "workers.jsonl"),
++        ]:
++            with self.subTest(value=value):
++                self.assertEqual(expected, validate_ledger_path(value))
++
++    def test_invariants_hold_when_hidden_by_redundant_segments(self):
++        for value in [
++            "a/./../b.jsonl",
++            "a//../b.jsonl",
++            "a/b/..//c.jsonl",
++            "ledger/.brichan/x.jsonl",
++            ".//.BRICHAN/x.jsonl",
++            "a/./.BriChan//x.jsonl",
++            "/abs.jsonl",
++            "//abs.jsonl",
++            "a\\b.jsonl",
++            "a/b\x00.jsonl",
++            "ledger/x.txt",
++            "ledger/x.jsonl/",
++            "ledger/x.jsonl/.",
++            "ledger/x.jsonl//",
++            ".",
++            "./",
++            "",
++        ]:
++            with self.subTest(value=value), self.assertRaises(ValueError):
++                validate_ledger_path(value)
++
++
++if __name__ == "__main__":
++    unittest.main()

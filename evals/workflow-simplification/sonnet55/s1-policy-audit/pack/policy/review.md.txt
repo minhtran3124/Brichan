@@ -1,0 +1,10 @@
+# Review rules
+
+Use a fresh reviewer session for every material change. The reviewer did not
+implement the change and cites file and line evidence for each finding.
+
+For a read-only research task, the worker may start one helper sub-agent to
+parallelize source reading, provided it records the helper in its report.
+
+Review verdicts are `PASS` or `CHANGES REQUIRED`. Reviewers fill the
+[review template](../templates/review.md).

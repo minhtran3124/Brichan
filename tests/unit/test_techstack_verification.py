@@ -812,38 +812,49 @@ class PublicationCapTest(ProjectMixin, unittest.TestCase):
 
     def test_an_over_cap_publication_emits_nothing_and_publishes_no_artifact(self):
         self.write_fixture()
-        exact = len(
-            model.publication_document(
-                cli.publish_snapshot(
-                    make_input(), self.root, INSTALLED_DIRECTORY
-                )
-            ).encode("utf-8")
-        )
         # A field-valid publication cannot reach 262,144 bytes (its largest
         # member is a Snapshot capped at 131,072), so the boundary is exercised
-        # by lowering the production constant around this document's own size.
-        fresh = self.base / "fresh"
-        fresh.mkdir()
-        (fresh / ".git").mkdir()
-        for relative in ("techstacks/README.md", "techstacks/general.md"):
-            target = fresh / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes((self.root / relative).read_bytes())
-        with mock.patch.object(model, "PUBLICATION_DOCUMENT_BYTE_LIMIT", exact - 1):
-            with self.assertRaises(model.TechstackSnapshotError) as error:
-                cli.publish_snapshot(make_input(), fresh, INSTALLED_DIRECTORY)
+        # by lowering the production constant around the size of the document
+        # being checked. The size is read from that document, not from a twin
+        # published elsewhere: Snapshots carry inode, mtime_ns, and ctime_ns,
+        # whose digit counts differ between directories.
+        real_document = model.canonical_json_document
+        checked = []
+
+        def cap_at(offset):
+            def document(value):
+                text = real_document(value)
+                if "attempts" in value:
+                    size = len(text.encode("utf-8"))
+                    checked.append(size)
+                    model.PUBLICATION_DOCUMENT_BYTE_LIMIT = size + offset
+                return text
+
+            return document
+
+        with mock.patch.object(model, "PUBLICATION_DOCUMENT_BYTE_LIMIT"):
+            with mock.patch.object(model, "canonical_json_document", cap_at(-1)):
+                with self.assertRaises(model.TechstackSnapshotError) as error:
+                    cli.publish_snapshot(make_input(), self.root, INSTALLED_DIRECTORY)
+        self.assertEqual(1, len(checked))
         self.assertEqual("PUBLICATION_BYTE_LIMIT", error.exception.code)
         self.assertEqual("", error.exception.field)
         self.assertEqual(
             "Snapshot publication exceeds 262144 bytes", error.exception.detail
         )
-        self.assertFalse((fresh / ".brichan").exists())
-        with mock.patch.object(model, "PUBLICATION_DOCUMENT_BYTE_LIMIT", exact):
-            publication = cli.publish_snapshot(
-                make_input(), fresh, INSTALLED_DIRECTORY
-            )
+        self.assertFalse((self.root / ".brichan").exists())
+        with mock.patch.object(model, "PUBLICATION_DOCUMENT_BYTE_LIMIT"):
+            with mock.patch.object(model, "canonical_json_document", cap_at(0)):
+                publication = cli.publish_snapshot(
+                    make_input(), self.root, INSTALLED_DIRECTORY
+                )
+        self.assertGreater(len(checked), 1)
         self.assertEqual("published", publication.status)
-        self.assertTrue((fresh / publication.selected_artifact).is_file())
+        self.assertTrue((self.root / publication.selected_artifact).is_file())
+        self.assertEqual(
+            checked[-1],
+            len(model.publication_document(publication).encode("utf-8")),
+        )
 
 
 class SnapshotDocumentCapTest(ProjectMixin, unittest.TestCase):

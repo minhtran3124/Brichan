@@ -1,0 +1,21 @@
+# Operating rules
+
+## Delegation
+
+Delegate only bounded work with explicit acceptance criteria. Every worker
+receives a task packet and returns evidence.
+
+## Monitoring
+
+Wait for workers in bounded intervals of at most 30 seconds. Never send input
+to a worker automatically.
+
+## Verification
+
+Before closing a task, run `scripts/check_memory.py` and
+`scripts/validate_packets.py`, and record both results in the task register.
+
+## Routing
+
+Resolve the worker route from `config/routing.json`. Do not route a model the
+catalog marks as retired.
