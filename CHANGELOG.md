@@ -60,6 +60,18 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ### Changed
 
+- The level 0 contract-path review decision is now a validator gate. A
+  level 0 `code-review.md` recorded `not-required` must carry a
+  `Contract-path decision` section with the dispatch base (a commit object
+  name), the checker result line, and the
+  `git diff --name-only --no-renames` output as one fenced block. The
+  validator re-applies the contract-path rule to that list. It rejects a
+  waiver whose list names a contract path, and the diagnostic names each
+  matching path. It also rejects a missing, empty, or placeholder list and a
+  checker result that disagrees with the list. The list stays self-reported,
+  since the validator never runs Git. Required reviews and every existing
+  dossier validate unchanged, and the structured-record generator does not
+  render the new section.
 - Claude coordinator, worker, and legacy launches now pass
   `--disallowed-tools=Agent,Task,Workflow` instead of
   `--disallowed-tools=Task`. The old flag hid `Agent` only through its legacy

@@ -194,8 +194,10 @@ Level 0 — one `implement`-route worker.
    `make check` plus the coordinator's acceptance-criteria check.
 3. Independent code review is required if and only if the diff touches a
    [contract path](#contract-paths). When no review applies, `code-review.md`
-   records applicability `not-required`, with the contract-path decision and
-   the diff's changed-path list as evidence.
+   records applicability `not-required` and carries a
+   [`Contract-path decision`](#recording-the-level-0-decision) section with
+   the dispatch base, the checker result, and the diff's changed-path list,
+   which the validator checks.
 4. Ship authorization is `not-requested`; review route strength is `routine`.
 
 Level 1 — one worker that plans and implements, then mandatory review.
@@ -255,10 +257,50 @@ UTF-8 path names, or empty input. Empty or whitespace-only input is refused,
 never read as `contract-path: no`, because a failed `git diff` prints nothing.
 The checker reads names only: it never runs Git and opens no repository file.
 
-**Trust boundary, stated rather than implied.** The level 0 review decision is
-the coordinator's, made with that command and recorded with its output in
-`code-review.md`'s evidence. The validator sees files, not diffs: no gate ties
-the review decision to the checker's exit code mechanically.
+### Recording the level 0 decision
+
+A level 0 `code-review.md` recorded `not-required` must carry exactly one
+`Contract-path decision` section, after `Review target` and before
+`Claim or decision`. It holds two fields and one fenced block containing the
+`git diff --name-only --no-renames <dispatch-base>` output, pasted unchanged,
+one path per line:
+
+    ## Contract-path decision
+
+    - Dispatch base: `5ad3fed`
+    - Checker result: `contract-path: no`
+
+    ```text
+    README.md
+    docs/research/2026-10-10-notes.md
+    ```
+
+The validator enforces:
+
+- the section is present on every level 0 code review recorded
+  `not-required`; a required review at any level needs none;
+- `Dispatch base` is a commit object name (7 to 64 lowercase hex characters),
+  not a branch name, so the recorded diff can be reproduced;
+- `Checker result` is exactly `contract-path: no` or `contract-path: yes`;
+- exactly one closed fenced block holds at least one path and no placeholder
+  line, split as the checker splits its input; a missing, empty, or
+  placeholder list fails closed;
+- re-applying the contract-path rule to the recorded list gives the recorded
+  checker result, so a recorded decision never disagrees with its own list;
+- a `not-required` level 0 review whose list holds a contract path is
+  rejected, and the diagnostic names each matching path.
+
+A present section is checked on any code review, not only a waived one.
+
+**Trust boundary, stated rather than implied.** The validator never runs Git.
+It checks that the recorded decision is complete and consistent with the
+recorded list. It does not check that the list matches the real diff. The list
+is self-reported by the session that ran the command, and a reviewer or the
+coordinator who doubts it re-runs the command against the recorded dispatch
+base. The structured-record generator does not render this section. A level 0
+record whose code review is `not-required` therefore renders a
+`code-review.md` that the validator rejects until the section is added by
+hand.
 
 ## Routing neutrality
 
