@@ -4,6 +4,7 @@
 
 | ID | Task | Owner/session | Model | Status | Acceptance criteria |
 |---|---|---|---|---|---|
+| TDW-011 | M2: level 0 not-required code review must carry changed-path evidence the validator rechecks | `brichan-tdw011-impl` / `wP:pB` / `52315797-48a6-4f59-8a51-63f0e8d9f936` (launch `6ee27c34…`) | claude `claude-opus-5-5` medium (implement route) | done 2026-10-11: `1470469`; review `brichan-tdw011-review` / `wP:pC` / `e2e98668-dc28-4f77-ad09-1488112f0f75` PASS (2 Low); panes closed | AC1–AC4 in receipt |
 
 ## Blocked
 

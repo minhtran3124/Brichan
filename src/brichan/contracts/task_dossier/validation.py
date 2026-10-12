@@ -17,21 +17,30 @@ import sys
 from pathlib import Path, PurePosixPath
 from typing import Sequence
 
+from .contract_paths import contract_path_matches
 from .parser import (
     concrete_list_items,
     has_concrete_statement,
     is_placeholder,
     parse_artifact,
+    parse_fields,
     parse_table,
     plain,
     section_names,
+    split_fenced_blocks,
 )
 from .schema import (
     APPLICABILITY_STATES,
     ARTIFACT_EXTRA_SECTIONS,
+    ARTIFACT_OPTIONAL_SECTIONS,
     AUTHORSHIP_KINDS,
     BODY_SECTIONS,
     CANONICAL_MEMORY_FILES,
+    CONTRACT_PATH_CHECKER_NO,
+    CONTRACT_PATH_CHECKER_YES,
+    CONTRACT_PATH_DECISION_FIELDS,
+    CONTRACT_PATH_DECISION_SECTION,
+    DISPATCH_BASE_PATTERN,
     Diagnostic,
     INDEX_IDENTITY_FIELDS,
     INDEX_IDENTITY_SECTION,
@@ -168,6 +177,13 @@ def _validate_structure(
         expected_sections.append(INDEX_STATUS_SECTION)
     if artifact.name == "report":
         expected_sections.extend(REPORT_SECTIONS)
+    # An optional section is ordered like the others only when it is present.
+    optional = [
+        section
+        for section, _ in ARTIFACT_OPTIONAL_SECTIONS.get(artifact.name, ())
+        if section in names
+    ]
+    expected_sections.extend(optional)
     expected_sections.extend(BODY_SECTIONS)
 
     for section in expected_sections:
@@ -177,7 +193,8 @@ def _validate_structure(
                 diagnostics,
                 artifact,
                 f"section.{section}",
-                f"expected exactly one section, found {count}",
+                f"expected {'at most' if section in optional else 'exactly'} "
+                f"one section, found {count}",
             )
 
     positions = [names.index(section) for section in expected_sections if section in names]
@@ -546,6 +563,122 @@ def _validate_review_applicability(
             f"{METADATA_SECTION}.Applicability",
             f"level {level} requires an independent code review; only level 0 "
             "may record it 'not-required'",
+        )
+
+
+def _validate_contract_path_decision(
+    artifacts: dict[str, ParsedArtifact], level: str, diagnostics: list[Diagnostic]
+) -> None:
+    """Tie a waived level 0 code review to its recorded changed paths.
+
+    A level 0 code review may be 'not-required' only when the diff touches no
+    contract path. The review must then record the dispatch base, the checker's
+    decision line, and the changed paths, and the validator re-applies the
+    contract-path rule to that list. The list itself is self-reported: this
+    validator never runs Git. A present section is checked on any code review,
+    so a recorded decision never disagrees with its own path list.
+    """
+    review = artifacts.get("code-review")
+    if review is None:
+        return
+    section = CONTRACT_PATH_DECISION_SECTION
+    applicability = plain(review.get(METADATA_SECTION, "Applicability")).lower()
+    waived = level == "0" and applicability == "not-required"
+    text = review.sections.get(section)
+    if text is None:
+        if waived:
+            _diagnose(
+                diagnostics,
+                review,
+                f"section.{section}",
+                "a level 0 code review recorded 'not-required' requires a "
+                f"'{section}' section with the dispatch base, the checker "
+                "result, and the changed paths",
+            )
+        return
+
+    outside, blocks, closed = split_fenced_blocks(text)
+    fields = parse_fields(outside)
+    for label in CONTRACT_PATH_DECISION_FIELDS:
+        count = len(re.findall(rf"^- {re.escape(label)}:", outside, re.MULTILINE))
+        if count != 1:
+            _diagnose(
+                diagnostics,
+                review,
+                f"{section}.{label}",
+                f"expected exactly one field, found {count}",
+            )
+
+    base = plain(fields.get("Dispatch base"))
+    if not DISPATCH_BASE_PATTERN.fullmatch(base):
+        _diagnose(
+            diagnostics,
+            review,
+            f"{section}.Dispatch base",
+            "must be the commit object name the diff was taken against (7 to "
+            f"64 lowercase hex characters), found {base!r}",
+        )
+
+    recorded = plain(fields.get("Checker result"))
+    results = (CONTRACT_PATH_CHECKER_NO, CONTRACT_PATH_CHECKER_YES)
+    if recorded not in results:
+        _diagnose(
+            diagnostics,
+            review,
+            f"{section}.Checker result",
+            f"must be one of {list(results)}, found {recorded!r}",
+        )
+
+    paths_field = f"{section}.Changed paths"
+    if not closed or len(blocks) != 1:
+        _diagnose(
+            diagnostics,
+            review,
+            paths_field,
+            "expected exactly one closed fenced block holding the output of "
+            "git diff --name-only --no-renames <dispatch-base>, found "
+            f"{len(blocks)} block(s)" + ("" if closed else " and an unclosed fence"),
+        )
+        return
+    # Split exactly as scripts/check_contract_paths.py does.
+    paths = [line.rstrip("\r") for line in blocks[0]]
+    paths = [path for path in paths if path.strip()]
+    if not paths:
+        _diagnose(
+            diagnostics,
+            review,
+            paths_field,
+            "the changed-path list is empty; an empty list is never evidence "
+            "that no contract path changed",
+        )
+        return
+    placeholders = [path for path in paths if is_placeholder(path)]
+    if placeholders:
+        _diagnose(
+            diagnostics,
+            review,
+            paths_field,
+            f"placeholder path name(s) are not evidence: {placeholders}",
+        )
+        return
+
+    matches = contract_path_matches(paths)
+    recomputed = CONTRACT_PATH_CHECKER_YES if matches else CONTRACT_PATH_CHECKER_NO
+    if recorded in results and recorded != recomputed:
+        _diagnose(
+            diagnostics,
+            review,
+            f"{section}.Checker result",
+            f"records {recorded!r} but the recorded changed paths give "
+            f"{recomputed!r}",
+        )
+    if waived and matches:
+        _diagnose(
+            diagnostics,
+            review,
+            paths_field,
+            "a level 0 code review may be 'not-required' only when no changed "
+            f"path is a contract path; contract path(s): {', '.join(matches)}",
         )
 
 
@@ -1250,6 +1383,7 @@ def validate_dossier(
 
     _validate_ownership(artifacts, diagnostics)
     _validate_review_applicability(artifacts, level, diagnostics)
+    _validate_contract_path_decision(artifacts, level, diagnostics)
     _validate_unplanned_review_targets(artifacts, present, diagnostics)
     if "request" in artifacts:
         _validate_request(artifacts["request"], diagnostics)

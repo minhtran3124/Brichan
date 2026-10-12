@@ -2,6 +2,8 @@
 
 Independent review of the implementation, or the recorded evidence for why no implementation review applies.
 
+A level 0 review recorded `not-required` also carries a `Contract-path decision` section after `Review target`; see "Recording the level 0 decision" in `docs/workflows/task-dossier.md`.
+
 ## Artifact metadata
 
 - Task ID: `<TASK-000>`

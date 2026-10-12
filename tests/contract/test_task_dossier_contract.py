@@ -11,6 +11,10 @@ sys.path.insert(0, str(ROOT / "src"))
 from brichan.contracts.task_dossier.schema import (
     ARTIFACTS,
     BODY_SECTIONS,
+    CONTRACT_PATH_CHECKER_NO,
+    CONTRACT_PATH_CHECKER_YES,
+    CONTRACT_PATH_DECISION_FIELDS,
+    CONTRACT_PATH_DECISION_SECTION,
     CONTRACT_PATH_FILES,
     CONTRACT_PATH_PREFIXES,
     LEVEL_REQUIRED_ARTIFACTS,
@@ -189,6 +193,14 @@ class TaskDossierDocumentationContractTest(unittest.TestCase):
         pipeline = re.search(r"```bash\n(.+?)```", section, re.DOTALL).group(1)
         self.assertTrue(pipeline.startswith("set -o pipefail\n"), pipeline)
         self.assertIn("Empty or whitespace-only input is refused", section)
+        for literal in (
+            CONTRACT_PATH_CHECKER_NO,
+            CONTRACT_PATH_CHECKER_YES,
+            f"## {CONTRACT_PATH_DECISION_SECTION}",
+            *(f"- {label}:" for label in CONTRACT_PATH_DECISION_FIELDS),
+        ):
+            with self.subTest(literal=literal):
+                self.assertIn(literal, section)
 
     def test_level_lifecycles_are_stated_once_and_referenced_elsewhere(self):
         self.assertEqual(1, self.contract.count("### Lifecycles by level"))

@@ -16,11 +16,13 @@
 | WFS-010 | Side-by-side `claude-sonnet-5` vs `claude-sonnet-5-5` (stage 1 coding tasks + seeded scan audit) | Brichan (Herdr workers) | done 2026-10-08: `sonnet-5-5` preferred (blind review 42 vs 36, 0 vs 2 functional defects, hidden 36/36 both, scan 6/6 both, ~3.5x faster); `evals/workflow-simplification/sonnet55/results/results.md` |
 | WFS-011 | Make the techstack publication-cap test deterministic (level 0, no contract path) | coordinator; reviewer `brichan-wfs012-cr` (`w9:pV`, launch `b2183932…`) | done 2026-10-09: review PASS (no findings); cause was inode digit width, not `__pycache__`; branch `fix/techstack-test-and-receipt-root` |
 | WFS-012 | Receipt verify row names the root as `<project-root>` (level 1, contract path) | coordinator; reviewer `brichan-wfs012-cr` (`w9:pV`, launch `b2183932…`) | done 2026-10-09: review PASS (no findings); pane closed; branch `fix/techstack-test-and-receipt-root` |
+| WFS-013 | SDLC-playbook easy wins E2–E6 (level 0, contract path) | coordinator; reviewer `brichan-wfs013-review` (`wP:p5`, launch `9d9f590c…`) | done 2026-10-10: review PASS (3 Low; 2 fixed, 1 open decision); pane closed; PR #45 |
 
 ## Workers
 
 | Agent | Pane | Model | Task | Worktree | Launch ID | Status |
 |---|---|---|---|---|---|---|
+| `brichan-wfs013-review` | `wP:p5` | claude `claude-fable-5` high (Codex not installed) | WFS-013 code review | primary checkout | `9d9f590c-d4bf-4850-8c43-b976b4455954` | PASS (3 Low; 2 fixed); pane closed; ledger finished |
 | `brichan-wfs012-cr` | `w9:pV` | claude `claude-fable-5` high (Codex not installed) | WFS-011 and WFS-012 code review | primary checkout | `b2183932-8b68-4ecc-9978-fa028b45990a` | PASS both (no findings) 04:36Z; pane closed; ledger finished |
 | `brichan-wfs010-code-a` | `w9:pG` | claude `claude-sonnet-5` medium | WFS-010 coding arm A | `../brichan-s55-a` @ `40f46d8` | `2a0a642f-96a6-4b01-adb6-5cd0fb102ff3` | done 4m52s; 2 functional defects (blind review X); pane closed; ledger finished |
 | `brichan-wfs010-code-b` | `w9:pH` | claude `claude-sonnet-5-5` medium | WFS-010 coding arm B | `../brichan-s55-b` @ `40f46d8` | `564f0bb5-7c8e-4e71-83d2-0abfb4db5514` | done 1m20s; 0 functional defects (blind review Y); pane closed; ledger finished |
@@ -79,4 +81,3 @@ Later arm A sessions (plan revisions v3/v4, plan reviews 2-4, implementers, code
 | `brichan-wfs005-cr` | `w4J:p1A` | claude `claude-opus-5` high | code review v1 | `10a0b370-f8f1-49e7-ab13-4e69df4ef247` | CHANGES REQUIRED (M1); pane closed |
 | `brichan-wfs005-fix1` | `w4J:p1B` | claude `claude-opus-5-5` medium | Fix 1 (M1 test) | `98972747-a0b9-4c99-a1f6-75f95b6bcb89` | done; pane closed |
 | `brichan-wfs005-cr2` | `w4J:p1C` | claude `claude-opus-5` high | code review v2 | `e60f482b-7a99-4552-bc7f-11d2aa13c486` | PASS; pane closed |
-| `brichan-wfs013-review` | `wP:p5` | claude `claude-fable-5` high | WFS-013 code review (SDLC easy wins E2-E6) | `c6ad5c7f-b790-4afa-a370-d17434fa8766` | PASS (3 low; 2 fixed); pane closed |

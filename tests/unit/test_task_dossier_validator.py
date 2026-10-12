@@ -140,6 +140,20 @@ def _extra(artifact, overrides):
     return f"## {heading}\n\n{fields}\n\n"
 
 
+def _decision(artifact, overrides):
+    """Render the optional code-review ``Contract-path decision`` section."""
+    values = overrides.get(f"{artifact}:decision")
+    if artifact != "code-review" or not values:
+        return ""
+    fields = "".join(
+        f"- {label}: `{values[label]}`\n"
+        for label in ("Dispatch base", "Checker result")
+        if label in values
+    )
+    block = f"```text\n{values['Changed paths']}\n```\n"
+    return f"## Contract-path decision\n\n{fields}\n{block}\n"
+
+
 def _status_table(overrides, artifacts):
     rows = ["| Artifact | Applicability | Phase state | Path |", "| --- | --- | --- | --- |"]
     for artifact in artifacts:
@@ -177,6 +191,7 @@ def build_dossier(
         text = f"# {artifact}\n\n## Artifact metadata\n\n"
         text += _metadata(artifact, overrides) + "\n\n"
         text += _extra(artifact, overrides)
+        text += _decision(artifact, overrides)
         if artifact == "index":
             text += _status_table(overrides, artifacts)
         text += _body(evidence_items)
@@ -225,6 +240,14 @@ def build_reduced_dossier(root, level, *, overrides=None, **kwargs):
     )
 
 
+NON_CONTRACT_DECISION = {
+    "code-review:decision": {
+        "Dispatch base": "5ad3fed",
+        "Checker result": "contract-path: no",
+        "Changed paths": "README.md\ndocs/research/notes.md",
+    }
+}
+
 WAIVED_CODE_REVIEW = {
     "code-review": {
         "Phase state": "not-required",
@@ -232,7 +255,8 @@ WAIVED_CODE_REVIEW = {
         "Applicability rationale": "diff touches no contract path",
         "Reviewing session": "null",
         "Review verdict": "null",
-    }
+    },
+    **NON_CONTRACT_DECISION,
 }
 
 
@@ -1274,6 +1298,161 @@ class ReducedDossierValidatorTest(DossierValidatorBase):
             {partial: ["report"]},
             task_dossier.discover_partial_dossiers(self.projects),
         )
+
+
+class Level0ContractPathDecisionTest(DossierValidatorBase):
+    """A waived level 0 code review is tied to its recorded changed paths."""
+
+    def waived(self, decision=None, level="0"):
+        return build_reduced_dossier(
+            self.projects,
+            level,
+            overrides=merge_overrides(
+                WAIVED_CODE_REVIEW, {"code-review:decision": decision or {}}
+            ),
+        )
+
+    def rewrite_review(self, dossier, old, new):
+        review = dossier / "code-review.md"
+        text = review.read_text(encoding="utf-8")
+        self.assertIn(old, text)
+        review.write_text(text.replace(old, new), encoding="utf-8")
+
+    def test_a_recorded_contract_path_rejects_the_waiver_by_name(self):
+        dossier = self.waived(
+            {
+                "Checker result": "contract-path: yes",
+                "Changed paths": "README.md\nsrc/brichan/cli.py\nMakefile",
+            }
+        )
+        diagnostics = self.assert_reports(
+            dossier,
+            "Contract-path decision.Changed paths: a level 0 code review may be "
+            "'not-required' only when no changed path is a contract path; "
+            "contract path(s): src/brichan/cli.py, Makefile",
+        )
+        self.assertNotIn("Checker result: records", self.messages(diagnostics))
+
+    def test_a_waiver_without_the_decision_section_fails_closed(self):
+        dossier = self.waived()
+        review = dossier / "code-review.md"
+        text = review.read_text(encoding="utf-8")
+        start = text.index("## Contract-path decision")
+        review.write_text(
+            text[:start] + text[text.index("## Claim or decision") :],
+            encoding="utf-8",
+        )
+        self.assert_reports(
+            dossier,
+            "section.Contract-path decision: a level 0 code review recorded "
+            "'not-required' requires a 'Contract-path decision' section",
+        )
+
+    def test_an_empty_or_placeholder_path_list_fails_closed(self):
+        for paths, needle in (
+            ("", "the changed-path list is empty"),
+            ("  \n", "the changed-path list is empty"),
+            ("<changed path, one per line>", "placeholder path name(s)"),
+            ("README.md\npending", "placeholder path name(s)"),
+        ):
+            with self.subTest(paths=paths):
+                dossier = self.waived({"Changed paths": paths})
+                self.assert_reports(
+                    dossier, f"Contract-path decision.Changed paths: {needle}"
+                )
+
+    def test_the_path_list_must_be_one_closed_fenced_block(self):
+        dossier = self.waived()
+        self.rewrite_review(dossier, "```text\n", "")
+        self.rewrite_review(dossier, "```\n", "")
+        self.assert_reports(dossier, "expected exactly one closed fenced block")
+
+        dossier = self.waived()
+        self.rewrite_review(
+            dossier, "docs/research/notes.md\n```\n", "docs/research/notes.md\n"
+        )
+        self.assert_reports(dossier, "and an unclosed fence")
+
+    def test_a_checker_result_that_disagrees_with_the_paths_is_rejected(self):
+        dossier = self.waived({"Checker result": "contract-path: yes"})
+        self.assert_reports(
+            dossier,
+            "Contract-path decision.Checker result: records 'contract-path: yes' "
+            "but the recorded changed paths give 'contract-path: no'",
+        )
+
+    def test_a_present_decision_is_checked_on_a_required_review_too(self):
+        dossier = build_reduced_dossier(
+            self.projects,
+            "1",
+            overrides={
+                "code-review:decision": {
+                    **NON_CONTRACT_DECISION["code-review:decision"],
+                    "Checker result": "contract-path: yes",
+                }
+            },
+        )
+        self.assert_reports(dossier, "records 'contract-path: yes'")
+
+    def test_the_dispatch_base_must_be_a_commit_object_name(self):
+        for base in ("<dispatch-base>", "main", "null"):
+            with self.subTest(base=base):
+                dossier = self.waived({"Dispatch base": base})
+                self.assert_reports(
+                    dossier,
+                    "Contract-path decision.Dispatch base: must be the commit "
+                    "object name",
+                )
+
+    def test_each_decision_field_appears_exactly_once(self):
+        dossier = self.waived()
+        self.rewrite_review(dossier, "- Checker result: `contract-path: no`\n", "")
+        self.assert_reports(
+            dossier,
+            "Contract-path decision.Checker result: expected exactly one field, "
+            "found 0",
+        )
+
+        dossier = self.waived()
+        self.rewrite_review(
+            dossier,
+            "- Dispatch base: `5ad3fed`\n",
+            "- Dispatch base: `5ad3fed`\n- Dispatch base: `1234567`\n",
+        )
+        self.assert_reports(
+            dossier,
+            "Contract-path decision.Dispatch base: expected exactly one field, "
+            "found 2",
+        )
+
+    def test_the_decision_section_is_declared_at_most_once_in_order(self):
+        dossier = self.waived()
+        review = dossier / "code-review.md"
+        text = review.read_text(encoding="utf-8")
+        section = text[
+            text.index("## Contract-path decision") : text.index("## Claim or decision")
+        ]
+        review.write_text(text + "\n" + section, encoding="utf-8")
+        self.assert_reports(
+            dossier,
+            "section.Contract-path decision: expected at most one section, found 2",
+        )
+
+        review.write_text(
+            text.replace(section, "").replace(
+                "## Review target", section + "## Review target"
+            ),
+            encoding="utf-8",
+        )
+        self.assert_reports(dossier, "required sections are not in canonical order")
+
+    def test_a_level_0_required_review_needs_no_decision_section(self):
+        dossier = build_reduced_dossier(self.projects, "0")
+        self.assertNotIn(
+            "Contract-path decision",
+            (dossier / "code-review.md").read_text(encoding="utf-8"),
+        )
+        self.assert_valid(dossier, require_complete=True)
 
 
 if __name__ == "__main__":
