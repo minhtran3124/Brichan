@@ -22,7 +22,12 @@ import argparse
 import sys
 from typing import BinaryIO, Iterable, Sequence
 
-from .schema import CONTRACT_PATH_FILES, CONTRACT_PATH_PREFIXES
+from .schema import (
+    CONTRACT_PATH_CHECKER_NO,
+    CONTRACT_PATH_CHECKER_YES,
+    CONTRACT_PATH_FILES,
+    CONTRACT_PATH_PREFIXES,
+)
 
 
 def _unquote(name: str) -> str:
@@ -77,11 +82,11 @@ def main(argv: Sequence[str] | None = None, stdin: BinaryIO | None = None) -> in
         return 2
     matches = contract_path_matches(names)
     if matches:
-        print("contract-path: yes")
+        print(CONTRACT_PATH_CHECKER_YES)
         for name in matches:
             print(name)
         return 3
-    print("contract-path: no")
+    print(CONTRACT_PATH_CHECKER_NO)
     return 0
 
 

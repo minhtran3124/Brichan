@@ -157,6 +157,18 @@ CONTRACT_PATH_FILES = (
     "PRODUCT.md",
 )
 
+# The checker's decision lines. scripts/check_contract_paths.py prints them and
+# a recorded contract-path decision must repeat one of them exactly.
+CONTRACT_PATH_CHECKER_NO = "contract-path: no"
+CONTRACT_PATH_CHECKER_YES = "contract-path: yes"
+
+# A level 0 code review recorded 'not-required' carries this section: the
+# dispatch base, the checker's decision line, and one fenced block holding the
+# changed paths exactly as `git diff --name-only --no-renames` printed them.
+CONTRACT_PATH_DECISION_SECTION = "Contract-path decision"
+CONTRACT_PATH_DECISION_FIELDS = ("Dispatch base", "Checker result")
+DISPATCH_BASE_PATTERN = re.compile(r"^[0-9a-f]{7,64}$")
+
 # Receipt and project memory stay canonical; the index links instead of copying.
 RECEIPT_OWNED_SECTIONS = (
     "Identity",
@@ -269,6 +281,14 @@ ARTIFACT_EXTRA_SECTIONS = {
     "pr-desc": ((REMOTE_ACTION_SECTION, REMOTE_ACTION_FIELDS),),
 }
 
+# Sections an artifact may declare after its extra sections and before the
+# body sections. Unlike `ARTIFACT_EXTRA_SECTIONS`, absence is valid here, so
+# existing artifacts, the record format, and the generator are unaffected; the
+# validator decides when one becomes mandatory.
+ARTIFACT_OPTIONAL_SECTIONS = {
+    "code-review": ((CONTRACT_PATH_DECISION_SECTION, CONTRACT_PATH_DECISION_FIELDS),),
+}
+
 PLACEHOLDER_VALUES = {
     "",
     "n/a",
@@ -351,13 +371,19 @@ __all__ = [
     "APPLICABILITY_STATES",
     "ARTIFACTS",
     "ARTIFACT_EXTRA_SECTIONS",
+    "ARTIFACT_OPTIONAL_SECTIONS",
     "ARTIFACT_OWNERS",
     "ARTIFACT_TITLES",
     "AUTHORSHIP_KINDS",
     "BODY_SECTIONS",
     "CANONICAL_MEMORY_FILES",
+    "CONTRACT_PATH_CHECKER_NO",
+    "CONTRACT_PATH_CHECKER_YES",
+    "CONTRACT_PATH_DECISION_FIELDS",
+    "CONTRACT_PATH_DECISION_SECTION",
     "CONTRACT_PATH_FILES",
     "CONTRACT_PATH_PREFIXES",
+    "DISPATCH_BASE_PATTERN",
     "Diagnostic",
     "FALLBACK_TASK_LEVEL",
     "INDEX_IDENTITY_FIELDS",

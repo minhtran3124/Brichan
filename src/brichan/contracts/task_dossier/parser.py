@@ -74,6 +74,32 @@ def parse_fields(section_text: str) -> dict[str, str]:
     return fields
 
 
+def split_fenced_blocks(section_text: str) -> tuple[str, list[list[str]], bool]:
+    """Separate a section's fenced blocks from the text around them.
+
+    Returns the text outside every block, each block's inner lines verbatim,
+    and whether every opened block was closed. A block opens on a line that
+    starts with three backticks or tildes (an info string may follow) and
+    closes on a line holding only the same marker.
+    """
+    outside: list[str] = []
+    blocks: list[list[str]] = []
+    marker: str | None = None
+    for line in section_text.split("\n"):
+        stripped = line.strip()
+        if marker is None:
+            if stripped.startswith(("```", "~~~")):
+                marker = stripped[:3]
+                blocks.append([])
+            else:
+                outside.append(line)
+        elif stripped == marker:
+            marker = None
+        else:
+            blocks[-1].append(line)
+    return "\n".join(outside), blocks, marker is None
+
+
 def parse_table(section_text: str) -> list[list[str]]:
     rows: list[list[str]] = []
     for line in section_text.splitlines():
@@ -145,4 +171,5 @@ __all__ = [
     "parse_table",
     "plain",
     "section_names",
+    "split_fenced_blocks",
 ]
