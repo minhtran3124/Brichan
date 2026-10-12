@@ -13,19 +13,17 @@
   EVWAIT-001 wait loop. Review v1 CHANGES REQUIRED (2 Medium, 2 Low) fixed;
   re-review v2 `PASS`. Not probed: a Herdr server restart. Codex still has a
   pending CLI update, so both reviews ran on Claude Fable 5.
-- Claude Code 2.1.220 is authenticated and routable; Codex and Claude Herdr
-  integrations are current.
+- Claude Code 2.1.296 is authenticated and routable; Codex is not installed,
+  so recent reviews run same-provider on Claude Fable 5.
+- Checkout guardrails on `main` (2026-10-12): launches and `.claude/settings.json`
+  deny `Agent`, `Task`, `Workflow`, `CronCreate`, `RemoteTrigger`; the hook
+  asks before Bash starts `claude`/`codex` (`CLAUDE-007`–`CLAUDE-009`).
 - Canonical receipts support schema v1 and v2. V2 separates immutable attempt
   origin from current lifecycle and validates prior state plus replacement
   evidence.
 - `RECEIPT-V2-001` used Claude Opus planning, Codex Sol implementation, and
   Claude Opus review. Commits `843d3bf` and `7339415` implemented the validator
   and migrated three receipts.
-- Initial review found a HIGH blank-schema bypass. Coordinator remediation
-  `d788a8b` made unsupported-version handling unconditional and added blank and
-  whitespace regression coverage; focused re-review returned `PASS`.
-- All required tests pass: 53 focused tests, 10 metrics tests, 62 repository
-  tests, and four canonical receipt validations.
 - Concurrent-writer isolation, recovery pilots, and the first equivalent
   Codex–Claude policy benchmark remain complete.
 - Per-task token and cost totals remain unavailable. One benchmark sample is
@@ -40,14 +38,6 @@
 - `PILOT-003` is complete: the control succeeded once; fresh treatment rerun
   `PILOT-003-T-R1` recorded one real task-local exit-42 fault followed by one
   successful retry, and independent Codex Terra re-review returned `PASS`.
-- `PILOT-003-E` control passed: one task-local tool invocation returned exact
-  success output with exit 0. The treatment worker also observed one real
-  exit-42 fault and a successful retry, but the coordinator made a prohibited
-  third post-run invocation. The treatment is `CHANGES REQUIRED`; it is not
-  clean recovery evidence.
-- `PILOT-003-T-R1` preserves raw worker output, byte-for-byte wrapper log, and
-  pre-dispatch SHA-256/mode/target provenance. Its initial shell redirect was
-  rejected before the tool ran; this is a non-blocking process-discipline risk.
 
 ## Main gaps and risks
 
@@ -75,6 +65,15 @@
 
 ## Next actions
 
-1. Repeat `BENCHMARK-002` with more task instances before changing routing.
-2. Decide whether replacement evidence should be co-located or immutable before
+1. Resume `CLAUDE-010` (research item M1, level 2) after the weekly usage
+   reset on 2026-10-14, paused by the user on 2026-10-12: run a fresh plan
+   re-review of `CLAUDE-010-P1` v3 (`claude-fable-5` `xhigh`), then accept the
+   plan, write the receipt, implement, and code review. Branch
+   `feat/protect-secrets-and-guardrails`; dossier
+   `projects/brida-claude-code-support/handoffs/CLAUDE-010/`.
+2. Fix the redirect false positive in `.claude/hooks/block_native_delegation.py`:
+   `2>/dev/null` or `2>&1` makes `claude --version` ask, which stalls Herdr
+   workers (seen 2026-10-12 in the `CLAUDE-010` plan review). Separate task.
+3. Repeat `BENCHMARK-002` with more task instances before changing routing.
+4. Decide whether replacement evidence should be co-located or immutable before
    tightening evidence-path durability.
