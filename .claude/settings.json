@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "deny": ["Agent", "Task", "Workflow"]
+    "deny": ["Agent", "Task", "Workflow", "CronCreate", "RemoteTrigger"]
   },
   "hooks": {
     "PreToolUse": [

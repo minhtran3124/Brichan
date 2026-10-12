@@ -9,6 +9,13 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ### Added
 
+- Claude launches and the checkout's `.claude/settings.json` also deny
+  `CronCreate` and `RemoteTrigger`, which start scheduled or remote agent
+  runs outside Herdr. In this checkout the `PreToolUse` hook asks the user
+  to approve any Bash command that starts a `claude` or `codex` agent
+  session, including one on a later line or inside a `$(...)` or backtick
+  substitution (only `--version`, `--help`, or `-h` alone pass), so one-off
+  probes stay possible while delegated work stays on Herdr.
 - This checkout ships a project `.claude/settings.json` that denies the
   native delegation tools `Agent`, `Task`, and `Workflow` and runs a
   `PreToolUse` hook (`.claude/hooks/block_native_delegation.py`) that also
