@@ -19,7 +19,7 @@ DELEGATION_TOOLS = frozenset(
 DELEGATION_PATTERN = re.compile(r"sub[-_]?agent|delegat|orchestrat", re.IGNORECASE)
 
 AGENT_COMMANDS = frozenset({"claude", "codex"})
-INFO_ARGUMENTS = frozenset({"--version", "-v", "--help", "-h"})
+INFO_ARGUMENTS = frozenset({"--version", "--help", "-h"})
 COMMAND_WRAPPERS = frozenset({"env", "exec", "command", "nohup", "nice", "time"})
 
 DENY_REASON = (
@@ -41,20 +41,22 @@ def is_delegation_tool(name: str) -> bool:
 
 
 ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
+SUBSTITUTION = re.compile(r"\$\(([^()]*)\)|`([^`]*)`")
+SEPARATORS = "();<>|&\n"
 
 
 def _commands(command: str):
     """Yield the words of each simple command in a shell string.
 
-    Backticks become separators so `...` substitutions are inspected too; a
-    literal backtick inside single quotes can then cause a spurious prompt,
-    never a missed one.
+    Newlines outside quotes separate commands, as in a shell script; a newline
+    inside quotes stays part of its word.
     """
-    lexer = shlex.shlex(command.replace("`", " ; "), posix=True, punctuation_chars=True)
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=SEPARATORS)
+    lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
     current: list[str] = []
     for token in lexer:
-        if token == "$" or token.strip("();&|<>") == "":
+        if token == "$" or token.strip(SEPARATORS) == "":
             if current:
                 yield current
             current = []
@@ -82,12 +84,22 @@ def _executable(words: list[str]):
     return None, []
 
 
-def agent_launch(command: str):
+def agent_launch(command: str, depth: int = 0):
     """Return the agent CLI a Bash command starts, or None.
 
-    Only --version or --help on its own is exempt; anything else, including a
-    bare interactive start, counts as starting an agent session.
+    The body of every `$(...)` and backtick substitution is checked as a
+    command of its own, wherever it appears: bash runs it inside double
+    quotes too. Inside single quotes it is literal text, so a mention there
+    can cause a spurious prompt, never a missed one. Only --version, --help,
+    or -h alone is exempt; anything else, including a bare interactive
+    start, counts as starting an agent session.
     """
+    if depth < 3:
+        for match in SUBSTITUTION.finditer(command):
+            body = match.group(1) if match.group(1) is not None else match.group(2)
+            found = agent_launch(body, depth + 1)
+            if found is not None:
+                return found
     try:
         commands = list(_commands(command))
     except ValueError:

@@ -70,6 +70,10 @@ class NativeDelegationHookTest(unittest.TestCase):
             ("echo $(claude -p x)", "claude"),
             ("echo `codex exec y`", "codex"),
             ("nohup claude -p x &", "claude"),
+            ("echo hi\nclaude -p x", "claude"),
+            ('echo "$(claude -p x)"', "claude"),
+            ('echo "`codex exec y`"', "codex"),
+            ("codex -v", "codex"),
         ):
             with self.subTest(command=command):
                 result = run_hook(
@@ -88,6 +92,8 @@ class NativeDelegationHookTest(unittest.TestCase):
             "grep -rn claude docs | wc -l",
             'git commit -m "fix(cli): block claude"',
             "echo 'unbalanced",
+            'git commit -m "line one\nclaude -p is mentioned here"',
+            'herdr pane run wP:p1 "$(cat packet.txt)"',
         ):
             with self.subTest(command=command):
                 result = run_hook(
