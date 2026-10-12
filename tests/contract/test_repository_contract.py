@@ -254,7 +254,7 @@ class RepositoryContractTest(unittest.TestCase):
         self.assertIn('"agents.enabled=false"', providers)
         self.assertIn('"multi_agent"', providers)
         self.assertIn('"multi_agent_v2"', providers)
-        self.assertIn('("--disallowed-tools=Agent,Task,Workflow",)', providers)
+        self.assertIn('("--disallowed-tools=Agent,Task,Workflow,CronCreate,RemoteTrigger",)', providers)
         self.assertNotIn("agents.enabled=true", providers)
 
     def test_runtime_dispatcher_supports_only_approved_runtimes(self):

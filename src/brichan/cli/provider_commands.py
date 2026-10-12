@@ -22,7 +22,7 @@ CODEX_NATIVE_AGENT_FLAGS = (
     "--disable",
     "multi_agent_v2",
 )
-CLAUDE_NATIVE_AGENT_FLAGS = ("--disallowed-tools=Agent,Task,Workflow",)
+CLAUDE_NATIVE_AGENT_FLAGS = ("--disallowed-tools=Agent,Task,Workflow,CronCreate,RemoteTrigger",)
 PROJECT_SAFE_CONFIG_KEYS = frozenset({"model", "model_reasoning_effort"})
 PROJECT_SAFE_FLAGS = frozenset(
     {"-h", "--help", "-V", "--version", "--no-alt-screen", "--strict-config"}

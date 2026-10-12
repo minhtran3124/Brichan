@@ -31,7 +31,7 @@ def decision(result):
 
 class NativeDelegationHookTest(unittest.TestCase):
     def test_known_delegation_tools_are_denied(self):
-        for tool in ("Agent", "Task", "Workflow"):
+        for tool in ("Agent", "Task", "Workflow", "CronCreate", "RemoteTrigger"):
             with self.subTest(tool=tool):
                 result = run_hook({"hook_event_name": "PreToolUse", "tool_name": tool})
                 self.assertEqual(0, result.returncode)
@@ -49,12 +49,50 @@ class NativeDelegationHookTest(unittest.TestCase):
             "Edit",
             "TaskStop",
             "TaskCreate",
+            "CronList",
+            "CronDelete",
             "ListAgents",
             "SendMessage",
             "mcp__server__orchestrate_deploy",
         ):
             with self.subTest(tool=tool):
                 result = run_hook({"tool_name": tool})
+                self.assertEqual(0, result.returncode)
+                self.assertEqual("", result.stdout)
+
+    def test_bash_agent_sessions_ask_for_approval(self):
+        for command, agent in (
+            ('claude -p "summarize"', "claude"),
+            ("cd /tmp && timeout 120 claude -p --model haiku -- hi", "claude"),
+            ("claude", "claude"),
+            ('codex exec "fix it"', "codex"),
+            ("FOO=1 env BAR=2 /usr/bin/claude -p x", "claude"),
+            ("echo $(claude -p x)", "claude"),
+            ("echo `codex exec y`", "codex"),
+            ("nohup claude -p x &", "claude"),
+        ):
+            with self.subTest(command=command):
+                result = run_hook(
+                    {"tool_name": "Bash", "tool_input": {"command": command}}
+                )
+                self.assertEqual(0, result.returncode)
+                self.assertEqual("ask", decision(result))
+                self.assertIn(agent, result.stdout)
+
+    def test_bash_without_agent_session_gets_no_decision(self):
+        for command in (
+            "claude --version",
+            "ls; codex --help",
+            "bin/brichan --runtime claude",
+            'herdr pane run wP:p4 "probe with claude -p first"',
+            "grep -rn claude docs | wc -l",
+            'git commit -m "fix(cli): block claude"',
+            "echo 'unbalanced",
+        ):
+            with self.subTest(command=command):
+                result = run_hook(
+                    {"tool_name": "Bash", "tool_input": {"command": command}}
+                )
                 self.assertEqual(0, result.returncode)
                 self.assertEqual("", result.stdout)
 
@@ -71,7 +109,8 @@ class NativeDelegationHookTest(unittest.TestCase):
     def test_settings_wire_the_hook_and_deny_rules(self):
         settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
         self.assertEqual(
-            {"Agent", "Task", "Workflow"}, set(settings["permissions"]["deny"])
+            {"Agent", "Task", "Workflow", "CronCreate", "RemoteTrigger"},
+            set(settings["permissions"]["deny"]),
         )
         entries = settings["hooks"]["PreToolUse"]
         commands = [hook["command"] for entry in entries for hook in entry["hooks"]]
