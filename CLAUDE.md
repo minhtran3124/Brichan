@@ -10,7 +10,11 @@ task packets, produce acceptance evidence, and be recorded in project memory.
 Do not use Claude Code's native delegation or background-agent mechanisms to
 replace the Herdr lifecycle. In this checkout, `.claude/settings.json` denies
 those tools, and its hook asks before a Bash command starts a `claude` or
-`codex` session.
+`codex` session. It also denies reading or editing secret files, and
+`.claude/hooks/protect_secrets.py` blocks commits that add a likely secret
+and asks before edits to `.claude/` guardrail files or `docs/policy/`. A
+user-authorized policy task is launched with `BRICHAN_POLICY_EDIT_TASK` to
+skip the policy ask.
 
 Coordinator defaults and named worker routes are resolved from
 `config/model-routing.json`. Explicit coordinator CLI options remain one-off

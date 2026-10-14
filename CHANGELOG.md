@@ -9,6 +9,18 @@ Semantic Versioning compatibility because its runtime contract is pre-1.0.
 
 ### Added
 
+- The checkout's `.claude/settings.json` denies Read and Edit on secret
+  files (`.env`, `.env.*` except `.env.example`, `*.pem`, `*.key`,
+  `id_rsa*`, `.netrc`, `.pypirc`, and credentials files) and asks before
+  file-tool edits to `.claude/settings.json`, `.claude/settings.local.json`,
+  and `.claude/hooks/`. A fail-closed `PreToolUse` hook
+  (`.claude/hooks/protect_secrets.py`) denies Bash commands that name a
+  secret file, denies a `git commit` whose changes add a private key block,
+  GitHub token, Anthropic API key, or AWS access key ID, and asks before Bash
+  writes to those guardrail paths and before any edit under `docs/policy/`.
+  A session launched with `BRICHAN_POLICY_EDIT_TASK` set, for a policy change
+  the user authorized, skips the policy ask. `brichan init` still writes no
+  hooks into a target repository.
 - Claude launches and the checkout's `.claude/settings.json` also deny
   `CronCreate` and `RemoteTrigger`, which start scheduled or remote agent
   runs outside Herdr. In this checkout the `PreToolUse` hook asks the user

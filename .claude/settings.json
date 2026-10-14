@@ -1,6 +1,39 @@
 {
   "permissions": {
-    "deny": ["Agent", "Task", "Workflow", "CronCreate", "RemoteTrigger"]
+    "deny": [
+      "Agent",
+      "Task",
+      "Workflow",
+      "CronCreate",
+      "RemoteTrigger",
+      "Read(.env)",
+      "Edit(.env)",
+      "Read(.env.*)",
+      "Edit(.env.*)",
+      "Read(!.env.example)",
+      "Edit(!.env.example)",
+      "Read(*.pem)",
+      "Edit(*.pem)",
+      "Read(*.key)",
+      "Edit(*.key)",
+      "Read(id_rsa*)",
+      "Edit(id_rsa*)",
+      "Read(.netrc)",
+      "Edit(.netrc)",
+      "Read(.pypirc)",
+      "Edit(.pypirc)",
+      "Read(credentials)",
+      "Edit(credentials)",
+      "Read(credentials.json)",
+      "Edit(credentials.json)",
+      "Read(.git-credentials)",
+      "Edit(.git-credentials)"
+    ],
+    "ask": [
+      "Edit(.claude/settings.json)",
+      "Edit(.claude/settings.local.json)",
+      "Edit(.claude/hooks/**)"
+    ]
   },
   "hooks": {
     "PreToolUse": [
@@ -12,6 +45,18 @@
             "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/block_native_delegation.py",
             "args": [],
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/protect_secrets.py",
+            "args": [],
+            "timeout": 10,
+            "onFailure": "block"
           }
         ]
       }
