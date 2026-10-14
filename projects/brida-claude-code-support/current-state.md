@@ -2,22 +2,22 @@
 
 - Status: receipt lifecycle schema v2 is implemented, migrated, mutation-tested,
   and independently reviewed `PASS`.
-- `EVWAIT-001` (2026-10-05, branch `feat/herdr-agent-watch`, commits
-  `746f82e` and `6882121`, not pushed): `brichan-herdr-agent-observe watch`
-  streams worker state transitions as JSON lines for the Claude Code Monitor
-  tool, so a Claude coordinator waits without a model turn per 30 s wait.
-  Review `PASS` (5 Lows, fixed).
-- `EVWAIT-002` (2026-10-05, same branch, commits `8481c45` and `7b6ed28`):
-  `watch --source auto` (default) receives state changes pushed by Herdr
-  `events.subscribe`, verified live on 0.9.1, and falls back to the
-  EVWAIT-001 wait loop. Review v1 CHANGES REQUIRED (2 Medium, 2 Low) fixed;
-  re-review v2 `PASS`. Not probed: a Herdr server restart. Codex still has a
-  pending CLI update, so both reviews ran on Claude Fable 5.
+- `EVWAIT-001`/`EVWAIT-002` (2026-10-05, merged in #40): `brichan-herdr-agent-observe
+  watch` streams worker state changes (Herdr `events.subscribe`, with a wait-loop
+  fallback) so a Claude coordinator waits without spending model turns.
 - Claude Code 2.1.296 is authenticated and routable; Codex is not installed,
   so recent reviews run same-provider on Claude Fable 5.
 - Checkout guardrails on `main` (2026-10-12): launches and `.claude/settings.json`
   deny `Agent`, `Task`, `Workflow`, `CronCreate`, `RemoteTrigger`; the hook
   asks before Bash starts `claude`/`codex` (`CLAUDE-007`–`CLAUDE-009`).
+- `CLAUDE-010` (M1, level 2, 2026-10-14, branch
+  `feat/protect-secrets-and-guardrails`, commit `97aa695`, not pushed): checkout
+  settings deny secret files; fail-closed hook `protect_secrets.py` denies Bash
+  secret reads and commits adding high-confidence tokens, and asks before
+  `.claude/` and `docs/policy/` edits (`BRICHAN_POLICY_EDIT_TASK` skips the
+  policy ask). Plan review PASS on v4; code review PASS with three Low
+  residuals: `rm -rf .claude` not asked, `--git-dir` commits scanned against
+  `cwd`, glob reads not denied by the hook.
 - Canonical receipts support schema v1 and v2. V2 separates immutable attempt
   origin from current lifecycle and validates prior state plus replacement
   evidence.
@@ -65,15 +65,12 @@
 
 ## Next actions
 
-1. Resume `CLAUDE-010` (research item M1, level 2) after the weekly usage
-   reset on 2026-10-14, paused by the user on 2026-10-12: run a fresh plan
-   re-review of `CLAUDE-010-P1` v3 (`claude-fable-5` `xhigh`), then accept the
-   plan, write the receipt, implement, and code review. Branch
-   `feat/protect-secrets-and-guardrails`; dossier
-   `projects/brida-claude-code-support/handoffs/CLAUDE-010/`.
-2. Fix the redirect false positive in `.claude/hooks/block_native_delegation.py`:
+1. Fix the redirect false positive in `.claude/hooks/block_native_delegation.py`:
    `2>/dev/null` or `2>&1` makes `claude --version` ask, which stalls Herdr
-   workers (seen 2026-10-12 in the `CLAUDE-010` plan review). Separate task.
+   workers. Separate task; `protect_secrets.py` already handles redirects.
+2. Follow-up for `CLAUDE-010` residuals: treat a write target that is an
+   ancestor of a guarded path as guarded, and pass `--git-dir`/`--work-tree`
+   through to the commit scan.
 3. Repeat `BENCHMARK-002` with more task instances before changing routing.
 4. Decide whether replacement evidence should be co-located or immutable before
    tightening evidence-path durability.
