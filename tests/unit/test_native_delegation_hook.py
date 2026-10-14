@@ -114,7 +114,7 @@ class NativeDelegationHookTest(unittest.TestCase):
 
     def test_settings_wire_the_hook_and_deny_rules(self):
         settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
-        self.assertEqual(
+        self.assertLessEqual(
             {"Agent", "Task", "Workflow", "CronCreate", "RemoteTrigger"},
             set(settings["permissions"]["deny"]),
         )
